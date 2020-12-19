@@ -1,0 +1,137 @@
+#%% Import Dependencies
+from pyapm.classes import Grid, Panel, PanelSystem, PanelResult
+from pyapm.output.msh import result_to_msh
+from pyfoil.airfoil import naca_to_xyt
+from numpy.matlib import zeros, matrix, ones
+from numpy.linalg import solve
+from math import cos, sin, radians
+from pyvlm.tools import full_cosine_spacing
+from pygeom.geom3d import Vector
+from pygeom.matrix3d import MatrixVector, solve_matrix_vector, elementwise_dot_product
+
+#%% Create Grids
+xznum = 6
+x, z, _ = naca_to_xyt('0012', num=xznum)
+
+ynum = 2
+cdst = full_cosine_spacing(ynum-1)
+
+ymin = -3.0
+ymax = 3.0
+yrng = ymax-ymin
+
+y = [ymin+yrng*cdsti for cdsti in cdst]
+
+grids = {}
+gidmat = zeros((ynum, xznum*2+1), dtype=int)
+
+gid = 0
+for j, (xj, zj) in enumerate(zip(x, z)):
+    te = False
+    if j == 0 or j == 2*xznum:
+        te = True
+    for i, yi in enumerate(y):
+        gid += 1
+        grids[gid] = Grid(gid, xj, yi, zj, te)
+        gidmat[i, j] = gid
+
+#%% Create Panels
+panels = {}
+pid = 0
+for i in range(2*xznum):
+    for j in range(ynum-1):
+        pid += 1
+        gids = [gidmat[j+1, i], gidmat[j, i], gidmat[j, i+1], gidmat[j+1, i+1]]
+        panels[pid] = Panel(pid, gids)
+
+# # Close Trailing Edge
+# for j in range(ynum-1):
+#     pid += 1
+#     gids = [gidmat[j+1, -1], gidmat[j, -1], gidmat[j, 0], gidmat[j+1, 0]]
+#     panels[pid] = Panel(pid, gids)
+
+# n = 2*xznum
+# # Close Ends
+# for i in range(xznum):
+#     pid += 1
+#     if i == xznum-1:
+#         gids = [gidmat[0, i+1], gidmat[0, i], gidmat[0, n-i]]
+#     else:
+#         gids = [gidmat[0, i+1], gidmat[0, i], gidmat[0, n-i], gidmat[0, n-i-1]]
+#     panels[pid] = Panel(pid, gids)
+
+# for i in range(xznum):
+#     pid += 1
+#     if i == xznum-1:
+#         gids = [gidmat[-1, i+1], gidmat[-1, i], gidmat[-1, n-i]]
+#     else:
+#         gids = [gidmat[-1, i+1], gidmat[-1, i], gidmat[-1, n-i], gidmat[-1, n-i-1]]
+#     gids.reverse()
+#     panels[pid] = Panel(pid, gids)
+
+#%% Create Panel System
+name = 'Test Simple Wing Small'
+bref = yrng
+cref = 1.0
+sref = bref*cref
+rref = Vector(0.25, 0.0, 0.0)
+psys = PanelSystem(name, grids, panels, bref, cref, sref, rref)
+
+psys.assemble_panels()
+psys.assemble_horseshoes()
+psys.solve_system()
+
+#%% Solve Panel Result
+alpha = 0.0
+
+pres = PanelResult(f'AoA = {alpha:.1f} degrees', psys)
+pres.set_state(alpha = alpha)
+
+#%% Output MSH File
+mshfilepath = '..\\outputs\\' + psys.name + '.msh'
+result_to_msh(pres, mshfilepath)
+
+#%% Print Source Matrix
+print(f'avs = \n{psys.avs}')
+nrmmat = psys.nrms.repeat(psys.numpnl, axis=1)
+
+ans = elementwise_dot_product(psys.avs, nrmmat)
+print(f'ans = \n{ans}')
+print(f'ans = \n{psys.ans}')
+
+sig = solve_matrix_vector(psys.ans, -psys.nrms)
+print(f'Solved sig = \n{sig}')
+
+print(f'Specified sig = \n{psys.sig}')
+
+
+# vfsn = pres.vfs*psys.nrms
+
+# vsn = ans*pres.sig
+
+# print(f'vfsn = \n{vfsn}')
+# print(f'vsn = \n{vsn}')
+
+# print(f'vnrm = \n{pres.veln}')
+
+# sig = -solve(ans, vfsn)
+
+# print(f'Solved sig = \n{sig}')
+
+# print(f'Specified sig = \n{pres.sig}')
+
+# chkn = ans*sig+vfsn
+
+# print(f'chkn = \n{chkn}')
+
+# pfs = psys.pnts.x
+
+# print(f'pfs = \n{pfs}')
+
+# ps = psys.aps*sig
+
+# print(f'ps = \n{ps}')
+
+# chkd = pfs+ps
+
+# print(f'chkd = \n{chkd}')
