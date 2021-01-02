@@ -1,14 +1,18 @@
 from pygeom.geom3d import Vector
-from pygeom.matrix3d import MatrixVector
-from numpy.matlib import matrix, where
+from typing import List
 
 class Grid(Vector):
-    gid: None
-    te: None
-    def __init__(self, gid: int, x: float, y: float, z: float, te: bool):
+    gid: int = None
+    te: float = None
+    ind: int = None
+    pnls: List[object] = None
+    def __init__(self, gid: int, x: float, y: float, z: float, te: bool=False):
         self.gid = gid
-        super().__init__(x, y, z)
         self.te = te
+        super().__init__(x, y, z)
+        self.pnls = []
+    def set_index(self, ind: int):
+        self.ind = ind
     def __str__(self):
         outstr = '{:}: <{:}, {:}, {:}>'.format(self.gid, self.x, self.y, self.z)
         if self.te:

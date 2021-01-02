@@ -8,8 +8,8 @@ from pygeom.matrix3d import elementwise_dot_product, elementwise_cross_product
 from pygeom.matrix3d import elementwise_multiply
 
 tol = 1e-12
-fourPi = 4*pi
 piby2 = pi/2
+fourPi = 4*pi
 
 class BoundEdge(object):
     pnto: Vector = None
@@ -115,7 +115,7 @@ class BoundEdge(object):
         diry = Vector(self.dirx.y, self.diry.y, self.dirz.y)
         dirz = Vector(self.dirx.z, self.diry.z, self.dirz.z)
         return MatrixVector(vecs*dirx, vecs*diry, vecs*dirz)
-    def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool = False):
+    def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool=False, sgnz: matrix=None, factor: bool=True):
         rls = self.points_to_local(pnts)
         absx = absolute(rls.x)
         rls.x[absx < tol] = 0.0
@@ -123,36 +123,42 @@ class BoundEdge(object):
         rls.y[absy < tol] = 0.0
         absz = absolute(rls.z)
         rls.z[absz < tol] = 0.0
-        sgnz = ones(rls.shape, float)
-        sgnz[rls.z <= 0.0] = -1.0
+        if sgnz is None:
+            sgnz = ones(rls.shape, float)
+            sgnz[rls.z <= 0.0] = -1.0
         avs = rls-self.grdal
         phida, ams = phi_doublet_matrix(avs, rls, sgnz)
         bvs = rls-self.grdbl
         phidb, bms = phi_doublet_matrix(bvs, rls, sgnz)
         phids = phida-phidb
+        if factor:
+            phids = phids/fourPi
         if extraout:
             return phids, rls, avs, ams, bvs, bms
         else:
             return phids
-    def doublet_influence_coefficients(self, pnts: MatrixVector):
-        phid, _, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True)
+    def doublet_influence_coefficients(self, pnts: MatrixVector, sgnz: matrix=None, factor: bool=True):
+        phid, _, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True, sgnz=sgnz, factor=False)
         veldl = vel_doublet_matrix(av, am, bv, bm)
         veld = self.vectors_to_global(veldl)
-        phid, veld = phid/fourPi, veld/fourPi
+        if factor:
+            phid, veld = phid/fourPi, veld/fourPi
         return phid, veld
-    def velocity_potentials(self, pnts: MatrixVector):
-        phid, rl, _, am, _, bm = self.doublet_velocity_potentials(pnts, extraout=True)
+    def velocity_potentials(self, pnts: MatrixVector, sgnz: matrix=None, factor: bool=True):
+        phid, rl, _, am, _, bm = self.doublet_velocity_potentials(pnts, extraout=True, sgnz=sgnz, factor=False)
         phis, _ = phi_source_matrix(am, bm, self.lenab, rl, phid)
-        phid, phis = phid/fourPi, phis/fourPi
+        if factor:
+            phid, phis = phid/fourPi, phis/fourPi
         return phid, phis
-    def influence_coefficients(self, pnts: MatrixVector):
-        phid, rl, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True)
+    def influence_coefficients(self, pnts: MatrixVector, sgnz: matrix=None, factor: bool=True):
+        phid, rl, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True, sgnz=sgnz, factor=False)
         phis, Qab = phi_source_matrix(am, bm, self.lenab, rl, phid)
         velsl = vel_source_matrix(Qab, rl, phid)
         vels = self.vectors_to_global(velsl)
         veldl = vel_doublet_matrix(av, am, bv, bm)
         veld = self.vectors_to_global(veldl)
-        phid, phis, veld, vels = phid/fourPi, phis/fourPi, veld/fourPi, vels/fourPi
+        if factor:
+            phid, phis, veld, vels = phid/fourPi, phis/fourPi, veld/fourPi, vels/fourPi
         return phid, phis, veld, vels
     def __str__(self):
         outstr = ''

@@ -5,8 +5,8 @@ from numpy.matlib import matrix, ones, zeros, absolute, divide, multiply, full, 
 from .boundedge import phi_doublet_matrix
 
 tol = 1e-12
-fourPi = 4*pi
 piby2 = pi/2
+fourPi = 4*pi
 
 class TrailingEdge(object):
     pnto: Vector = None
@@ -77,7 +77,7 @@ class TrailingEdge(object):
         diry = Vector(self.dirx.y, self.diry.y, self.dirz.y)
         dirz = Vector(self.dirx.z, self.diry.z, self.dirz.z)
         return MatrixVector(vecs*dirx, vecs*diry, vecs*dirz)
-    def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool = False):
+    def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool=False, sgnz: matrix=None, factor: bool=True):
         rls = self.points_to_local(pnts)
         absx = absolute(rls.x)
         rls.x[absx < tol] = 0.0
@@ -85,21 +85,25 @@ class TrailingEdge(object):
         rls.y[absy < tol] = 0.0
         absz = absolute(rls.z)
         rls.z[absz < tol] = 0.0
-        sgnz = ones(rls.shape, float)
-        sgnz[rls.z <= 0.0] = -1.0
+        if sgnz is None:
+            sgnz = ones(rls.shape, float)
+            sgnz[rls.z <= 0.0] = -1.0
         ovs = rls-self.grdol
         phido, oms = phi_doublet_matrix(ovs, rls, sgnz)
         phidt = phi_trailing_doublet_matrix(rls, sgnz, self.faco)
         phid = phido*self.faco+phidt
+        if factor:
+            phid = phid/fourPi
         if extraout:
             return phid, rls, ovs, oms
         else:
             return phid
-    def doublet_influence_coefficients(self, pnts: MatrixVector):
-        phid, _, ov, om = self.doublet_velocity_potentials(pnts, extraout=True)
+    def doublet_influence_coefficients(self, pnts: MatrixVector, sgnz: matrix=None, factor: bool=True):
+        phid, _, ov, om = self.doublet_velocity_potentials(pnts, extraout=True, sgnz=sgnz, factor=False)
         veldl = vel_doublet_matrix(ov, om, self.faco)
         veld = self.vectors_to_global(veldl)*self.faco
-        phid, veld = phid/fourPi, veld/fourPi
+        if factor:
+            phid, veld = phid/fourPi, veld/fourPi
         return phid, veld
     def __str__(self):
         outstr = ''
@@ -125,8 +129,6 @@ def vel_doublet_matrix(ov, om, faco):
     return velol
 
 def phi_trailing_doublet_matrix(rls: MatrixVector, sgnz: matrix, faco: float):
-    # mags = vecs.return_magnitude()
-    # ms = divide(vecs.x, rls.y)
     ths = zeros(rls.shape, dtype=float)
     ths[rls.y > 0.0] = piby2
     ths[rls.y == 0.0] = -piby2*faco

@@ -1,1 +1,1 @@
-from .classes.panelsystem import panel_system_json
+from .classes.panelsystem import panelsystem_from_mesh, panelsystem_from_json

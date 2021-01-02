@@ -1,14 +1,8 @@
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from pygeom.geom3d import Vector, Coordinate, ihat, khat
-from numpy.matlib import zeros
-from math import atan2, sqrt, pi, atan
+from numpy.matlib import zeros, ones
 from .boundedge import BoundEdge
 from .trailingedge import TrailingEdge
-
-tol = 1e-12
-fourPi = 4*pi
-piby2 = pi/2
-piby4 = pi/4
 
 class HorseShoe(object):
     grda: Vector = None
@@ -22,6 +16,7 @@ class HorseShoe(object):
     _bvab: BoundEdge = None
     _tva: TrailingEdge = None
     _tvb: TrailingEdge = None
+    _nrm: Vector = None
     def __init__(self, grda: Vector, grdb: Vector, diro: Vector, ind: int=None):
         self.grda = grda
         self.grdb = grdb
@@ -66,19 +61,31 @@ class HorseShoe(object):
         if self._tvb is None:
             self._tvb = TrailingEdge(self.pnto, self.grdb, self.diro, 1.0)
         return self._tvb
+    @property
+    def nrm(self):
+        if self._nrm is None:
+            self._nrm = self.bvab.dirz
+        return self._nrm
+    def sign_local_z(self, pnts: MatrixVector):
+        locz = (pnts - self.pnto)*self.nrm
+        sgnz = ones(locz.shape, float)
+        sgnz[locz <= 0.0] = -1.0
+        return sgnz
     def doublet_influence_coefficients(self, pnts: MatrixVector):
         phid = zeros(pnts.shape, float)
         veld = zero_matrix_vector(pnts.shape, float)
-        phidab, veldab = self.bvab.doublet_influence_coefficients(pnts)
-        phida, velda = self.tva.doublet_influence_coefficients(pnts)
-        phidb, veldb = self.tvb.doublet_influence_coefficients(pnts)
+        sgnz = self.sign_local_z(pnts)
+        phidab, veldab = self.bvab.doublet_influence_coefficients(pnts, sgnz=sgnz)
+        phida, velda = self.tva.doublet_influence_coefficients(pnts, sgnz=sgnz)
+        phidb, veldb = self.tvb.doublet_influence_coefficients(pnts, sgnz=sgnz)
         phid = phidab + phida + phidb
         veld = veldab + velda + veldb
         return phid, veld
     def doublet_velocity_potentials(self, pnts: MatrixVector):
         phid = zeros(pnts.shape, float)
-        phidab = self.bvab.doublet_velocity_potentials(pnts)
-        phida = self.tva.doublet_velocity_potentials(pnts)
-        phidb = self.tvb.doublet_velocity_potentials(pnts)
+        sgnz = self.sign_local_z(pnts)
+        phidab = self.bvab.doublet_velocity_potentials(pnts, sgnz=sgnz)
+        phida = self.tva.doublet_velocity_potentials(pnts, sgnz=sgnz)
+        phidb = self.tvb.doublet_velocity_potentials(pnts, sgnz=sgnz)
         phid = phidab + phida + phidb
         return phid

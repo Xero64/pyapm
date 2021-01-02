@@ -1,10 +1,8 @@
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
-from numpy.matlib import zeros
+from numpy.matlib import zeros, ones
 from pygeom.geom3d import Vector, Coordinate
 from .boundedge import BoundEdge
 from typing import List
-
-tol = 1e-12
 
 class Poly(object):
     grds: List[Vector] = None
@@ -48,25 +46,19 @@ class Poly(object):
             for edg in self.edgs:
                 self._area += edg.area
         return self._area
-    def influence_coefficient(self, pnt: Vector, display=False):
-        phiv = 0.0
-        phis = 0.0
-        velv = Vector(0.0, 0.0, 0.0)
-        vels = Vector(0.0, 0.0, 0.0)
-        for edg in self.edgs:
-            ephiv, ephis, evelv, evels = edg.influence_coefficient(pnt, display=display)
-            phiv += ephiv
-            phis += ephis
-            velv += evelv
-            vels += evels
-        return phiv, phis, velv, vels
+    def sign_local_z(self, pnts: MatrixVector):
+        locz = (pnts - self.pnto)*self.nrm
+        sgnz = ones(locz.shape, float)
+        sgnz[locz <= 0.0] = -1.0
+        return sgnz
     def influence_coefficients(self, pnts: MatrixVector):
         phiv = zeros(pnts.shape, float)
         phis = zeros(pnts.shape, float)
         velv = zero_matrix_vector(pnts.shape, float)
         vels = zero_matrix_vector(pnts.shape, float)
+        sgnz = self.sign_local_z(pnts)
         for edg in self.edgs:
-            ephiv, ephis, evelv, evels = edg.influence_coefficients(pnts)
+            ephiv, ephis, evelv, evels = edg.influence_coefficients(pnts, sgnz=sgnz)
             phiv += ephiv
             phis += ephis
             velv += evelv
@@ -75,21 +67,24 @@ class Poly(object):
     def doublet_influence_coefficients(self, pnts: MatrixVector):
         phiv = zeros(pnts.shape, float)
         velv = zero_matrix_vector(pnts.shape, float)
+        sgnz = self.sign_local_z(pnts)
         for edg in self.edgs:
-            ephiv, evelv = edg.doublet_influence_coefficients(pnts)
+            ephiv, evelv = edg.doublet_influence_coefficients(pnts, sgnz=sgnz)
             phiv += ephiv
             velv += evelv
         return phiv, velv
     def doublet_velocity_potentials(self, pnts: MatrixVector):
         phiv = zeros(pnts.shape, float)
+        sgnz = self.sign_local_z(pnts)
         for edg in self.edgs:
-            phiv += edg.doublet_velocity_potentials(pnts)
+            phiv += edg.doublet_velocity_potentials(pnts, sgnz=sgnz)
         return phiv
     def velocity_potentials(self, pnts: MatrixVector):
         phiv = zeros(pnts.shape, float)
         phis = zeros(pnts.shape, float)
+        sgnz = self.sign_local_z(pnts)
         for edg in self.edgs:
-            ephiv, ephis = edg.velocity_potentials(pnts)
+            ephiv, ephis = edg.velocity_potentials(pnts, sgnz=sgnz)
             phiv += ephiv
             phis += ephis
         return phiv, phis
