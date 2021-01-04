@@ -20,7 +20,26 @@ pres.set_density(rho=rho)
 pres.set_state(alpha=alpha, speed=speed)
 
 display_markdown(pres)
+
+print()
+print(f'Total Force = {pres.nfres.nffrctot:.2f} N')
+print(f'Total Moment = {pres.nfres.nfmomtot:.2f} N.m')
+
+mshfilepath = '..\\outputs\\' + pres.name + '.msh'
+panelresult_to_msh(pres, mshfilepath)
+
+#%% Solve Panel Result
+alpha = 0.0
+speed = 13.0
+pbo2V = 0.002
+rho = 1.145
+
+pres = PanelResult('Roll Case', psys)
+pres.set_density(rho=rho)
+pres.set_state(alpha=alpha, speed=speed, pbo2V=pbo2V)
+
+display_markdown(pres)
 display_markdown(pres.surface_loads)
 
-mshfilepath = '..\\outputs\\' + psys.name + '.msh'
+mshfilepath = '..\\outputs\\' + pres.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)

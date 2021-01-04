@@ -1,4 +1,4 @@
-from math import sqrt, cos, sin, radians
+from math import sqrt, cos, sin, radians, degrees, atan2
 from json import load
 from typing import List, Dict
 from pygeom.geom3d import Vector, Coordinate
@@ -50,21 +50,56 @@ def surffunc_from_json(funcdata: dict):
     values = funcdata["values"]
     return PanelFunction(var, spacing, interp, values)
 
-class PanelSection(object):
+class PanelProfile(object):
     point: Vector = None
     chord: float = None
     twist: float = None
-    airfoil: Airfoil = None
+    _tilt: float = None
+    _profile: MatrixVector = None
+    _crdsys: Coordinate = None
+    def __init__(self, point: Vector, chord: float, twist: float):
+        self.point = point
+        self.chord = chord
+        self.twist = twist
+    def set_tilt(self, tilt: float):
+        self._tilt = tilt
+    def set_profile(self, profile: MatrixVector):
+        self._profile = profile
+    @property
+    def crdsys(self):
+        if self._crdsys is None:
+            tilt = radians(self._tilt)
+            sintilt = sin(tilt)
+            costilt = cos(tilt)
+            diry = Vector(0.0, costilt, sintilt)
+            twist = radians(self.twist)
+            sintwist = sin(twist)
+            costwist = cos(twist)
+            dirx = Vector(costwist, sintwist*sintilt, -sintwist*costilt)
+            dirz = dirx**diry
+            self._crdsys = Coordinate(self.point, dirx, diry, dirz)
+        return self._crdsys
+    @property
+    def profile(self):
+        return self._profile
+    def get_shape(self):
+        return self.crdsys.vector_to_global(self._profile*self.chord)+self.point
+    def __repr__(self):
+        return f'<PanelProfile at {self.point:}>'
+
+class PanelSection(PanelProfile):
+    airfoil: object = None
     bnum: int = None
     bspc: str = None
     mirror: bool = None
     cnum: int = None
     xoc: float = None
     zoc: float = None
-    tilt: float = None
     bval: float = None
-    _profile: MatrixVector = None
-    def __init__(self, point: Vector, chord: float, twist: float, airfoil):
+    shta = None
+    shtb = None
+    def __init__(self, point: Vector, chord: float, twist: float, airfoil: object):
+        super(PanelSection, self).__init__(point, chord, twist)
         self.point = point
         self.chord = chord
         self.twist = twist
@@ -74,7 +109,6 @@ class PanelSection(object):
         self.bspc = 'equal'
         self.xoc = 0.0
         self.zoc = 0.0
-        self.tilt = 0.0
     def mirror_section_in_y(self, ymir: float=0.0):
         point = Vector(self.point.x, ymir-self.point.y, self.point.z)
         chord = self.chord
@@ -86,12 +120,25 @@ class PanelSection(object):
         sect.bspc = self.bspc
         sect.xoc = self.xoc
         sect.zoc = self.zoc
-        sect.tilt = -self.tilt
         sect.bval = self.bval
+        if self.tilt is not None:
+            sect._tilt = -self._tilt
         return sect
     def set_cnum(self, cnum: int):
         self.cnum = cnum
         self.airfoil.update(self.cnum)
+    @property
+    def tilt(self):
+        if self._tilt is None:
+            if self.shta is None and self.shtb is None:
+                pass
+            elif self.shtb is None:
+                self._tilt = self.shta.tilt
+            elif self.shta is None:
+                self._tilt = self.shtb.tilt
+            else:
+                self._tilt = (self.shta.tilt + self.shtb.tilt)/2
+        return self._tilt
     @property
     def profile(self):
         if self._profile is None:
@@ -99,8 +146,9 @@ class PanelSection(object):
             self._profile = zero_matrix_vector((1, num), dtype=float)
             for i in range(self.cnum+1):
                 n = num-i-1
-                self._profile[0, i] = Vector(self.airfoil.xl[-i-1], 0.0, self.airfoil.yl[-i-1])
-                self._profile[0, n] = Vector(self.airfoil.xu[-i-1], 0.0, self.airfoil.yu[-i-1])
+                j = n-num
+                self._profile[0, i] = Vector(self.airfoil.xl[j], 0.0, self.airfoil.yl[j])
+                self._profile[0, n] = Vector(self.airfoil.xu[j], 0.0, self.airfoil.yu[j])
             self._profile.z[absolute(self._profile.z) < tol] = 0.0
             offset = Vector(self.xoc, 0.0, self.zoc)
             self._profile = self._profile-offset
@@ -123,57 +171,22 @@ def panelsection_from_json(sectdata: dict) -> PanelSection:
             airfoil = NACA4(code)
     else:
         return ValueError(f'Airfoil identified by {airfoilstr:s} does not exist.')
-    if 'twist' not in sectdata:
-        twist = 0.0
-    else:
+    if 'twist' in sectdata:
         twist = sectdata['twist']
+    else:
+        twist = 0.0
     sect = PanelSection(point, chord, twist, airfoil)
     if 'bnum' in sectdata:
         sect.bnum = sectdata['bnum']
     if 'bspc' in sectdata:
         sect.bspc = sectdata['bspc']
+    if 'tilt' in sectdata:
+        sect.titl = sectdata['tilt']
     if 'xoc' in sectdata:
         sect.xoc = sectdata['xoc']
     if 'zoc' in sectdata:
         sect.zoc = sectdata['zoc']
     return sect
-
-class PanelProfile(object):
-    point: Vector = None
-    chord: float = None
-    twist: float = None
-    tilt: float = None
-    profile: MatrixVector = None
-    _crdsys: Coordinate = None
-    _shape: MatrixVector = None
-    def __init__(self, point: Vector, chord: float, twist: float, tilt: float,
-                 profile: MatrixVector):
-        self.point = point
-        self.chord = chord
-        self.twist = twist
-        self.tilt = tilt
-        self.profile = profile
-    @property
-    def crdsys(self):
-        if self._crdsys is None:
-            tilt = radians(self.tilt)
-            sintilt = sin(tilt)
-            costilt = cos(tilt)
-            diry = Vector(0.0, costilt, sintilt)
-            twist = radians(self.twist)
-            sintwist = sin(twist)
-            costwist = cos(twist)
-            dirx = Vector(costwist, sintwist*sintilt, -sintwist*costilt)
-            dirz = dirx**diry
-            self._crdsys = Coordinate(self.point, dirx, diry, dirz)
-        return self._crdsys
-    @property
-    def shape(self):
-        if self._shape is None:
-            self._shape = self.crdsys.vector_to_global(self.profile*self.chord)+self.point
-        return self._shape
-    def __repr__(self):
-        return f'<PanelProfile at {self.point:}>'
 
 class PanelSheet(object):
     scta: PanelSection = None
@@ -185,9 +198,13 @@ class PanelSheet(object):
     _prfs: List[PanelProfile] = None
     _shps: MatrixVector = None
     _mirror: bool = None
+    _tilt: float = None
+    _area: float = None
     def __init__(self, scta: PanelSection, sctb: PanelSection):
         self.scta = scta
+        self.scta.shtb = self
         self.sctb = sctb
+        self.sctb.shta = self
         self.fncs = {}
     @property
     def mirror(self) -> bool:
@@ -235,7 +252,7 @@ class PanelSheet(object):
             brng = bmax-bmin
             pointdir = self.sctb.point-self.scta.point
             profiledir = self.sctb.profile-self.scta.profile
-            for bval in self.bdst:
+            for bval in self.bdst[1:-1]:
                 if self.mirror:
                     bint = bmax-bval*brng
                 else:
@@ -254,7 +271,9 @@ class PanelSheet(object):
                 else:
                     tilt = self.scta.tilt*(1-bval)+self.sctb.tilt*bval
                 profile = self.scta.profile+bval*profiledir
-                prof = PanelProfile(point, chord, twist, tilt, profile)
+                prof = PanelProfile(point, chord, twist)
+                prof.set_tilt(tilt)
+                prof.set_profile(profile)
                 self._prfs.append(prof)
         return self._prfs
     @property
@@ -262,10 +281,29 @@ class PanelSheet(object):
         if self._shps is None:
             numprf = len(self.prfs)
             numvec = self.prfs[0].profile.shape[1]
-            self._shps = zero_matrix_vector((numprf, numvec), dtype=float)
+            self._shps = zero_matrix_vector((numprf+2, numvec), dtype=float)
+            self._shps[0, :] = self.scta.get_shape()
             for i, prf in enumerate(self.prfs):
-                self._shps[i, :] = prf.shape
+                self._shps[i+1, :] = prf.get_shape()
+            self._shps[-1, :] = self.sctb.get_shape()
         return self._shps
+    @property
+    def tilt(self):
+        if self._tilt is None:
+            dz = self.sctb.point.z - self.scta.point.z
+            dy = self.sctb.point.y - self.scta.point.y
+            self._tilt = degrees(atan2(dz, dy))
+        return self._tilt
+    @property
+    def area(self):
+        if self._area is None:
+            bmin = min(self.scta.bval, self.sctb.bval)
+            bmax = max(self.scta.bval, self.sctb.bval)
+            brng = bmax-bmin
+            chorda = self.scta.chord
+            chordb = self.sctb.chord
+            self._area = (chorda+chordb)/2*brng
+        return self._area
     def __repr__(self):
         return '<PanelSheet>'
 
@@ -280,6 +318,7 @@ class PanelSurface(object):
     cspc: str = None
     twist: float = None
     _shts: List[PanelSheet] = None
+    _area: float = None
     _shps: MatrixVector = None
     gidmat: matrix = None
     grds: Dict[int, Grid] = None
@@ -304,6 +343,15 @@ class PanelSurface(object):
                 bval += sqrt(delx**2 + dely**2 + delz**2)
         for fnc in self.fncs.values():
             fnc.set_spline(bval)
+            if fnc.var == 'twist':
+                for sct in self.scts:
+                    sct.twist = fnc.interpolate(sct.bval)
+            if fnc.var == 'chord':
+                for sct in self.scts:
+                    sct.chord = fnc.interpolate(sct.bval)
+            if fnc.var == 'tilt':
+                for sct in self.scts:
+                    sct._tilt = fnc.interpolate(sct.bval)                
         if self.mirror:
             ymir = self.scts[0].point.y
             scts = [sct.mirror_section_in_y(ymir=ymir) for sct in self.scts]
@@ -324,15 +372,22 @@ class PanelSurface(object):
     @property
     def shps(self):
         if self._shps is None:
-            numprf = sum([sht.shps.shape[0] for sht in self.shts])-len(self.shts)+1
+            numshp = sum([sht.shps.shape[0] for sht in self.shts])-len(self.shts)+1
             numvec = self.cnum*2+1
-            self._shps = zero_matrix_vector((numprf, numvec), dtype=float)
+            self._shps = zero_matrix_vector((numshp, numvec), dtype=float)
             i = 0
             for sht in self.shts:
                 n = i + sht.shps.shape[0]
                 self._shps[i:n, :] = sht.shps
                 i = n-1
         return self._shps
+    @property
+    def area(self):
+        if self._area is None:
+            self._area = 0.0
+            for sht in self.shts:
+                self._area += sht.area
+        return self._area
     def mesh(self, gid: int, pid: int):
         # Generate Surface Grid ID Matrix
         self.gidmat = gidmat = zeros(self.shps.shape, dtype=int)
@@ -383,6 +438,12 @@ class PanelSurface(object):
         #     gids.reverse()
         #     panels[pid] = Panel(pid, gids)
         return gid, pid
+    @property
+    def pinds(self):
+        pinds = []
+        for pnl in self.pnls.values():
+            pinds.append(pnl.ind)
+        return pinds
     def __repr__(self):
         return f'<PanelSurface: {self.name:s}>'
 

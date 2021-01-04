@@ -1,7 +1,7 @@
 from json import load
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector, MatrixVector
-from pygeom.matrix3d import solve_matrix_vector, elementwise_dot_product
+from pygeom.matrix3d import solve_matrix_vector, elementwise_dot_product, elementwise_cross_product
 from typing import Dict, List
 from .panel import Panel
 from .grid import Grid
@@ -22,10 +22,11 @@ class PanelSystem(object):
     _hsvs: List[HorseShoe] = None
     _numgrd: int = None
     _numpnl: int = None
+    _numhsv: int = None
     _pnts: MatrixVector = None
     _nrms: MatrixVector = None
     _pnla: matrix = None
-    _pntr: MatrixVector = None
+    _rrel: MatrixVector = None
     _apd: matrix = None
     _aps: matrix = None
     _aph: matrix = None
@@ -42,16 +43,6 @@ class PanelSystem(object):
     _mu: MatrixVector = None
     _ar: float = None
     _area: float = None
-    _grdavg: matrix = None
-    _grdvec: MatrixVector = None
-    _gpd: matrix = None
-    _gps: matrix = None
-    _gph: matrix = None
-    _gpm: matrix = None
-    _gvd: MatrixVector = None
-    _gvs: MatrixVector = None
-    _gvh: MatrixVector = None
-    _gvm: MatrixVector = None
     def __init__(self, name: str, grds: Dict[int, Grid], pnls: Dict[int, Panel],
                  bref: float, cref: float, sref: float, rref: Vector):
         self.name = name
@@ -78,7 +69,7 @@ class PanelSystem(object):
         self._hsvs = []
         for pnl in self.pnls.values():
             pnl.set_horseshoes(diro)
-            self._hsvs = self._hsvs + pnl.hsvs
+        self._numhsv = None
         self._aph = None
         self._avh = None
         self._apm = None
@@ -101,18 +92,6 @@ class PanelSystem(object):
                 self._area += pnl.area
         return self._area
     @property
-    def grdavg(self):
-        if self._grdavg is None:
-            grdavg = zeros((self.numgrd, self.numpnl), dtype=float)
-            for pnl in self.pnls.values():
-                pind = pnl.ind
-                for i, grd in enumerate(pnl.grds):
-                    gind = grd.ind
-                    grdavg[gind, pind] = pnl.grdinva[i]
-            sumgrdavg = repeat(grdavg.sum(axis=1), self.numpnl, axis=1)
-            self._grdavg = divide(grdavg, sumgrdavg)
-        return self._grdavg
-    @property
     def numgrd(self):
         if self._numgrd is None:
             self._numgrd = len(self.grds)
@@ -123,6 +102,11 @@ class PanelSystem(object):
             self._numpnl = len(self.pnls)
         return self._numpnl
     @property
+    def numhsv(self):
+        if self._numhsv is None:
+            self._numhsv = len(self.hsvs)
+        return self._numhsv
+    @property
     def pnts(self):
         if self._pnts is None:
             self._pnts = zero_matrix_vector((self.numpnl, 1), dtype=float)
@@ -130,10 +114,10 @@ class PanelSystem(object):
                 self._pnts[pnl.ind, 0] = pnl.pnto
         return self._pnts
     @property
-    def pntr(self):
-        if self._pntr is None:
-            self._pntr = self.pnts-self.rref
-        return self._pntr
+    def rrel(self):
+        if self._rrel is None:
+            self._rrel = self.pnts-self.rref
+        return self._rrel
     @property
     def nrms(self):
         if self._nrms is None:
@@ -173,7 +157,7 @@ class PanelSystem(object):
     @property
     def avd(self):
         if self._avd is None:
-            self.assemble_panels(False)
+            self.assemble_panels_full(False)
         return self._avd
     @property
     def aps(self):
@@ -183,7 +167,7 @@ class PanelSystem(object):
     @property
     def avs(self):
         if self._avs is None:
-            self.assemble_panels(False)
+            self.assemble_panels_full(False)
         return self._avs
     @property
     def aph(self):
@@ -193,17 +177,23 @@ class PanelSystem(object):
     @property
     def avh(self):
         if self._avh is None:
-            self.assemble_horseshoes(False)
+            self.assemble_horseshoes_full(False)
         return self._avh
     @property
     def apm(self):
         if self._apm is None:
-            self._apm = self.apd + self.aph
+            self._apm = self.apd.copy()
+            for i, hsv in enumerate(self.hsvs):
+                ind = hsv.ind
+                self._apm[:, ind] = self._apm[:, ind] + self.aph[:, i]
         return self._apm
     @property
     def avm(self):
         if self._avm is None:
-            self._avm = self.avd + self.avh
+            self._avm = self.avd.copy()
+            for i, hsv in enumerate(self.hsvs):
+                ind = hsv.ind
+                self._avm[:, ind] = self._avm[:, ind] + self.avh[:, i]
         return self._avm
     @property
     def ans(self):
@@ -216,66 +206,31 @@ class PanelSystem(object):
             self._anm = elementwise_dot_product(self.nrms.repeat(self.numpnl, axis=1), self.avm)
         return self._anm
     @property
-    def grdvec(self):
-        if self._grdvec is None:
-            self._grdvec = zero_matrix_vector((self.numgrd, 1), dtype=float)
-            for grd in self.grds.values():
-                self._grdvec[grd.ind, 0] = grd
-        return self._grdvec
-    def assemble_grids(self):
-        pass
-    @property
-    def gpd(self):
-        if self._gpd is None:
-            self.assemble_grid_panels(False)
-        return self._gpd
-    @property
-    def gps(self):
-        if self._gps is None:
-            self.assemble_grid_panels(False)
-        return self._gps
-    @property
-    def gph(self):
-        if self._gph is None:
-            self.assemble_grid_horseshoes(False)
-        return self._gph
-    @property
-    def gvd(self):
-        if self._gvd is None:
-            self.assemble_grid_panels(False)
-        return self._gvd
-    @property
-    def gvs(self):
-        if self._gvs is None:
-            self.assemble_grid_panels(False)
-        return self._gvs
-    @property
-    def gvh(self):
-        if self._gvh is None:
-            self.assemble_grid_horseshoes(False)
-        return self._gvh
-    @property
-    def gpm(self):
-        if self._gpm is None:
-            self._gpm = self.gpd + self.gph
-        return self._gpm
-    @property
-    def gvm(self):
-        if self._gvm is None:
-            self._gvm = self.gvd + self.gvh
-        return self._gvm
-    @property
     def sig(self):
         if self._sig is None:
-            self._sig = -self.nrms
-            # self._sig = solve_matrix_vector(self.ans, -self.nrms)
+            self._sig = zero_matrix_vector((self.numpnl, 2), dtype=float)
+            self._sig[:, 0] = -self.nrms
+            self._sig[:, 1] = elementwise_cross_product(self.rrel, self.nrms)
         return self._sig
     @property
     def mu(self):
         if self._mu is None:
             self.solve_dirichlet_system(time=False)
         return self._mu
-    def assemble_panels(self, time: bool = True):
+    def assemble_panels(self, time: bool=True):
+        if time:
+            start = perf_counter()
+        shp = (self.numpnl, self.numpnl)
+        self._apd = zeros(shp, dtype=float)
+        self._aps = zeros(shp, dtype=float)
+        for pnl in self.pnls.values():
+            ind = pnl.ind
+            self._apd[:, ind], self._aps[:, ind] = pnl.velocity_potentials(self.pnts)
+        if time:
+            finish = perf_counter()
+            elapsed = finish - start
+            print(f'Panel assembly time is {elapsed:.3f} seconds.')
+    def assemble_panels_full(self, time: bool=True):
         if time:
             start = perf_counter()
         shp = (self.numpnl, self.numpnl)
@@ -289,49 +244,31 @@ class PanelSystem(object):
         if time:
             finish = perf_counter()
             elapsed = finish - start
-            print(f'Panel assembly time is {elapsed:.3f} seconds.')
-    def assemble_horseshoes(self, time: bool = True):
+            print(f'Full panel assembly time is {elapsed:.3f} seconds.')
+    def assemble_horseshoes(self, time: bool=True):
+        if time:
+            start = perf_counter()
+        shp = (self.numpnl, self.numhsv)
+        self._aph = zeros(shp, dtype=float)
+        for i, hsv in enumerate(self.hsvs):
+            self._aph[:, i] = hsv.doublet_velocity_potentials(self.pnts)
+        if time:
+            finish = perf_counter()
+            elapsed = finish - start
+            print(f'Horse shoe assembly time is {elapsed:.3f} seconds.')
+    def assemble_horseshoes_full(self, time: bool=True):
         if time:
             start = perf_counter()
         shp = (self.numpnl, self.numpnl)
         self._aph = zeros(shp, dtype=float)
         self._avh = zero_matrix_vector(shp, dtype=float)
-        for hsv in self.hsvs:
-            ind = hsv.ind
-            self._aph[:, ind], self._avh[:, ind] = hsv.doublet_influence_coefficients(self.pnts)
+        for i, hsv in enumerate(self.hsvs):
+            self._aph[:, i], self._avh[:, i] = hsv.doublet_influence_coefficients(self.pnts)
         if time:
             finish = perf_counter()
             elapsed = finish - start
-            print(f'Horse shoe assembly time is {elapsed:.3f} seconds.')
-    def assemble_grid_panels(self, time: bool = True):
-        if time:
-            start = perf_counter()
-        shp = (self.numgrd, self.numpnl)
-        self._gpd = zeros(shp, dtype=float)
-        self._gps = zeros(shp, dtype=float)
-        self._gvd = zero_matrix_vector(shp, dtype=float)
-        self._gvs = zero_matrix_vector(shp, dtype=float)
-        for pnl in self.pnls.values():
-            ind = pnl.ind
-            self._apd[:, ind], self._aps[:, ind], self._avd[:, ind], self._avs[:, ind] = pnl.influence_coefficients(self.pnts)
-        if time:
-            finish = perf_counter()
-            elapsed = finish - start
-            print(f'Panel assembly time is {elapsed:.3f} seconds.')
-    def assemble_grid_horseshoes(self, time: bool = True):
-        if time:
-            start = perf_counter()
-        shp = (self.numgrd, self.numpnl)
-        self._gph = zeros(shp, dtype=float)
-        self._gvh = zero_matrix_vector(shp, dtype=float)
-        for hsv in self.hsvs:
-            ind = hsv.ind
-            self._gph[:, ind], self._gvh[:, ind] = hsv.doublet_influence_coefficients(self.grdvec)
-        if time:
-            finish = perf_counter()
-            elapsed = finish - start
-            print(f'Horse shoe assembly time is {elapsed:.3f} seconds.')
-    def solve_system(self, time: bool = True):
+            print(f'Full horse shoe assembly time is {elapsed:.3f} seconds.')
+    def solve_system(self, time: bool=True):
         if time:
             start = perf_counter()
         self.solve_dirichlet_system(time=False)
@@ -339,7 +276,7 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'System solution time is {elapsed:.3f} seconds.')
-    def solve_dirichlet_system(self, time: bool = True):
+    def solve_dirichlet_system(self, time: bool=True):
         if time:
             start = perf_counter()
         self._mu = solve_matrix_vector(self.apm, self.bps)
@@ -347,7 +284,7 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'System solution time is {elapsed:.3f} seconds.')
-    def solve_neumann_system(self, time: bool = True):
+    def solve_neumann_system(self, time: bool=True):
         if time:
             start = perf_counter()
         self._mu = solve_matrix_vector(self.anm, self.bnm)

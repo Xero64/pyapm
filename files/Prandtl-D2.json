@@ -13,12 +13,6 @@
             "twist": 0.0,
             "mirror": true,
             "cnum": 16,
-            "tilt": "horizontal",
-            "close": {
-                "left": true,
-                "right": true,
-                "trailing": true
-            },
             "sections": [
                 {
                     "xpos": 0.0,
@@ -77,8 +71,8 @@
         {
             "name": "Design Point",
             "alpha": 0.0,
-            "speed": 14.129667802639053,
-            "density": 1.1448386410124347
+            "speed": 13.0,
+            "density": 1.145
         }
     ]
 }

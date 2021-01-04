@@ -19,6 +19,7 @@ class PanelResult(object):
     _acs: Coordinate = None
     _wcs: Coordinate = None
     _vfs: Vector = None
+    _ofs: Vector = None
     _qfs: float = None
     _sig: matrix = None
     _mu: matrix = None
@@ -99,6 +100,17 @@ class PanelResult(object):
                 self.speed = 1.0
             self._vfs = self.acs.dirx*self.speed
         return self._vfs
+    def calc_ofs(self, pbo2V: float, qco2V: float, rbo2V: float):
+        p = pbo2V*2*self.speed/self.sys.bref
+        q = qco2V*2*self.speed/self.sys.cref
+        r = rbo2V*2*self.speed/self.sys.bref
+        rotvl = Vector(p, q, r)
+        return self.wcs.vector_to_global(rotvl)
+    @property
+    def ofs(self):
+        if self._ofs is None:
+            self._ofs = self.calc_ofs(self.pbo2V, self.qco2V, self.rbo2V)
+        return self._ofs
     @property
     def vfsl(self):
         if self._vfsl is None:
@@ -114,12 +126,12 @@ class PanelResult(object):
     @property
     def sig(self):
         if self._sig is None:
-            self._sig = self.sys.sig*self.vfs
+            self._sig = self.sys.sig[:, 0]*self.vfs + self.sys.sig[:, 1]*self.ofs
         return self._sig
     @property
     def mu(self):
         if self._mu is None:
-            self._mu = self.sys.mu*self.vfs
+            self._mu = self.sys.mu[:, 0]*self.vfs + self.sys.mu[:, 1]*self.ofs
         return self._mu
     @property
     def nfres(self):
@@ -131,6 +143,68 @@ class PanelResult(object):
         if self._grdres is None:
             self._grdres = GridResult(self)
         return self._grdres
+    @property
+    def surface_loads(self):
+        if self.sys.srfcs is not None:
+            from py2md.classes import MDTable, MDReport, MDHeading
+            from math import atan
+            report = MDReport()
+            heading = MDHeading('Surface Loads', 2)
+            report.add_object(heading)
+            table = MDTable()
+            table.add_column('xref', '.3f', data=[self.rcg.x])
+            table.add_column('yref', '.3f', data=[self.rcg.y])
+            table.add_column('zref', '.3f', data=[self.rcg.z])
+            report.add_object(table)
+            table1 = MDTable()
+            table1.add_column('Name', 's')
+            table1.add_column('Fx', '.3f')
+            table1.add_column('Fy', '.3f')
+            table1.add_column('Fz', '.3f')
+            table1.add_column('Mx', '.3f')
+            table1.add_column('My', '.3f')
+            table1.add_column('Mz', '.3f')
+            table2 = MDTable()
+            table2.add_column('Name', 's')
+            table2.add_column('Area', '.3f')
+            table2.add_column('Di', '.3f')
+            table2.add_column('Y', '.3f')
+            table2.add_column('L', '.3f')
+            table2.add_column('CDi', '.7f')
+            table2.add_column('CY', '.5f')
+            table2.add_column('CL', '.5f')
+            Ditot = 0.0
+            Ytot = 0.0
+            Ltot = 0.0
+            for srfc in self.sys.srfcs:
+                area = srfc.area
+                ind = srfc.pinds
+                frc = self.nfres.nffrc[ind, 0].sum()
+                mom = self.nfres.nfmom[ind, 0].sum()
+                table1.add_row([srfc.name, frc.x, frc.y, frc.z, mom.x, mom.y, mom.z])
+                if area > 0.0:
+                    Di = frc*self.acs.dirx
+                    Y = frc*self.acs.diry
+                    L = frc*self.acs.dirz
+                    CDi = Di/self.qfs/area
+                    CY = Y/self.qfs/area
+                    CL = L/self.qfs/area
+                    table2.add_row([srfc.name, area, Di, Y, L, CDi, CY, CL])
+                    Ditot += Di
+                    Ytot += Y
+                    Ltot += L
+            frc = self.nfres.nffrc.sum()
+            mom = self.nfres.nfmom.sum()
+            table1.add_row(['Total', frc.x, frc.y, frc.z, mom.x, mom.y, mom.z])
+            report.add_object(table1)
+            table = MDTable()
+            table.add_column('Density', '.3f', data=[self.rho])
+            table.add_column('Speed', '.3f', data=[self.speed])
+            table.add_column('Dynamic Pressure', '.1f', data=[self.qfs])
+            report.add_object(table)
+            table2.add_row(['Total', self.sys.sref, Ditot, Ytot, Ltot, self.nfres.CDi, self.nfres.CY, self.nfres.CL])
+            report.add_object(table2)
+            return report
     def __str__(self):
         from py2md.classes import MDTable
         from . import cfrm, dfrm, efrm
@@ -289,7 +363,7 @@ class NearFieldResult(object):
     @property
     def nfmom(self):
         if self._nfmom is None:
-            self._nfmom = elementwise_cross_product(self.res.sys.pntr, self.nffrc)
+            self._nfmom = elementwise_cross_product(self.res.sys.rrel, self.nffrc)
         return self._nfmom
     @property
     def nffrctot(self):

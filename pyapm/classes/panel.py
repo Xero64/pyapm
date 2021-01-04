@@ -1,7 +1,7 @@
 from .poly import Poly
 from .grid import Grid
 from .horseshoe import HorseShoe
-from typing import List
+from typing import List, Dict
 from pygeom.geom3d import Vector, Coordinate, ihat, khat
 from math import sqrt
 from numpy.matlib import matrix
@@ -15,8 +15,6 @@ class Panel(Poly):
     noload: bool = None
     _crd: Coordinate = None
     _hsvs: List[HorseShoe] = None
-    # _grdarea: List[float] = None
-    # _grdinva: List[float] = None
     _grdlocs: List[Vector] = None
     _edgpnls: List[object] = None
     _edginds: List[List[int]] = None
@@ -24,10 +22,8 @@ class Panel(Poly):
     _edgdist: List[float] = None
     _edgfacs: List[float] = None
     _edgpntl: List[Vector] = None
-    # _grdpnls: List[List[object]] = None
-    # _grdpind: List[List[int]] = None
-    # _grddist: List[List[float]] = None
-    # _grdfacs: List[List[float]] = None
+    _edglens: List[float] = None
+    _grdedgs: Dict[int, int] = None
     def __init__(self, pid: int, gids: List[int]):
         self.pid = pid
         self.gids = gids
@@ -76,23 +72,6 @@ class Panel(Poly):
             return 0.0
         else:
             return super(Panel, self).area
-    # @property
-    # def grdarea(self):
-    #     if self._grdarea is None:
-    #         self._grdarea = []
-    #         for grd in self.grds:
-    #             self._grdarea.append(0.0)
-    #             for edg in self.edgs:
-    #                 if edg.grda == grd:
-    #                     self._grdarea[-1] += edg.area/2
-    #     return self._grdarea
-    # @property
-    # def grdinva(self):
-    #     if self._grdinva is None:
-    #         self._grdinva = []
-    #         for ga in self.grdarea:
-    #             self._grdinva.append(1.0/ga)                
-    #     return self._grdinva
     @property
     def grdlocs(self):
         if self._grdlocs is None:
@@ -203,34 +182,20 @@ class Panel(Poly):
         qx = -qxJs/Js
         qy = -qyJs/Js
         return qx, qy
-
-
-    # @property
-    # def grdpnls(self):
-    #     if self._grdpnls is None:
-    #         self._grdpnls = []
-    #         for i in range(self.num):
-    #             self._grdpnls.append([self])
-    #             a = i
-    #             b = a - 1
-    #             if self.edgpnls[a] is not None:
-    #                 self.grdpnls[i].append(self.edgpnls[a])
-    #             if self.edgpnls[b] is not None:
-    #                 self.grdpnls[i].append(self.edgpnls[b])
-    #     return self._grdpnls
-    # @property
-    # def grdpind(self):
-    #     if self._grdpind is None:
-    #         self._grdpind = []
-    #         for i in range(self.num):
-    #             self._grdpind.append([pnl.ind for pnl in self.grdpnls[i]])
-    #     return self._grdpind
-    # @property
-    # def grddist(self):
-    #     if self._grddist is None:
-    #         self._grddist = []
-    #         for i, grd in enumerate(self.grds):
-    #             self._grddist.append([(pnl.pnto-grd).return_magnitude() for pnl in self.grdpnls[i]])
-    #     return self._grddist
+    @property
+    def edglens(self):
+        if self._edglens is None:
+            self._edglens = [edg.lenab for edg in self.edgs]
+        return self._edglens
+    @property
+    def grdedgs(self):
+        if self._grdedgs is None:
+            self._grdedgs = {}
+            for i in range(self.num):
+                grd = self.grds[i]
+                self._grdedgs[grd.gid] = (i-1, i)
+        return self._grdedgs
+    def grid_mu(self, mu: matrix):
+        pass
     def __repr__(self):
         return f'<pyapm.Panel {self.pid:d}>'
