@@ -66,7 +66,7 @@ class PanelSystem(object):
             if attr[0] == '_':
                 self.__dict__[attr] = None
     def set_horseshoes(self, diro: Vector):
-        self._hsvs = []
+        self._hsvs = None
         for pnl in self.pnls.values():
             pnl.set_horseshoes(diro)
         self._numhsv = None
@@ -331,11 +331,13 @@ def panelsystem_from_mesh(meshfilepath: str):
     for pidstr, pd in paneldata.items():
         pid = int(pidstr)
         if 'grpid' in pd:
-            grp = grps[pd['grpid']]
+            grpid = pd['grpid']
+            grp = grps[grpid]
             if not grp['exclude']:
                 pnls[pid] = Panel(pid, pd['gids'])
                 if grp['noload']:
                     pnls[pid].noload = True
+                pnls[pid].grpid = grpid
         else:
             pnls[pid] = Panel(pid, pd['gids'])
     
@@ -346,7 +348,7 @@ def panelsystem_from_json(jsonfilepath: str):
         jsondata = load(jsonfile)
 
     from os.path import dirname, join, exists
-    from .panelmesh import panelsurface_from_json
+    from .panelsurface import panelsurface_from_json
 
     path = dirname(jsonfilepath)
 
@@ -377,14 +379,15 @@ def panelsystem_from_json(jsonfilepath: str):
 
     gid, pid = 0, 0
     for surface in srfcs:
-        gid, pid = surface.mesh(gid, pid)
+        gid = surface.mesh_grids(gid)
+        pid = surface.mesh_panels(pid)
 
     grds, pnls = {}, {}
     for surface in srfcs:
-        for gid, grd in surface.grds.items():
-            grds[gid] = grd
-        for pid, pnl in surface.pnls.items():
-            pnls[pid] = pnl
+        for grd in surface.grds:
+            grds[grd.gid] = grd
+        for pnl in surface.pnls:
+            pnls[pnl.pid] = pnl
         
     psys = PanelSystem(name, grds, pnls, bref, cref, sref, rref)
     psys.srfcs = srfcs

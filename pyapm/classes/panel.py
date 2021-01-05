@@ -3,16 +3,18 @@ from .grid import Grid
 from .horseshoe import HorseShoe
 from typing import List, Dict
 from pygeom.geom3d import Vector, Coordinate, ihat, khat
-from math import sqrt
+from math import sqrt, acos, pi
 from numpy.matlib import matrix
 
 oor2 = 1/sqrt(2.0)
+angtol = pi/9
 
 class Panel(Poly):
     pid: int = None
     gids: List[int] = None
     ind: int = None
     noload: bool = None
+    grpid: int = None
     _crd: Coordinate = None
     _hsvs: List[HorseShoe] = None
     _grdlocs: List[Vector] = None
@@ -89,13 +91,15 @@ class Panel(Poly):
                 if b == self.num:
                     b = 0
                 grdb = self.grds[b]
-                if grda.te and grdb.te:
-                    self._edgpnls[a].append(self)
-                    continue
+                # if grda.te and grdb.te:
+                #     self._edgpnls[a].append(self)
+                #     continue
                 for pnl in grda.pnls:
-                    for grd in pnl.grds:
-                        if grd == grdb:
-                            self._edgpnls[a].append(pnl)
+                    ang = angle_between_vectors(pnl.crd.dirz, self.crd.dirz)
+                    if abs(ang) < angtol:
+                        for grd in pnl.grds:
+                            if grd == grdb:
+                                self._edgpnls[a].append(pnl)
         return self._edgpnls
     @property
     def edginds(self):
@@ -199,3 +203,13 @@ class Panel(Poly):
         pass
     def __repr__(self):
         return f'<pyapm.Panel {self.pid:d}>'
+
+def angle_between_vectors(veca: Vector, vecb: Vector):
+    unta = veca.to_unit()
+    untb = vecb.to_unit()
+    adb = unta*untb
+    if adb > 1.0:
+        adb = 1.0
+    elif adb < -1.0:
+        adb = -1.0
+    return acos(adb)

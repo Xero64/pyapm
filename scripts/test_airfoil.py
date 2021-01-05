@@ -32,5 +32,3 @@ for xi, yi in zip(naca4.xu, naca4.yu):
     print(f'{xi:.6f}, {yi:.6f}')
 
 print(naca4.cdst)
-
-#%%

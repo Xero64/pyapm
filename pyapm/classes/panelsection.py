@@ -1,0 +1,147 @@
+from pygeom.geom3d import Vector
+from pygeom.matrix3d import MatrixVector, zero_matrix_vector
+from .panel import Panel
+from .panelprofile import PanelProfile
+from ..tools.airfoil import airfoil_from_dat
+from ..tools.naca4 import NACA4
+from typing import List
+from numpy.matlib import absolute
+
+tol = 1e-12
+
+class PanelSection(PanelProfile):
+    airfoil: object = None
+    bnum: int = None
+    bspc: str = None
+    mirror: bool = None
+    cnum: int = None
+    xoc: float = None
+    zoc: float = None
+    shta: object = None
+    shtb: object = None
+    pnls: List[Panel] = None
+    def __init__(self, point: Vector, chord: float, twist: float, airfoil: object):
+        super(PanelSection, self).__init__(point, chord, twist)
+        self.point = point
+        self.chord = chord
+        self.twist = twist
+        self.airfoil = airfoil
+        self.mirror = False
+        self.bnum = 1
+        self.bspc = 'equal'
+        self.noload = False
+        self.xoc = 0.0
+        self.zoc = 0.0
+    def mirror_section_in_y(self, ymir: float=0.0):
+        point = Vector(self.point.x, ymir-self.point.y, self.point.z)
+        chord = self.chord
+        twist = self.twist
+        airfoil = self.airfoil
+        sect = PanelSection(point, chord, twist, airfoil)
+        sect.mirror = True
+        sect.bnum = self.bnum
+        sect.bspc = self.bspc
+        sect.noload = self.noload
+        sect.xoc = self.xoc
+        sect.zoc = self.zoc
+        sect.bval = self.bval
+        if self.tilt is not None:
+            sect._tilt = -self._tilt
+        return sect
+    def set_cnum(self, cnum: int):
+        self.cnum = cnum
+        self.airfoil.update(self.cnum)
+    def offset_position(self, xpos: float, ypos: float, zpos: float):
+        self.point.x = self.point.x + xpos
+        self.point.y = self.point.y + ypos
+        self.point.z = self.point.z + zpos
+    def offset_twist(self, twist: float):
+        self.twist = self.twist+twist
+    @property
+    def tilt(self):
+        if self._tilt is None:
+            if self.shta is None and self.shtb is None:
+                pass
+            elif self.shtb is None:
+                self._tilt = self.shta.tilt
+            elif self.shta is None:
+                self._tilt = self.shtb.tilt
+            else:
+                self._tilt = (self.shta.tilt + self.shtb.tilt)/2
+        return self._tilt
+    def get_profile(self):
+        num = self.cnum*2+1
+        profile = zero_matrix_vector((1, num), dtype=float)
+        for i in range(self.cnum+1):
+            n = num-i-1
+            j = n-num
+            profile[0, i] = Vector(self.airfoil.xl[j], 0.0, self.airfoil.yl[j])
+            profile[0, n] = Vector(self.airfoil.xu[j], 0.0, self.airfoil.yu[j])
+        profile.z[absolute(profile.z) < tol] = 0.0
+        offset = Vector(self.xoc, 0.0, self.zoc)
+        profile = profile-offset
+        return profile
+    def mesh_panels(self, pid: int, reverse: bool):
+        self.pnls = []
+        if self.shta is not None:
+            noload = self.shta.noload
+        if self.shtb is not None:
+            noload = self.shtb.noload
+        numgrd = len(self.grds)
+        n = numgrd-1
+        numpnl = int(n/2)
+        for i in range(numpnl):
+            grds = []
+            grds.append(self.grds[i])
+            grds.append(self.grds[i+1])
+            grds.append(self.grds[n-i-1])
+            grds.append(self.grds[n-i])
+            dist = (grds[0]-grds[-1]).return_magnitude()
+            if dist < tol:
+                grds = grds[:-1]
+            if reverse:
+                grds.reverse()
+            gids = []
+            for grd in grds:
+                if grd.gid not in gids:
+                    gids.append(grd.gid)
+            pnl = Panel(pid, gids)
+            pnl.noload = noload
+            self.pnls.append(pnl)
+            pid += 1
+        return pid
+    def __repr__(self):
+        return f'<PanelSection at {self.point:}>'
+
+def panelsection_from_json(sectdata: dict) -> PanelSection:
+    xpos = sectdata['xpos']
+    ypos = sectdata['ypos']
+    zpos = sectdata['zpos']
+    point = Vector(xpos, ypos, zpos)
+    chord = sectdata['chord']
+    airfoilstr = sectdata['airfoil']
+    if airfoilstr[-4:] == '.dat':
+        airfoil = airfoil_from_dat(airfoilstr)
+    elif airfoilstr[0:4].upper() == 'NACA':
+        code = airfoilstr[4:].strip()
+        if len(code) == 4:
+            airfoil = NACA4(code)
+    else:
+        return ValueError(f'Airfoil identified by {airfoilstr:s} does not exist.')
+    twist = 0.0
+    if 'twist' in sectdata:
+        twist = sectdata['twist']
+    sect = PanelSection(point, chord, twist, airfoil)
+    if 'bnum' in sectdata:
+        sect.bnum = sectdata['bnum']
+    if 'bspc' in sectdata:
+        sect.bspc = sectdata['bspc']
+    if 'tilt' in sectdata:
+        sect.tilt = sectdata['tilt']
+    if 'xoc' in sectdata:
+        sect.xoc = sectdata['xoc']
+    if 'zoc' in sectdata:
+        sect.zoc = sectdata['zoc']
+    if 'noload' in sectdata:
+        sect.noload = sectdata['noload']
+    return sect

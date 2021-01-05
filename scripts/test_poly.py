@@ -69,7 +69,6 @@ if zorg == 0.0:
     vels.z[absolute(vels.z+0.5) < 1e-12] = -0.5
 
 #%% Source Panel Velocity Potential and Velocity in Z
-
 figs = figure(figsize = (12, 12))
 axs = figs.gca()
 axs.set_aspect('equal')
@@ -85,7 +84,6 @@ css = axs.contourf(pnts.x, pnts.y, vels.z, levels = 20)
 cbs = figs.colorbar(css)
 
 #%% Doublet Panel Velocity Potential and Velocity in Z
-
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -101,7 +99,6 @@ csv = axv.contourf(pnts.x, pnts.y, velv.z, levels = 20)
 cbv = figv.colorbar(csv)
 
 #%% Doublet Velocity in Y
-
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -121,7 +118,6 @@ css = axs.contourf(pntsx, pntsy, velvy, levels = csv.levels)
 cbs = figs.colorbar(css)
 
 #%% Doublet Velocity in X
-
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -141,7 +137,6 @@ css = axs.contourf(pntsx, pntsy, velvx, levels = csv.levels)
 cbs = figs.colorbar(css)
 
 #%% Source Velocity in Y
-
 figs = figure(figsize = (12, 12))
 axs = figs.gca()
 axs.set_aspect('equal')
@@ -161,7 +156,6 @@ css = axs.contourf(pntsx, pntsy, velsy, levels = css.levels)
 cbs = figs.colorbar(css)
 
 #%% Source Velocity in X
-
 figs = figure(figsize = (12, 12))
 axs = figs.gca()
 axs.set_aspect('equal')
@@ -219,7 +213,6 @@ css = axs.contourf(pnts.x, pnts.z, phis, levels = 20)
 cbs = figs.colorbar(css)
 
 #%% Doublet Velocity in Z
-
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -239,7 +232,6 @@ css = axs.contourf(pntsx, pntsz, velvz, levels = csv.levels)
 cbs = figs.colorbar(css)
 
 #%% Doublet Velocity in X
-
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -259,7 +251,6 @@ css = axs.contourf(pntsx, pntsz, velvx, levels = csv.levels)
 cbs = figs.colorbar(css)
 
 #%% Source Velocity in Z
-
 figs = figure(figsize = (12, 12))
 axs = figs.gca()
 axs.set_aspect('equal')
@@ -279,7 +270,6 @@ css = axs.contourf(pntsx, pntsz, velsz, levels = css.levels)
 cbs = figs.colorbar(css)
 
 #%% Source Velocity in X
-
 figs = figure(figsize = (12, 12))
 axs = figs.gca()
 axs.set_aspect('equal')

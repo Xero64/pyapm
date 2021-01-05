@@ -1,6 +1,6 @@
 #%% Import Dependencies
 from pyapm.classes import Grid, Panel, PanelSystem, PanelResult
-from pyapm.output.msh import result_to_msh
+from pyapm.output.msh import panelresult_to_msh
 from pyfoil.airfoil import naca_to_xyt
 from numpy.matlib import zeros, matrix, ones
 from numpy.linalg import solve
@@ -89,6 +89,4 @@ pres.set_state(alpha = alpha)
 
 #%% Output MSH File
 mshfilepath = '..\\outputs\\' + psys.name + '.msh'
-result_to_msh(pres, mshfilepath)
-
-
+panelresult_to_msh(pres, mshfilepath)

@@ -1,0 +1,1 @@
+This folder contains the outputs generated from the files in the scripts folder.

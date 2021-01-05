@@ -9,7 +9,6 @@ from pyapm.tools.functions import mean, derivative
 from numpy.matlib import absolute, zeros
 
 #%% Create Trailing Edge Vortex
-
 grda = Vector(-1.0, 1.0, 0.0)
 grdb = Vector(-1.0, -1.0, 0.0)
 diro = Vector(1.0, 0.0, 0.0)
@@ -59,7 +58,6 @@ if zorg == 0.0:
     phip[absolute(phip+0.5) < 1e-12] = -0.5
 
 #%% Doublet Panel Velocity Potential and Velocity in Z
-
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -89,7 +87,6 @@ csv = axv.contourf(pnts.x, pnts.y, velp.z, levels = 20)
 cbv = figv.colorbar(csv)
 
 #%% Doublet Velocity in Y
-
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -116,7 +113,6 @@ css = axs.contourf(pntsx, pntsy, velvy, levels = csv.levels)
 cbs = figs.colorbar(css)
 
 #%% Doublet Velocity in X
-
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -182,7 +178,6 @@ csv = axv.contourf(pnts.x, pnts.z, phip, levels = 20)
 cbv = figv.colorbar(csv)
 
 #%% Doublet Velocity in Z
-
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -209,7 +204,6 @@ css = axs.contourf(pntsx, pntsz, velvz, levels = csv.levels)
 cbs = figs.colorbar(css)
 
 #%% Doublet Velocity in X
-
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -275,7 +269,6 @@ csv = axv.contourf(pnts.y, pnts.z, phip, levels = 20)
 cbv = figv.colorbar(csv)
 
 #%% Doublet Velocity in Z
-
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -302,7 +295,6 @@ css = axs.contourf(pntsy, pntsz, velvz, levels = csv.levels)
 cbs = figs.colorbar(css)
 
 #%% Doublet Velocity in X
-
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')

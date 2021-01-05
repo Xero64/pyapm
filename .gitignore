@@ -28,7 +28,8 @@ share/python-wheels/
 MANIFEST
 
 # Outputs
-outputs/*
+outputs/*.msh
+outputs/*.opt
 
 # Symbolic
 symbolic

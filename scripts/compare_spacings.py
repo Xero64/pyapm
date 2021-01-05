@@ -2,7 +2,6 @@
 from pyapm.tools import equal_spacing, semi_cosine_spacing, full_cosine_spacing
 
 #%% Create Spacings
-
 num = 10
 
 s1 = equal_spacing(num)
