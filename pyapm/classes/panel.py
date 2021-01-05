@@ -7,7 +7,7 @@ from math import sqrt, acos, pi
 from numpy.matlib import matrix
 
 oor2 = 1/sqrt(2.0)
-angtol = pi/9
+angtol = pi/4
 
 class Panel(Poly):
     pid: int = None
@@ -25,7 +25,9 @@ class Panel(Poly):
     _edgfacs: List[float] = None
     _edgpntl: List[Vector] = None
     _edglens: List[float] = None
-    _grdedgs: Dict[int, int] = None
+    _grdpnls: List[List[object]] = None
+    _grdinds: List[List[int]] = None
+    _grdfacs: List[List[float]] = None
     def __init__(self, pid: int, gids: List[int]):
         self.pid = pid
         self.gids = gids
@@ -187,20 +189,42 @@ class Panel(Poly):
         qy = -qyJs/Js
         return qx, qy
     @property
-    def edglens(self):
-        if self._edglens is None:
-            self._edglens = [edg.lenab for edg in self.edgs]
-        return self._edglens
+    def grdpnls(self):
+        if self._grdpnls is None:
+            self._grdpnls = []
+            for i, grd in enumerate(self.grds):
+                self._grdpnls.append([])
+                for pnl in grd.pnls:
+                    ang = angle_between_vectors(pnl.crd.dirz, self.crd.dirz)
+                    if abs(ang) < angtol:
+                        self._grdpnls[i].append(pnl)
+        return self._grdpnls
     @property
-    def grdedgs(self):
-        if self._grdedgs is None:
-            self._grdedgs = {}
+    def grdinds(self):
+        if self._grdinds is None:
+            self._grdinds = []
             for i in range(self.num):
-                grd = self.grds[i]
-                self._grdedgs[grd.gid] = (i-1, i)
-        return self._grdedgs
-    def grid_mu(self, mu: matrix):
-        pass
+                self._grdinds.append([])
+                for pnl in self.grdpnls[i]:
+                    self._grdinds[i].append(pnl.ind)
+        return self._grdinds
+    @property
+    def grdfacs(self):
+        if self._grdfacs is None:
+            self._grdfacs = []
+            for i, grd in enumerate(self.grds):
+                pnldist = [(grd-pnl.pnto).return_magnitude() for pnl in self.grdpnls[i]]
+                pnlinvd = [1/dist for dist in pnldist]
+                suminvd = sum(pnlinvd)
+                self._grdfacs.append([invd/suminvd for invd in pnlinvd])
+        return self._grdfacs
+    def grid_res(self, pnlres: matrix):
+        grdres = []
+        for i in range(self.num):
+            grdres.append(0.0)
+            for ind, fac in zip(self.grdinds[i], self.grdfacs[i]):
+                grdres[i] += pnlres[ind, 0]*fac
+        return grdres
     def __repr__(self):
         return f'<pyapm.Panel {self.pid:d}>'
 

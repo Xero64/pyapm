@@ -14,7 +14,7 @@ psys.solve_system()
 #%% Solve Panel Result
 rho = 1.225
 speed = 1.0
-alpha = 0.0
+alpha = 5.0
 
 pres = PanelResult(f'Test Case', psys)
 pres.set_density(rho=rho)
@@ -26,10 +26,7 @@ panelresult_to_msh(pres, mshfilepath)
 
 #%% Display Result
 display_markdown(pres)
-
-#%% Print Total Loads
-print(f'Total Force = {pres.nfres.nffrctot:.2f} N')
-print(f'Total Moment = {pres.nfres.nfmomtot:.2f} N.m')
+display_markdown(pres.surface_loads)
 
 #%% Print Outs
 print(f'sig = \n{pres.sig}')

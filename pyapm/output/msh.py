@@ -80,10 +80,10 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'Mesh.VolumeFaces = 0;\n'
         optstr += 'Mesh.VolumeNumbers = 0;\n'
         view = 0
-        # Source Strength
+        # Panel Source Strength
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
-        mshfile.write('"Source Strength"\n')
+        mshfile.write('"Panel Source Strength"\n')
         mshfile.write('1\n')
         mshfile.write('0.0\n')
         mshfile.write('3\n')
@@ -100,10 +100,10 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
-        # Doublet Strength
+        # Panel Doublet Strength
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
-        mshfile.write('"Doublet Strength"\n')
+        mshfile.write('"Panel Doublet Strength"\n')
         mshfile.write('1\n')
         mshfile.write('0.0\n')
         mshfile.write('3\n')
@@ -120,10 +120,10 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
-        # Coefficient of Pressure
+        # Panel Coefficient of Pressure
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
-        mshfile.write('"Coefficient of Pressure"\n')
+        mshfile.write('"Panel Coefficient of Pressure"\n')
         mshfile.write('1\n')
         mshfile.write('0.0\n')
         mshfile.write('3\n')
@@ -140,10 +140,10 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
-        # Velocity Potential
+        # Panel Velocity Potential
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
-        mshfile.write('"Velocity Potential"\n')
+        mshfile.write('"Panel Velocity Potential"\n')
         mshfile.write('1\n')
         mshfile.write('0.0\n')
         mshfile.write('3\n')
@@ -160,10 +160,10 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
-        # Normal Velocity
+        # Panel Normal Velocity
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
-        mshfile.write('"Normal Velocity"\n')
+        mshfile.write('"Panel Normal Velocity"\n')
         mshfile.write('1\n')
         mshfile.write('0.0\n')
         mshfile.write('3\n')
@@ -180,10 +180,10 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
-        # Longitudinal Velocity
+        # Panel Longitudinal Velocity
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
-        mshfile.write('"Longitudinal Velocity"\n')
+        mshfile.write('"Panel Longitudinal Velocity"\n')
         mshfile.write('1\n')
         mshfile.write('0.0\n')
         mshfile.write('3\n')
@@ -200,10 +200,10 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
-        # Transverse Velocity
+        # Panel Transverse Velocity
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
-        mshfile.write('"Transverse Velocity"\n')
+        mshfile.write('"Panel Transverse Velocity"\n')
         mshfile.write('1\n')
         mshfile.write('0.0\n')
         mshfile.write('3\n')
@@ -220,10 +220,10 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
-        # Tangential Velocity
+        # Panel Tangential Velocity
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
-        mshfile.write('"Tangential Velocity"\n')
+        mshfile.write('"Panel Tangential Velocity"\n')
         mshfile.write('1\n')
         mshfile.write('0.0\n')
         mshfile.write('3\n')
@@ -240,10 +240,10 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
-        # Normal Force
+        # Panel Normal Pressure
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
-        mshfile.write('"Normal Pressure"\n')
+        mshfile.write('"Panel Normal Pressure"\n')
         mshfile.write('1\n')
         mshfile.write('0.0\n')
         mshfile.write('3\n')
@@ -255,6 +255,106 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
             pnl = psys.pnls[pid]
             mshfile.write(frmstr.format(pnl.pid, pres.nfres.nfprs[pnl.ind, 0]))
         mshfile.write('$EndElementData\n')
+        optstr += 'View[{:d}].Light = 0;\n'.format(view)
+        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
+        optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
+        optstr += 'View[{:d}].Visible = 0;\n'.format(view)
+        view += 1
+        # Grid Source Strength
+        mshfile.write('$ElementNodeData\n')
+        mshfile.write('1\n')
+        mshfile.write('"Grid Source Strength"\n')
+        mshfile.write('1\n')
+        mshfile.write('0.0\n')
+        mshfile.write('3\n')
+        mshfile.write('0\n')
+        mshfile.write('1\n')
+        mshfile.write('{:d}\n'.format(lenpid))
+        frmstr = '{:d} {:d}'
+        for pid in pidlst:
+            pnl = psys.pnls[pid]
+            vals = pnl.grid_res(pres.sig)
+            numv = len(vals)
+            mshfile.write(frmstr.format(pnl.pid, numv))
+            for val in vals:
+                mshfile.write(' {:}'.format(val))
+            mshfile.write('\n')
+        mshfile.write('$EndElementNodeData\n')
+        optstr += 'View[{:d}].Light = 0;\n'.format(view)
+        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
+        optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
+        optstr += 'View[{:d}].Visible = 0;\n'.format(view)
+        view += 1
+        # Grid Doublet Strength
+        mshfile.write('$ElementNodeData\n')
+        mshfile.write('1\n')
+        mshfile.write('"Grid Doublet Strength"\n')
+        mshfile.write('1\n')
+        mshfile.write('0.0\n')
+        mshfile.write('3\n')
+        mshfile.write('0\n')
+        mshfile.write('1\n')
+        mshfile.write('{:d}\n'.format(lenpid))
+        frmstr = '{:d} {:d}'
+        for pid in pidlst:
+            pnl = psys.pnls[pid]
+            vals = pnl.grid_res(pres.mu)
+            numv = len(vals)
+            mshfile.write(frmstr.format(pnl.pid, numv))
+            for val in vals:
+                mshfile.write(' {:}'.format(val))
+            mshfile.write('\n')
+        mshfile.write('$EndElementNodeData\n')
+        optstr += 'View[{:d}].Light = 0;\n'.format(view)
+        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
+        optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
+        optstr += 'View[{:d}].Visible = 0;\n'.format(view)
+        view += 1
+        # Grid Coefficient of Pressure
+        mshfile.write('$ElementNodeData\n')
+        mshfile.write('1\n')
+        mshfile.write('"Grid Coefficient of Pressure"\n')
+        mshfile.write('1\n')
+        mshfile.write('0.0\n')
+        mshfile.write('3\n')
+        mshfile.write('0\n')
+        mshfile.write('1\n')
+        mshfile.write('{:d}\n'.format(lenpid))
+        frmstr = '{:d} {:d}'
+        for pid in pidlst:
+            pnl = psys.pnls[pid]
+            vals = pnl.grid_res(pres.nfres.nfcp)
+            numv = len(vals)
+            mshfile.write(frmstr.format(pnl.pid, numv))
+            for val in vals:
+                mshfile.write(' {:}'.format(val))
+            mshfile.write('\n')
+        mshfile.write('$EndElementNodeData\n')
+        optstr += 'View[{:d}].Light = 0;\n'.format(view)
+        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
+        optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
+        optstr += 'View[{:d}].Visible = 0;\n'.format(view)
+        view += 1
+        # Grid Normal Pressure
+        mshfile.write('$ElementNodeData\n')
+        mshfile.write('1\n')
+        mshfile.write('"Grid Pressure"\n')
+        mshfile.write('1\n')
+        mshfile.write('0.0\n')
+        mshfile.write('3\n')
+        mshfile.write('0\n')
+        mshfile.write('1\n')
+        mshfile.write('{:d}\n'.format(lenpid))
+        frmstr = '{:d} {:d}'
+        for pid in pidlst:
+            pnl = psys.pnls[pid]
+            vals = pnl.grid_res(pres.nfres.nfprs)
+            numv = len(vals)
+            mshfile.write(frmstr.format(pnl.pid, numv))
+            for val in vals:
+                mshfile.write(' {:}'.format(val))
+            mshfile.write('\n')
+        mshfile.write('$EndElementNodeData\n')
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
         optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)

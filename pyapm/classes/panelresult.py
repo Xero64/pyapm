@@ -3,7 +3,9 @@ from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from pygeom.matrix3d import elementwise_dot_product, elementwise_multiply, elementwise_cross_product
 from numpy.matlib import matrix, ones
 from math import cos, sin, radians
-from numpy.matlib import sqrt, square, multiply
+from numpy.matlib import sqrt, square, multiply, absolute
+
+tol = 1e-12
 
 class PanelResult(object):
     name: str = None
@@ -349,6 +351,7 @@ class NearFieldResult(object):
     def nfphi(self):
         if self._nfphi is None:
             self._nfphi = self.res.sys.apm*self.res.mu + self.res.sys.aps*self.res.sig
+            self._nfphi[absolute(self._nfphi) < tol] = 0.0
         return self._nfphi
     @property
     def nfprs(self):

@@ -6,9 +6,9 @@ from matplotlib.pyplot import figure
 #%% Create Airfoil
 datfilepath = '../files/prandtl_root.dat'
 airfoil = airfoil_from_dat(datfilepath)
-airfoil.update(9)
+airfoil.update(16)
 
-naca4 = NACA4('0012', cnum=9)
+naca4 = NACA4('0012', cnum=16)
 
 print(f'airfoil xu = {airfoil.xu:}')
 print(f'naca4 cdst = {naca4.cdst:}')
@@ -25,7 +25,7 @@ fig = figure(figsize=(12, 8))
 ax = fig.gca()
 ax.set_aspect('equal')
 ax.grid(True)
-_ = ax.plot(naca4.x, naca4.y)
+_ = ax.plot(naca4.x, naca4.y, '-o')
 
 #%% Print Coordinates
 for xi, yi in zip(naca4.xu, naca4.yu):

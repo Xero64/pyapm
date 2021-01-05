@@ -1,5 +1,6 @@
 from typing import List
 from .spacing import full_cosine_spacing, equal_spacing
+from .spacing import linear_bias_left
 from math import atan, sqrt, pi, sin, cos
 from matplotlib.pyplot import figure
 
@@ -66,8 +67,8 @@ class NACA4(object):
         return self._cdst
     @property
     def xc(self):
-        if self._xc is None:
-            self._xc = self.cdst.tolist()[0]
+        if self._xc is None:            
+            self._xc = linear_bias_left(self.cdst, 0.2)
         return self._xc
     @property
     def yc(self):

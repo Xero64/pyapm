@@ -55,7 +55,7 @@ class Airfoil(object):
         m1 = dy1/dx1
         m2 = dy2/dx2
         self.mte = (m1+m2)/2
-        cspc = full_cosine_spacing(num).tolist()[0]
+        cspc = full_cosine_spacing(num)
         s = self.spline.arc_length()
         sle = s[self.ile]
         ste = s[-1]

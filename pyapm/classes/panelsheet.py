@@ -72,10 +72,10 @@ class PanelSheet(object):
                 bdst = full_cosine_spacing(self.bnum)
             if self.mirror:
                 bdst = 1.0-bdst
-                self._bdst = bdst.tolist()[0]
+                self._bdst = bdst
                 self._bdst.reverse()
             else:
-                self._bdst = bdst.tolist()[0]
+                self._bdst = bdst
         return self._bdst
     @property
     def prfs(self):
