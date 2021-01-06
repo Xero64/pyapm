@@ -9,8 +9,9 @@ class PanelStrip(object):
     sht: object = None
     pnls: List[Panel] = None
     ind: int = None
-    _y: float = None
-    _z: float = None
+    _ypos: float = None
+    _zpos: float = None
+    _bpos: float = None
     _chord: float = None
     _twist: float = None
     _tilt: float = None
@@ -38,15 +39,20 @@ class PanelStrip(object):
             pid += 1
         return pid
     @property
-    def y(self):
-        if self._y is None:
-            self._y = (self.prfa.point.y + self.prfb.point.y)/2
-        return self._y
+    def ypos(self):
+        if self._ypos is None:
+            self._ypos = (self.prfa.point.y + self.prfb.point.y)/2
+        return self._ypos
     @property
-    def z(self):
-        if self._z is None:
-            self._z = (self.prfa.point.z + self.prfb.point.z)/2
-        return self._z
+    def zpos(self):
+        if self._zpos is None:
+            self._zpos = (self.prfa.point.z + self.prfb.point.z)/2
+        return self._zpos
+    @property
+    def bpos(self):
+        if self._bpos is None:
+            self._bpos = (self.prfa.bpos + self.prfb.bpos)/2
+        return self._bpos
     @property
     def chord(self):
         if self._chord is None:

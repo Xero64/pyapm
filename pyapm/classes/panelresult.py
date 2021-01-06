@@ -147,7 +147,7 @@ class PanelResult(object):
             if self.sys.srfcs is not None:
                 self._strpres = StripResult(self.nfres)
         return self._strpres
-    def plot_strip_lift_force_distribution(self, ax=None, axis: str='y',
+    def plot_strip_lift_force_distribution(self, ax=None, axis: str='b',
                                            surfaces: list=[], normalise: bool=False):
         if self.sys.srfcs is not None:
             if ax is None:
@@ -167,7 +167,11 @@ class PanelResult(object):
                 else:
                     l = [self.strpres.lift[strp.ind, 0]/strp.width for strp in srfc.strps]
                 label = self.name+' for '+srfc.name
-                if axis == 'y':
+                if axis == 'b':
+                    b = srfc.strpb
+                    if max(b) > min(b):
+                        ax.plot(b, l, label=label)
+                elif axis == 'y':
                     y = srfc.strpy
                     if max(y) > min(y):
                         ax.plot(y, l, label=label)
@@ -177,7 +181,7 @@ class PanelResult(object):
                         ax.plot(l, z, label=label)
             ax.legend()
         return ax
-    def plot_strip_side_force_distribution(self, ax=None, axis: str='y',
+    def plot_strip_side_force_distribution(self, ax=None, axis: str='b',
                                            surfaces: list=[], normalise: bool=False):
         if self.sys.srfcs is not None:
             if ax is None:
@@ -197,7 +201,11 @@ class PanelResult(object):
                 else:
                     f = [self.strpres.side[strp.ind, 0]/strp.width for strp in srfc.strps]
                 label = self.name+' for '+srfc.name
-                if axis == 'y':
+                if axis == 'b':
+                    b = srfc.strpb
+                    if max(b) > min(b):
+                        ax.plot(b, f, label=label)
+                elif axis == 'y':
                     y = srfc.strpy
                     if max(y) > min(y):
                         ax.plot(y, f, label=label)
@@ -207,7 +215,7 @@ class PanelResult(object):
                         ax.plot(f, z, label=label)
             ax.legend()
         return ax
-    def plot_strip_drag_force_distribution(self, ax=None, axis: str='y',
+    def plot_strip_drag_force_distribution(self, ax=None, axis: str='b',
                                            surfaces: list=[], normalise: bool=False):
         if self.sys.srfcs is not None:
             if ax is None:
@@ -227,7 +235,11 @@ class PanelResult(object):
                 else:
                     d = [self.strpres.drag[strp.ind, 0]/strp.width for strp in srfc.strps]
                 label = self.name + ' for ' + srfc.name
-                if axis == 'y':
+                if axis == 'b':
+                    b = srfc.strpb
+                    if max(b) > min(b):
+                        ax.plot(b, d, label=label)
+                elif axis == 'y':
                     y = srfc.strpy
                     if max(y) > min(y):
                         ax.plot(y, d, label=label)

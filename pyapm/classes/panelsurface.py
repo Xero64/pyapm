@@ -6,6 +6,7 @@ from .panelsection import PanelSection, panelsection_from_json
 from .panelfunction import PanelFunction, panelfunction_from_json
 from .panelsheet import PanelSheet
 from .panelstrip import PanelStrip
+from .panelprofile import PanelProfile
 from math import sqrt
 
 class PanelSurface(object):
@@ -20,6 +21,7 @@ class PanelSurface(object):
     twist: float = None
     _shts: List[PanelSheet] = None
     _strps: List[PanelStrip] = None
+    _prfs: List[PanelProfile] = None
     _area: float = None
     grds: List[Grid] = None
     pnls: List[Panel] = None
@@ -36,6 +38,7 @@ class PanelSurface(object):
         bval = 0.0
         for i in range(len(self.scts)):
             self.scts[i].bval = bval
+            self.scts[i].bpos = bval
             if i < len(self.scts)-1:
                 delx = self.scts[i+1].point.x - self.scts[i].point.x
                 dely = self.scts[i+1].point.y - self.scts[i].point.y
@@ -77,11 +80,34 @@ class PanelSurface(object):
                 self._strps += sht.strps
         return self._strps
     @property
+    def prfs(self):
+        if self._prfs is None:
+            self._prfs = []
+            for sht in self.shts:
+                scta = sht.scta
+                sctb = sht.sctb
+                self._prfs.append(scta)
+                self._prfs += sht.prfs
+            self._prfs.append(sctb)
+        return self._prfs
+    @property
+    def strpb(self):
+        return [strp.bpos for strp in self.strps]
+    @property
     def strpy(self):
-        return [strp.y for strp in self.strps]
+        return [strp.ypos for strp in self.strps]
     @property
     def strpz(self):
-        return [strp.z for strp in self.strps]
+        return [strp.zpos for strp in self.strps]
+    @property
+    def prfb(self):
+        return [prf.bpos for prf in self.prfs]
+    @property
+    def prfy(self):
+        return [prf.point.y for prf in self.prfs]
+    @property
+    def prfz(self):
+        return [prf.point.z for prf in self.prfs]
     @property
     def area(self):
         if self._area is None:

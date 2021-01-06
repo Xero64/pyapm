@@ -6,6 +6,7 @@ from ..tools.airfoil import airfoil_from_dat
 from ..tools.naca4 import NACA4
 from typing import List
 from numpy.matlib import absolute
+from math import cos, radians
 
 tol = 1e-12
 
@@ -20,6 +21,7 @@ class PanelSection(PanelProfile):
     shta: object = None
     shtb: object = None
     pnls: List[Panel] = None
+    _thkcor: float = None
     def __init__(self, point: Vector, chord: float, twist: float, airfoil: object):
         super(PanelSection, self).__init__(point, chord, twist)
         self.point = point
@@ -45,6 +47,7 @@ class PanelSection(PanelProfile):
         sect.xoc = self.xoc
         sect.zoc = self.zoc
         sect.bval = self.bval
+        sect.bpos = -self.bpos
         if self.tilt is not None:
             sect._tilt = -self._tilt
         return sect
@@ -69,6 +72,14 @@ class PanelSection(PanelProfile):
             else:
                 self._tilt = (self.shta.tilt + self.shtb.tilt)/2
         return self._tilt
+    @property
+    def thkcor(self):
+        if self._thkcor is None:
+            self._thkcor = 1.0
+            if self.shta is not None and self.shtb is not None:
+                halfdelta = (self.shtb.tilt - self.shta.tilt)/2
+                self._thkcor = 1.0/cos(radians(halfdelta))
+        return self._thkcor
     def get_profile(self):
         num = self.cnum*2+1
         profile = zero_matrix_vector((1, num), dtype=float)
@@ -78,6 +89,7 @@ class PanelSection(PanelProfile):
             profile[0, i] = Vector(self.airfoil.xl[j], 0.0, self.airfoil.yl[j])
             profile[0, n] = Vector(self.airfoil.xu[j], 0.0, self.airfoil.yu[j])
         profile.z[absolute(profile.z) < tol] = 0.0
+        profile.z = profile.z*self.thkcor
         offset = Vector(self.xoc, 0.0, self.zoc)
         profile = profile-offset
         return profile

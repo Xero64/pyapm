@@ -306,7 +306,7 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'System solution time is {elapsed:.3f} seconds.')
-    def plot_strip_twist_distribution(self, ax=None, axis: str='y', surfaces: list=[]):
+    def plot_twist_distribution(self, ax=None, axis: str='b', surfaces: list=[]):
         if self.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
@@ -320,19 +320,23 @@ class PanelSystem(object):
                     if srfc.name in surfaces:
                         srfcs.append(srfc)
             for srfc in srfcs:
-                t = [strp.twist for strp in srfc.strps]
+                t = [prf.twist for prf in srfc.prfs]
                 label = srfc.name
-                if axis == 'y':
-                    y = srfc.strpy
+                if axis == 'b':
+                    b = srfc.prfb
+                    if max(b) > min(b):
+                        ax.plot(b, t, label=label)
+                elif axis == 'y':
+                    y = srfc.prfy
                     if max(y) > min(y):
                         ax.plot(y, t, label=label)
                 elif axis == 'z':
-                    z = srfc.strpz
+                    z = srfc.prfz
                     if max(z) > min(z):
                         ax.plot(z, t, label=label)
             ax.legend()
         return ax
-    def plot_strip_chord_distribution(self, ax=None, axis: str='y', surfaces: list=[]):
+    def plot_chord_distribution(self, ax=None, axis: str='b', surfaces: list=[]):
         if self.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
@@ -346,10 +350,14 @@ class PanelSystem(object):
                     if srfc.name in surfaces:
                         srfcs.append(srfc)
             for srfc in srfcs:
-                c = [strp.chord for strp in srfc.strps]
+                c = [prf.chord for prf in srfc.prfs]
                 label = srfc.name
-                if axis == 'y':
-                    y = srfc.strpy
+                if axis == 'b':
+                    b = srfc.prfb
+                    if max(b) > min(b):
+                        ax.plot(b, c, label=label)
+                elif axis == 'y':
+                    y = srfc.prfy
                     if max(y) > min(y):
                         ax.plot(y, c, label=label)
                 elif axis == 'z':
@@ -358,7 +366,37 @@ class PanelSystem(object):
                         ax.plot(z, c, label=label)
             ax.legend()
         return ax
-    def plot_strip_width_distribution(self, ax=None, axis: str='y', surfaces: list=[]):
+    def plot_tilt_distribution(self, ax=None, axis: str='b', surfaces: list=[]):
+        if self.srfcs is not None:
+            if ax is None:
+                fig = figure(figsize=(12, 8))
+                ax = fig.gca()
+                ax.grid(True)
+            if len(surfaces) == 0:
+                srfcs = [srfc for srfc in self.srfcs]
+            else:
+                srfcs = []
+                for srfc in self.srfcs:
+                    if srfc.name in surfaces:
+                        srfcs.append(srfc)
+            for srfc in srfcs:
+                t = [prf.tilt for prf in srfc.prfs]
+                label = srfc.name
+                if axis == 'b':
+                    b = srfc.prfb
+                    if max(b) > min(b):
+                        ax.plot(b, t, label=label)
+                elif axis == 'y':
+                    y = srfc.prfy
+                    if max(y) > min(y):
+                        ax.plot(y, t, label=label)
+                elif axis == 'z':
+                    z = srfc.strpz
+                    if max(z) > min(z):
+                        ax.plot(z, t, label=label)
+            ax.legend()
+        return ax
+    def plot_strip_width_distribution(self, ax=None, axis: str='b', surfaces: list=[]):
         if self.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
@@ -374,7 +412,11 @@ class PanelSystem(object):
             for srfc in srfcs:
                 w = [strp.width for strp in srfc.strps]
                 label = srfc.name
-                if axis == 'y':
+                if axis == 'b':
+                    b = srfc.strpb
+                    if max(b) > min(b):
+                        ax.plot(b, w, label=label)
+                elif axis == 'y':
                     y = srfc.strpy
                     if max(y) > min(y):
                         ax.plot(y, w, label=label)
@@ -382,32 +424,6 @@ class PanelSystem(object):
                     z = srfc.strpz
                     if max(z) > min(z):
                         ax.plot(z, w, label=label)
-            ax.legend()
-        return ax
-    def plot_strip_tilt_distribution(self, ax=None, axis: str='y', surfaces: list=[]):
-        if self.srfcs is not None:
-            if ax is None:
-                fig = figure(figsize=(12, 8))
-                ax = fig.gca()
-                ax.grid(True)
-            if len(surfaces) == 0:
-                srfcs = [srfc for srfc in self.srfcs]
-            else:
-                srfcs = []
-                for srfc in self.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            for srfc in srfcs:
-                t = [strp.tilt for strp in srfc.strps]
-                label = srfc.name
-                if axis == 'y':
-                    y = srfc.strpy
-                    if max(y) > min(y):
-                        ax.plot(y, t, label=label)
-                elif axis == 'z':
-                    z = srfc.strpz
-                    if max(z) > min(z):
-                        ax.plot(z, t, label=label)
             ax.legend()
         return ax
     def __repr__(self):

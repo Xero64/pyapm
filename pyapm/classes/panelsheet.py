@@ -84,31 +84,31 @@ class PanelSheet(object):
             bmax = max(self.scta.bval, self.sctb.bval)
             brng = bmax-bmin
             pointdir = self.sctb.point-self.scta.point
-            for bval in self.bdst[1:-1]:
+            for bd in self.bdst[1:-1]:
                 if self.mirror:
-                    bint = bmax-bval*brng
+                    bint = bmax-bd*brng
                 else:
-                    bint = bmin+bval*brng
-                point = self.scta.point + bval*pointdir
+                    bint = bmin+bd*brng
+                point = self.scta.point + bd*pointdir
                 if 'chord' in self.fncs:
                     chord = self.fncs['chord'].interpolate(bint)
                 else:
-                    chord = self.scta.chord*(1-bval)+self.sctb.chord*bval
+                    chord = self.scta.chord*(1.0-bd)+self.sctb.chord*bd
                 if 'twist' in self.fncs:
                     twist = self.fncs['twist'].interpolate(bint)
                 else:
-                    twist = self.scta.twist*(1-bval)+self.sctb.twist*bval
+                    twist = self.scta.twist*(1.0-bd)+self.sctb.twist*bd
                 if 'tilt' in self.fncs:
                     tilt = self.fncs['tilt'].interpolate(bint)
                 else:
-                    tilt = self.scta.tilt*(1-bval)+self.sctb.tilt*bval
-                # profile = self.scta.profile+bval*profiledir
+                    tilt = self.scta.tilt*(1.0-bd)+self.sctb.tilt*bd
+                bpos = self.scta.bpos*(1.0-bd)+self.sctb.bpos*bd
                 prf = PanelProfile(point, chord, twist)
                 prf.set_tilt(tilt)
                 prf.scta = self.scta
                 prf.sctb = self.sctb
-                prf.bval = bval
-                # prof.set_profile(profile)
+                prf.bval = bd
+                prf.bpos = bpos
                 self._prfs.append(prf)
         return self._prfs
     @property

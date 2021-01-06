@@ -11,6 +11,7 @@ class PanelProfile(object):
     _tilt: float = None
     _crdsys: Coordinate = None
     bval: float = None
+    bpos: float = None
     scta: object = None
     sctb: object = None
     grds: List[Grid] = None
@@ -43,7 +44,7 @@ class PanelProfile(object):
         prfa = self.scta.get_profile()
         prfb = self.sctb.get_profile()
         profiledir = prfb - prfa
-        return prfa+self.bval*profiledir
+        return prfa + self.bval*profiledir
     def get_shape(self):
         profile = self.get_profile()
         scaledprofile = profile*self.chord
