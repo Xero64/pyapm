@@ -77,6 +77,12 @@ class PanelSurface(object):
                 self._strps += sht.strps
         return self._strps
     @property
+    def strpy(self):
+        return [strp.y for strp in self.strps]
+    @property
+    def strpz(self):
+        return [strp.z for strp in self.strps]
+    @property
     def area(self):
         if self._area is None:
             self._area = 0.0

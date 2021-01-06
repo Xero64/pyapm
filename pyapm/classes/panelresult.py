@@ -1,9 +1,10 @@
 from pygeom.geom3d import Vector, Coordinate
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from pygeom.matrix3d import elementwise_dot_product, elementwise_multiply, elementwise_cross_product
-from numpy.matlib import matrix, ones
+from numpy.matlib import matrix, ones, zeros
 from math import cos, sin, radians
 from numpy.matlib import sqrt, square, multiply, absolute
+from matplotlib.pyplot import figure
 
 tol = 1e-12
 
@@ -26,7 +27,7 @@ class PanelResult(object):
     _sig: matrix = None
     _mu: matrix = None
     _nfres = None
-    _grdres = None
+    _strpres = None
     _vfsl: MatrixVector = None
     def __init__(self, name: str, sys):
         self.name = name
@@ -141,10 +142,101 @@ class PanelResult(object):
             self._nfres = NearFieldResult(self)
         return self._nfres
     @property
-    def grdres(self):
-        if self._grdres is None:
-            self._grdres = GridResult(self)
-        return self._grdres
+    def strpres(self):
+        if self._strpres is None:
+            if self.sys.srfcs is not None:
+                self._strpres = StripResult(self.nfres)
+        return self._strpres
+    def plot_strip_lift_force_distribution(self, ax=None, axis: str='y',
+                                           surfaces: list=[], normalise: bool=False):
+        if self.sys.srfcs is not None:
+            if ax is None:
+                fig = figure(figsize=(12, 8))
+                ax = fig.gca()
+                ax.grid(True)
+            if len(surfaces) == 0:
+                srfcs = [srfc for srfc in self.sys.srfcs]
+            else:
+                srfcs = []
+                for srfc in self.sys.srfcs:
+                    if srfc.name in surfaces:
+                        srfcs.append(srfc)
+            for srfc in srfcs:
+                if normalise:
+                    l = [self.strpres.lift[strp.ind, 0]/strp.area/self.qfs for strp in srfc.strps]
+                else:
+                    l = [self.strpres.lift[strp.ind, 0]/strp.width for strp in srfc.strps]
+                label = self.name+' for '+srfc.name
+                if axis == 'y':
+                    y = srfc.strpy
+                    if max(y) > min(y):
+                        ax.plot(y, l, label=label)
+                elif axis == 'z':
+                    z = srfc.strpz
+                    if max(z) > min(z):
+                        ax.plot(l, z, label=label)
+            ax.legend()
+        return ax
+    def plot_strip_side_force_distribution(self, ax=None, axis: str='y',
+                                           surfaces: list=[], normalise: bool=False):
+        if self.sys.srfcs is not None:
+            if ax is None:
+                fig = figure(figsize=(12, 8))
+                ax = fig.gca()
+                ax.grid(True)
+            if len(surfaces) == 0:
+                srfcs = [srfc for srfc in self.sys.srfcs]
+            else:
+                srfcs = []
+                for srfc in self.sys.srfcs:
+                    if srfc.name in surfaces:
+                        srfcs.append(srfc)
+            for srfc in srfcs:
+                if normalise:
+                    f = [self.strpres.side[strp.ind, 0]/strp.area/self.qfs for strp in srfc.strps]
+                else:
+                    f = [self.strpres.side[strp.ind, 0]/strp.width for strp in srfc.strps]
+                label = self.name+' for '+srfc.name
+                if axis == 'y':
+                    y = srfc.strpy
+                    if max(y) > min(y):
+                        ax.plot(y, f, label=label)
+                elif axis == 'z':
+                    z = srfc.strpz
+                    if max(z) > min(z):
+                        ax.plot(f, z, label=label)
+            ax.legend()
+        return ax
+    def plot_strip_drag_force_distribution(self, ax=None, axis: str='y',
+                                           surfaces: list=[], normalise: bool=False):
+        if self.sys.srfcs is not None:
+            if ax is None:
+                fig = figure(figsize=(12, 8))
+                ax = fig.gca()
+                ax.grid(True)
+            if len(surfaces) == 0:
+                srfcs = [srfc for srfc in self.sys.srfcs]
+            else:
+                srfcs = []
+                for srfc in self.sys.srfcs:
+                    if srfc.name in surfaces:
+                        srfcs.append(srfc)
+            for srfc in srfcs:
+                if normalise:
+                    d = [self.strpres.drag[strp.ind, 0]/strp.area/self.qfs for strp in srfc.strps]
+                else:
+                    d = [self.strpres.drag[strp.ind, 0]/strp.width for strp in srfc.strps]
+                label = self.name + ' for ' + srfc.name
+                if axis == 'y':
+                    y = srfc.strpy
+                    if max(y) > min(y):
+                        ax.plot(y, d, label=label)
+                elif axis == 'z':
+                    z = srfc.strpz
+                    if max(z) > min(z):
+                        ax.plot(d, z, label=label)
+            ax.legend()
+        return ax
     @property
     def surface_loads(self):
         if self.sys.srfcs is not None:
@@ -316,18 +408,6 @@ class NearFieldResult(object):
     _Cn = None
     def __init__(self, res: PanelResult):
         self.res = res
-    # @property
-    # def nfvg(self):
-    #     if self._nfvg is None:
-    #         self._nfvg = self.res.vfs + self.res.sys.avs*self.res.sig + self.res.sys.avm*self.res.mu
-    #     return self._nfvg
-    # @property
-    # def nfvl(self):
-    #     if self._nfvl is None:
-    #         self._nfvl = zero_matrix_vector(self.nfvg.shape, dtype=float)
-    #         for pnl in self.res.sys.pnls.values():
-    #             self._nfvl[pnl.ind, 0] = pnl.crd.vector_to_local(self.nfvg[pnl.ind, 0])
-    #     return self._nfvl
     @property
     def nfql(self):
         if self._nfql is None:
@@ -469,22 +549,47 @@ class NearFieldResult(object):
                 self._e = fix_zero(self._e)
         return self._e
 
-class GridResult(object):
-    res: PanelResult = None
-    _grdphi: MatrixVector = None
-    _grdvg: MatrixVector = None
-    def __init__(self, res: PanelResult):
-        self.res = res
+class StripResult(object):
+    nfres = None
+    _stfrc = None
+    _lift = None
+    _side = None
+    _drag = None
+    def __init__(self, nfres: NearFieldResult):
+        self.nfres = nfres
     @property
-    def grdphi(self):
-        if self._grdphi is None:
-            self._grdphi = self.res.sys.gpm*self.res.mu + self.res.sys.gps*self.res.sig
-        return self._grdphi
+    def stfrc(self):
+        if self._stfrc is None:
+            sys = self.nfres.res.sys
+            num = len(sys.strps)
+            self._stfrc = zero_matrix_vector((num, 1))
+            for strp in sys.strps:
+                i = strp.ind
+                for pnl in strp.pnls:
+                    j = pnl.ind
+                    self._stfrc[i, 0] = self._stfrc[i, 0]+self.nfres.nffrc[j, 0]
+        return self._stfrc
     @property
-    def grdvg(self):
-        if self._grdvg is None:
-            self._grdvg = self.res.sys.gvm*self.res.mu + self.res.sys.gvs*self.res.sig + self.res.vfs
-        return self._grdvg
+    def drag(self):
+        if self._drag is None:
+            self._drag = zeros(self.stfrc.shape, dtype=float)
+            for i in range(self.stfrc.shape[0]):
+                self._drag[i, 0] = self.nfres.res.acs.dirx*self.stfrc[i, 0]
+        return self._drag
+    @property
+    def side(self):
+        if self._side is None:
+            self._side = zeros(self.stfrc.shape, dtype=float)
+            for i in range(self.stfrc.shape[0]):
+                self._side[i, 0] = self.nfres.res.acs.diry*self.stfrc[i, 0]
+        return self._side
+    @property
+    def lift(self):
+        if self._lift is None:
+            self._lift = zeros(self.stfrc.shape, dtype=float)
+            for i in range(self.stfrc.shape[0]):
+                self._lift[i, 0] = self.nfres.res.acs.dirz*self.stfrc[i, 0]
+        return self._lift
 
 class FarFieldResult(object):
     def __init__(self):
