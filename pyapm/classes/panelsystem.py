@@ -293,6 +293,29 @@ class PanelSystem(object):
             elapsed = finish - start
             print(f'System solution time is {elapsed:.3f} seconds.')
     
+    def __repr__(self):
+        return '<PanelSystem: {:s}>'.format(self.name)
+    def __str__(self):
+        from py2md.classes import MDTable
+        outstr = '# Panel System '+self.name+'\n'
+        table = MDTable()
+        table.add_column('Name', 's', data=[self.name])
+        table.add_column('Sref', 'g', data=[self.sref])
+        table.add_column('cref', 'g', data=[self.cref])
+        table.add_column('bref', 'g', data=[self.bref])
+        table.add_column('xref', '.3f', data=[self.rref.x])
+        table.add_column('yref', '.3f', data=[self.rref.y])
+        table.add_column('zref', '.3f', data=[self.rref.z])
+        outstr += table._repr_markdown_()
+        table = MDTable()
+        if self.pnls is not None:
+            table.add_column('# Panels', 'd', data=[len(self.pnls)])
+        if len(table.columns) > 0:
+            outstr += table._repr_markdown_()
+        return outstr
+    def _repr_markdown_(self):
+        return self.__str__()
+    
 def panelsystem_from_mesh(meshfilepath: str):
 
     with open(meshfilepath, 'rt') as meshfile:

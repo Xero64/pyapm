@@ -71,8 +71,7 @@ class PanelSheet(object):
             elif self.bspc == 'cosine':
                 bdst = full_cosine_spacing(self.bnum)
             if self.mirror:
-                bdst = 1.0-bdst
-                self._bdst = bdst
+                self._bdst = [1.0-bd for bd in bdst]
                 self._bdst.reverse()
             else:
                 self._bdst = bdst
