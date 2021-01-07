@@ -24,10 +24,13 @@ class PanelResult(object):
     _vfs: Vector = None
     _ofs: Vector = None
     _qfs: float = None
+    _unsig: matrix = None
+    _unmu: matrix = None
     _sig: matrix = None
     _mu: matrix = None
     _nfres = None
     _strpres = None
+    _stres = None
     _vfsl: MatrixVector = None
     def __init__(self, name: str, sys):
         self.name = name
@@ -127,14 +130,24 @@ class PanelResult(object):
             self._qfs = self.rho*self.speed**2/2
         return self._qfs
     @property
+    def unsig(self):
+        if self._unsig is None:
+            self._unsig = self.sys.sig # ungam(self.mach)
+        return self._unsig
+    @property
+    def unmu(self):
+        if self._unmu is None:
+            self._unmu = self.sys.mu # ungam(self.mach)
+        return self._unmu
+    @property
     def sig(self):
         if self._sig is None:
-            self._sig = self.sys.sig[:, 0]*self.vfs + self.sys.sig[:, 1]*self.ofs
+            self._sig = self.unsig[:, 0]*self.vfs + self.unsig[:, 1]*self.ofs
         return self._sig
     @property
     def mu(self):
         if self._mu is None:
-            self._mu = self.sys.mu[:, 0]*self.vfs + self.sys.mu[:, 1]*self.ofs
+            self._mu = self.unmu[:, 0]*self.vfs + self.unmu[:, 1]*self.ofs
         return self._mu
     @property
     def nfres(self):
@@ -147,6 +160,11 @@ class PanelResult(object):
             if self.sys.srfcs is not None:
                 self._strpres = StripResult(self.nfres)
         return self._strpres
+    @property
+    def stres(self):
+        if self._stres is None:
+            self._stres = StabilityResult(self)
+        return self._stres
     def plot_strip_lift_force_distribution(self, ax=None, axis: str='b',
                                            surfaces: list=[], normalise: bool=False):
         if self.sys.srfcs is not None:
@@ -250,6 +268,12 @@ class PanelResult(object):
             ax.legend()
         return ax
     @property
+    def stability_derivatives(self):
+        return self.stres.stability_derivatives
+    @property
+    def stability_derivatives_body(self):
+        return self.stres.stability_derivatives_body
+    @property
     def surface_loads(self):
         if self.sys.srfcs is not None:
             from py2md.classes import MDTable, MDReport, MDHeading
@@ -314,7 +338,7 @@ class PanelResult(object):
     def __str__(self):
         from py2md.classes import MDTable
         from . import cfrm, dfrm, efrm
-        outstr = '# Lattice Result '+self.name+' for '+self.sys.name+'\n'
+        outstr = '# Panel Result '+self.name+' for '+self.sys.name+'\n'
         table = MDTable()
         table.add_column('Alpha (deg)', cfrm, data=[self.alpha])
         table.add_column('Beta (deg)', cfrm, data=[self.beta])
@@ -394,6 +418,8 @@ def trig_angle(angle: float):
 
 class NearFieldResult(object):
     res = None
+    sig: matrix = None
+    mu: matrix = None
     # _nfvg = None
     # _nfvl = None
     _nfql = None
@@ -418,14 +444,22 @@ class NearFieldResult(object):
     _Cl = None
     _Cm = None
     _Cn = None
-    def __init__(self, res: PanelResult):
+    def __init__(self, res: PanelResult, sig: matrix=None, mu: matrix=None):
         self.res = res
+        if sig is None:
+            self.sig = self.res.sig
+        else:
+            self.sig = sig
+        if mu is None:
+            self.mu = self.res.mu
+        else:
+            self.mu = mu
     @property
     def nfql(self):
         if self._nfql is None:
             self._nfql = zero_matrix_vector((self.res.sys.numpnl, 1), dtype=float)
             for pnl in self.res.sys.pnls.values():
-                qx, qy = pnl.diff_mu(self.res.mu)
+                qx, qy = pnl.diff_mu(self.mu)
                 vfsl = self.res.vfsl[pnl.ind, 0]
                 self._nfql[pnl.ind, 0] = Vector(qx + vfsl.x, qy + vfsl.y, 0.0)
         return self._nfql
@@ -442,7 +476,7 @@ class NearFieldResult(object):
     @property
     def nfphi(self):
         if self._nfphi is None:
-            self._nfphi = self.res.sys.apm*self.res.mu + self.res.sys.aps*self.res.sig
+            self._nfphi = self.res.sys.apm*self.mu + self.res.sys.aps*self.sig
             self._nfphi[absolute(self._nfphi) < tol] = 0.0
         return self._nfphi
     @property
@@ -606,6 +640,299 @@ class StripResult(object):
 class FarFieldResult(object):
     def __init__(self):
         pass
+
+class StabilityResult(object):
+    res = None
+    _u = None
+    _v = None
+    _w = None
+    _p = None
+    _q = None
+    _r = None
+    _alpha = None
+    _beta = None
+    _pbo2V = None
+    _qco2V = None
+    _rbo2V = None
+    _pdbo2V = None
+    _qdco2V = None
+    _rdbo2V = None
+    def __init__(self, res: PanelResult):
+        self.res = res
+    @property
+    def u(self):
+        if self._u is None:
+            uvw = Vector(1.0, 0.0, 0.0)
+            sigu = self.res.unsig[:, 0]*uvw
+            muu = self.res.unmu[:, 0]*uvw
+            self._u = NearFieldResult(self.res, sig=sigu, mu=muu)
+        return self._u
+    @property
+    def v(self):
+        if self._v is None:
+            uvw = Vector(0.0, 1.0, 0.0)
+            sigv = self.res.unsig[:, 0]*uvw
+            muv = self.res.unmu[:, 0]*uvw
+            self._v = NearFieldResult(self.res, sig=sigv, mu=muv)
+        return self._v
+    @property
+    def w(self):
+        if self._w is None:
+            uvw = Vector(0.0, 0.0, 1.0)
+            sigw = self.res.unsig[:, 0]*uvw
+            muw = self.res.unmu[:, 0]*uvw
+            self._w = NearFieldResult(self.res, sig=sigw, mu=muw)
+        return self._w
+    @property
+    def p(self):
+        if self._p is None:
+            pqr = Vector(1.0, 0.0, 0.0)
+            ofs = self.res.wcs.vector_to_global(pqr)
+            sigp = self.res.unsig[:, 1]*ofs
+            mup = self.res.unmu[:, 1]*ofs
+            self._p = NearFieldResult(self.res, sig=sigp, mu=mup)
+        return self._p
+    @property
+    def q(self):
+        if self._q is None:
+            pqr = Vector(0.0, 1.0, 0.0)
+            ofs = self.res.wcs.vector_to_global(pqr)
+            sigq = self.res.unsig[:, 1]*ofs
+            muq = self.res.unmu[:, 1]*ofs
+            self._q = NearFieldResult(self.res, sig=sigq, mu=muq)
+        return self._q
+    @property
+    def r(self):
+        if self._r is None:
+            pqr = Vector(0.0, 0.0, 1.0)
+            ofs = self.res.wcs.vector_to_global(pqr)
+            sigr = self.res.unsig[:, 1]*ofs
+            mur = self.res.unmu[:, 1]*ofs
+            self._r = NearFieldResult(self.res, sig=sigr, mu=mur)
+        return self._r
+    @property
+    def alpha(self):
+        if self._alpha is None:
+            V = self.res.speed
+            c = self.res.sys.cref
+            b = self.res.sys.bref
+            pbo2V = self.res.pbo2V
+            qco2V = self.res.qco2V
+            rbo2V = self.res.rbo2V
+            cosal, sinal = trig_angle(self.res.alpha)
+            cosbt, sinbt = trig_angle(self.res.beta)
+            vfs = Vector(-V*cosbt*sinal, 0, V*cosal*cosbt)
+            ofs = Vector(2*V*(qco2V*sinal*sinbt/c - cosal*rbo2V/b - cosbt*pbo2V*sinal/b), 0.0,
+                         2*V*(cosal*cosbt*pbo2V/b - cosal*qco2V*sinbt/c - rbo2V*sinal/b))
+            sigalpha = self.res.unsig[:, 0]*vfs+self.res.unsig[:, 1]*ofs
+            mualpha = self.res.unmu[:, 0]*vfs+self.res.unmu[:, 1]*ofs
+            self._alpha = NearFieldResult(self.res, sig=sigalpha, mu=mualpha)
+        return self._alpha
+    @property
+    def beta(self):
+        if self._beta is None:
+            V = self.res.speed
+            c = self.res.sys.cref
+            b = self.res.sys.bref
+            pbo2V = self.res.pbo2V
+            qco2V = self.res.qco2V
+            cosal, sinal = trig_angle(self.res.alpha)
+            cosbt, sinbt = trig_angle(self.res.beta)
+            vfs = Vector(-V*cosal*sinbt, -V*cosbt, -V*sinal*sinbt)
+            ofs = Vector(-2*V*cosal*(cosbt*qco2V/c + pbo2V*sinbt/b),
+                         2*V*(cosbt*pbo2V/b - qco2V*sinbt/c),
+                         -2*V*sinal*(cosbt*qco2V/c + pbo2V*sinbt/b))
+            sigbeta = self.res.unsig[:, 0]*vfs+self.res.unsig[:, 1]*ofs
+            mubeta = self.res.unmu[:, 0]*vfs+self.res.unmu[:, 1]*ofs
+            self._beta = NearFieldResult(self.res, sig=sigbeta, mu=mubeta)
+        return self._beta
+    @property
+    def pbo2V(self):
+        if self._pbo2V is None:
+            pqr = Vector(2*self.res.speed/self.res.sys.bref, 0.0, 0.0)
+            ofs = self.res.wcs.vector_to_global(pqr)
+            sigpbo2V = self.res.unsig[:, 1]*ofs
+            mupbo2V = self.res.unmu[:, 1]*ofs
+            self._pbo2V = NearFieldResult(self.res, sig=sigpbo2V, mu=mupbo2V)
+        return self._pbo2V
+    @property
+    def qco2V(self):
+        if self._qco2V is None:
+            pqr = Vector(0.0, 2*self.res.speed/self.res.sys.cref, 0.0)
+            ofs = self.res.wcs.vector_to_global(pqr)
+            sigqco2V = self.res.unsig[:, 1]*ofs
+            muqco2V = self.res.unmu[:, 1]*ofs
+            self._qco2V = NearFieldResult(self.res, sig=sigqco2V, mu=muqco2V)
+        return self._qco2V
+    @property
+    def rbo2V(self):
+        if self._rbo2V is None:
+            pqr = Vector(0.0, 0.0, 2*self.res.speed/self.res.sys.bref)
+            ofs = self.res.wcs.vector_to_global(pqr)
+            sigrbo2V = self.res.unsig[:, 1]*ofs
+            murbo2V = self.res.unmu[:, 1]*ofs
+            self._rbo2V = NearFieldResult(self.res, sig=sigrbo2V, mu=murbo2V)
+        return self._rbo2V
+    @property
+    def pdbo2V(self):
+        if self._pdbo2V is None:
+            ofs = Vector(2*self.res.speed/self.res.sys.bref, 0.0, 0.0)
+            sigpdbo2V = self.res.unsig[:, 1]*ofs
+            mupdbo2V = self.res.unmu[:, 1]*ofs
+            self._pbo2V = NearFieldResult(self.res, sig=sigpdbo2V, mu=mupdbo2V)
+        return self._pbo2V
+    @property
+    def qdco2V(self):
+        if self._qdco2V is None:
+            ofs = Vector(0.0, 2*self.res.speed/self.res.sys.cref, 0.0)
+            sigqdco2V = self.res.unsig[:, 1]*ofs
+            muqdco2V = self.res.unmu[:, 1]*ofs
+            self._qdco2V = NearFieldResult(self.res, sig=sigqdco2V, mu=muqdco2V)
+        return self._qdco2V
+    @property
+    def rdbo2V(self):
+        if self._rdbo2V is None:
+            ofs = Vector(0.0, 0.0, 2*self.res.speed/self.res.sys.bref)
+            sigrdbo2V = self.res.unsig[:, 1]*ofs
+            murdbo2V = self.res.unmu[:, 1]*ofs
+            self._rdbo2V = NearFieldResult(self.res, sig=sigrdbo2V, mu=murdbo2V)
+        return self._rdbo2V
+    def neutral_point(self):
+        dCzdal = self.alpha.Cz
+        dCmdal = self.alpha.Cm
+        dxoc = dCmdal/dCzdal
+        return self.res.rcg.x-dxoc*self.res.sys.cref
+    def system_aerodynamic_matrix(self):
+        A = zeros((6, 6))
+        F = self.u.nffrctot
+        A[0, 0], A[1, 0], A[2, 0] = F.x, F.y, F.z
+        M = self.res.wcs.vector_to_local(self.u.nfmomtot)
+        A[3, 0], A[4, 0], A[5, 0] = M.x, M.y, M.z
+        F = self.v.nffrctot
+        A[0, 1], A[1, 1], A[2, 1] = F.x, F.y, F.z
+        M = self.res.wcs.vector_to_local(self.v.nfmomtot)
+        A[3, 1], A[4, 1], A[5, 1] = M.x, M.y, M.z
+        F = self.w.nffrctot
+        A[0, 2], A[1, 2], A[2, 2] = F.x, F.y, F.z
+        M = self.res.wcs.vector_to_local(self.w.nfmomtot)
+        A[3, 2], A[4, 2], A[5, 2] = M.x, M.y, M.z
+        F = self.p.nffrctot
+        A[0, 3], A[1, 3], A[2, 3] = F.x, F.y, F.z
+        M = self.res.wcs.vector_to_local(self.p.nfmomtot)
+        A[3, 3], A[4, 3], A[5, 3] = M.x, M.y, M.z
+        F = self.q.nffrctot
+        A[0, 4], A[1, 4], A[2, 4] = F.x, F.y, F.z
+        M = self.res.wcs.vector_to_local(self.q.nfmomtot)
+        A[3, 4], A[4, 4], A[5, 4] = M.x, M.y, M.z
+        F = self.r.nffrctot
+        A[0, 5], A[1, 5], A[2, 5] = F.x, F.y, F.z
+        M = self.res.wcs.vector_to_local(self.r.nfmomtot)
+        A[3, 5], A[4, 5], A[5, 5] = M.x, M.y, M.z
+        return A
+    @property
+    def stability_derivatives(self):
+        from py2md.classes import MDTable, MDHeading, MDReport
+        from . import sfrm
+        report = MDReport()
+        heading = MDHeading('Stability Derivatives', 2)
+        report.add_object(heading)
+        table = MDTable()
+        table.add_column('CLa', sfrm, data=[self.alpha.CL])
+        table.add_column('CYa', sfrm, data=[self.alpha.CY])
+        table.add_column('Cla', sfrm, data=[self.alpha.Cl])
+        table.add_column('Cma', sfrm, data=[self.alpha.Cm])
+        table.add_column('Cna', sfrm, data=[self.alpha.Cn])
+        report.add_object(table)
+        table = MDTable()
+        table.add_column('CLb', sfrm, data=[self.beta.CL])
+        table.add_column('CYb', sfrm, data=[self.beta.CY])
+        table.add_column('Clb', sfrm, data=[self.beta.Cl])
+        table.add_column('Cmb', sfrm, data=[self.beta.Cm])
+        table.add_column('Cnb', sfrm, data=[self.beta.Cn])
+        report.add_object(table)
+        table = MDTable()
+        table.add_column('CLp', sfrm, data=[self.pbo2V.CL])
+        table.add_column('CYp', sfrm, data=[self.pbo2V.CY])
+        table.add_column('Clp', sfrm, data=[self.pbo2V.Cl])
+        table.add_column('Cmp', sfrm, data=[self.pbo2V.Cm])
+        table.add_column('Cnp', sfrm, data=[self.pbo2V.Cn])
+        report.add_object(table)
+        table = MDTable()
+        table.add_column('CLq', sfrm, data=[self.qco2V.CL])
+        table.add_column('CYq', sfrm, data=[self.qco2V.CY])
+        table.add_column('Clq', sfrm, data=[self.qco2V.Cl])
+        table.add_column('Cmq', sfrm, data=[self.qco2V.Cm])
+        table.add_column('Cnq', sfrm, data=[self.qco2V.Cn])
+        report.add_object(table)
+        table = MDTable()
+        table.add_column('CLr', sfrm, data=[self.rbo2V.CL])
+        table.add_column('CYr', sfrm, data=[self.rbo2V.CY])
+        table.add_column('Clr', sfrm, data=[self.rbo2V.Cl])
+        table.add_column('Cmr', sfrm, data=[self.rbo2V.Cm])
+        table.add_column('Cnr', sfrm, data=[self.rbo2V.Cn])
+        report.add_object(table)
+        return report
+    @property
+    def stability_derivatives_body(self):
+        from py2md.classes import MDTable, MDHeading, MDReport
+        from . import sfrm
+        report = MDReport()
+        heading = MDHeading('Stability Derivatives Body Axis', 2)
+        report.add_object(heading)
+        table = MDTable()
+        table.add_column('Cxu', sfrm, data=[self.u.Cx])
+        table.add_column('Cyu', sfrm, data=[self.u.Cy])
+        table.add_column('Czu', sfrm, data=[self.u.Cz])
+        table.add_column('Clu', sfrm, data=[self.u.Cmx])
+        table.add_column('Cmu', sfrm, data=[self.u.Cmy])
+        table.add_column('Cnu', sfrm, data=[self.u.Cmz])
+        report.add_object(table)
+        table = MDTable()
+        table.add_column('Cxv', sfrm, data=[self.v.Cx])
+        table.add_column('Cyv', sfrm, data=[self.v.Cy])
+        table.add_column('Czv', sfrm, data=[self.v.Cz])
+        table.add_column('Clv', sfrm, data=[self.v.Cmx])
+        table.add_column('Cmv', sfrm, data=[self.v.Cmy])
+        table.add_column('Cnv', sfrm, data=[self.v.Cmz])
+        report.add_object(table)
+        table = MDTable()
+        table.add_column('Cxw', sfrm, data=[self.w.Cx])
+        table.add_column('Cyw', sfrm, data=[self.w.Cy])
+        table.add_column('Czw', sfrm, data=[self.w.Cz])
+        table.add_column('Clw', sfrm, data=[self.w.Cmx])
+        table.add_column('Cmw', sfrm, data=[self.w.Cmy])
+        table.add_column('Cnw', sfrm, data=[self.w.Cmz])
+        report.add_object(table)
+        table = MDTable()
+        table.add_column('Cxp', sfrm, data=[self.pdbo2V.Cx])
+        table.add_column('Cyp', sfrm, data=[self.pdbo2V.Cy])
+        table.add_column('Czp', sfrm, data=[self.pdbo2V.Cz])
+        table.add_column('Clp', sfrm, data=[self.pdbo2V.Cmx])
+        table.add_column('Cmp', sfrm, data=[self.pdbo2V.Cmy])
+        table.add_column('Cnp', sfrm, data=[self.pdbo2V.Cmz])
+        report.add_object(table)
+        table = MDTable()
+        table.add_column('Cxq', sfrm, data=[self.qdco2V.Cx])
+        table.add_column('Cyq', sfrm, data=[self.qdco2V.Cy])
+        table.add_column('Czq', sfrm, data=[self.qdco2V.Cz])
+        table.add_column('Clq', sfrm, data=[self.qdco2V.Cmx])
+        table.add_column('Cmq', sfrm, data=[self.qdco2V.Cmy])
+        table.add_column('Cnq', sfrm, data=[self.qdco2V.Cmz])
+        report.add_object(table)
+        table = MDTable()
+        table.add_column('Cxr', sfrm, data=[self.rdbo2V.Cx])
+        table.add_column('Cyr', sfrm, data=[self.rdbo2V.Cy])
+        table.add_column('Czr', sfrm, data=[self.rdbo2V.Cz])
+        table.add_column('Clr', sfrm, data=[self.rdbo2V.Cmx])
+        table.add_column('Cmr', sfrm, data=[self.rdbo2V.Cmy])
+        table.add_column('Cnr', sfrm, data=[self.rdbo2V.Cmz])
+        report.add_object(table)
+        return report
+    def __str__(self):
+        return self.stability_derivatives._repr_markdown_()
+    def _repr_markdown_(self):
+        return self.__str__()        
+
 
 def fix_zero(value: float, tol: float=1e-8):
     if abs(value) < tol:
