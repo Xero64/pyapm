@@ -16,6 +16,7 @@ class PanelSurface(object):
     mirror: bool = None
     scts: List[PanelSection] = None
     fncs: Dict[str, PanelFunction] = None
+    close: bool = None
     cnum: int = None
     cspc: str = None
     twist: float = None
@@ -26,13 +27,14 @@ class PanelSurface(object):
     grds: List[Grid] = None
     pnls: List[Panel] = None
     def __init__(self, name: str, point: Vector, twist: float, mirror: bool,
-                 scts: List[PanelSection], fncs: List[PanelFunction]):
+                 scts: List[PanelSection], fncs: List[PanelFunction], close: bool):
         self.name = name
         self.point = point
         self.twist = twist
         self.scts = scts
         self.mirror = mirror
         self.fncs = fncs
+        self.close = close
         self.update()
     def update(self):
         bval = 0.0
@@ -131,12 +133,19 @@ class PanelSurface(object):
         self.pnls = []
         for sht in self.shts:
             pid = sht.mesh_panels(pid)
-            self.pnls += sht.pnls
-        pid = self.mesh_tip_panels(pid)
-        scta = self.scts[0]
-        self.pnls += scta.pnls
-        sctb = self.scts[-1]
-        self.pnls += sctb.pnls
+            for pnl in sht.pnls:
+                pnl.srfc = self
+                self.pnls.append(pnl)
+        if self.close:
+            pid = self.mesh_tip_panels(pid)
+            scta = self.scts[0]
+            for pnl in scta.pnls:
+                pnl.srfc = self
+                self.pnls.append(pnl)
+            sctb = self.scts[-1]
+            for pnl in sctb.pnls:
+                pnl.srfc = self
+                self.pnls.append(pnl)
         return pid
     def mesh_tip_panels(self, pid: int):
         scta = self.scts[0]
@@ -231,7 +240,10 @@ def panelsurface_from_json(surfdata: dict, display: bool=False):
     for sect in sects:
         sect.offset_position(xpos, ypos, zpos)
         sect.offset_twist(twist)
-    surf = PanelSurface(name, point, twist, mirror, sects, funcs)
+    close = True
+    if 'close' in surfdata:
+        close = surfdata['close']
+    surf = PanelSurface(name, point, twist, mirror, sects, funcs, close)
     if 'cnum' in surfdata:
         cnum = surfdata['cnum']
         surf.set_chord_spacing(cnum)

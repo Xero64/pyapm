@@ -107,6 +107,12 @@ class BoundEdge(object):
             vec = self.grdb-self.pntc
             self._grdbl = Vector(vec*self.dirx, vec*self.diry, vec*self.dirz)
         return self._grdbl
+    @property
+    def te(self):
+        if self.grda.te and self.grdb.te:
+            return True
+        else:
+            return False
     def points_to_local(self, pnts: MatrixVector):
         vecs = pnts-self.pntc
         return MatrixVector(vecs*self.dirx, vecs*self.diry, vecs*self.dirz)

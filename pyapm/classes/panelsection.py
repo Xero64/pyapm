@@ -119,6 +119,7 @@ class PanelSection(PanelProfile):
                     gids.append(grd.gid)
             pnl = Panel(pid, gids)
             pnl.noload = noload
+            pnl.sct = self
             self.pnls.append(pnl)
             pid += 1
         return pid

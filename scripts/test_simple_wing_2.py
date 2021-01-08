@@ -35,11 +35,20 @@ print(f'mu = \n{pres.mu}')
 #%% Loop Through Grids
 for pid in sorted(psys.pnls):
     pnl = psys.pnls[pid]
-    # edg_mu = pnl.edge_mu(pres.mu)
-    # print(f'{pid:d}: {edg_mu}')
     qx, qy = pnl.diff_mu(pres.mu)
     qfs = pnl.crd.vector_to_local(pres.vfs)
-    print(f'qx = {qx+qfs.x}')
-    # print(f'qy = {qy+qfs.y}')
-    # print(f'qfs.x = {qfs.x}')
-    # print(f'qfs.y = {qfs.y}')
+    print(f'qx = {qx+qfs.x}, qy = {qy+qfs.y}')
+
+#%% Solve Panel Result
+rho = 1.225
+speed = 1.0
+alpha = 5.0
+pbo2V = 0.3
+
+pres = PanelResult(f'Test Case', psys)
+pres.set_density(rho=rho)
+pres.set_state(alpha=alpha, speed=speed, pbo2V=pbo2V)
+
+#%% Output MSH File
+mshfilepath = '..\\outputs\\Test Simple Wing 2 Roll.msh'
+panelresult_to_msh(pres, mshfilepath)

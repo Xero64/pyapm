@@ -14,7 +14,10 @@ class Panel(Poly):
     gids: List[int] = None
     ind: int = None
     noload: bool = None
-    grpid: int = None
+    grp: object = None
+    sht: object = None
+    sct: object = None
+    srfc: object = None
     _crd: Coordinate = None
     _hsvs: List[HorseShoe] = None
     _grdlocs: List[Vector] = None
@@ -46,6 +49,40 @@ class Panel(Poly):
                 a = 0
             if self.grds[a].te and self.grds[b].te:
                 self._hsvs.append(HorseShoe(self.grds[a], self.grds[b], diro, self.ind))
+    def check_panel(self, pnl):
+        if pnl.grp is not None and self.grp is not None:
+            if pnl.grp == self.grp:
+                grpchk = True
+            else:
+                grpchk = False
+        else:
+            grpchk = False
+        if pnl.srfc is not None and self.srfc is not None:
+            if pnl.srfc == self.srfc:
+                srfchk = True
+            else:
+                srfchk = False
+        else:
+            srfchk = False
+        if srfchk:
+            if pnl.sht is not None and self.sht is not None:
+                typchk = True
+            elif pnl.sct is not None and self.sct is not None:
+                typchk = True
+            else:
+                typchk = False
+        else:
+            typchk = False
+        return grpchk, srfchk, typchk
+    def check_angle(self, pnl):
+        ang = angle_between_vectors(pnl.crd.dirz, self.crd.dirz)
+        angchk = abs(ang) < angtol
+        return angchk
+    def check_edge(self, pnl, edg):
+        edgchk = False
+        if edg.grda in pnl.grds and edg.grdb in pnl.grds:
+            edgchk = True
+        return edgchk
     @property
     def crd(self) -> Coordinate:
         if self._crd is None:
@@ -54,6 +91,8 @@ class Panel(Poly):
             magy = vecy.return_magnitude()
             if magy < oor2:
                 vecy = dirz**khat
+            if vecy.y < 0.0:
+                vecy = -vecy
             diry = vecy.to_unit()
             dirx = (diry**dirz).to_unit()
             pntc = self.pnto.to_point()
@@ -87,21 +126,26 @@ class Panel(Poly):
     def edgpnls(self):
         if self._edgpnls is None:
             self._edgpnls = []
-            for a, grda in enumerate(self.grds):
-                self.edgpnls.append([])
-                b = a + 1
-                if b == self.num:
-                    b = 0
-                grdb = self.grds[b]
-                # if grda.te and grdb.te:
-                #     self._edgpnls[a].append(self)
-                #     continue
-                for pnl in grda.pnls:
-                    ang = angle_between_vectors(pnl.crd.dirz, self.crd.dirz)
-                    if abs(ang) < angtol:
-                        for grd in pnl.grds:
-                            if grd == grdb:
-                                self._edgpnls[a].append(pnl)
+            for i, edg in enumerate(self.edgs):
+                self._edgpnls.append([])
+                for pnl in edg.grda.pnls:
+                    if pnl is not self:
+                        edgchk = self.check_edge(pnl, edg)
+                        if edgchk:
+                            _, srfchk, _ = self.check_panel(pnl)
+                            if srfchk:
+                                if not edg.te:
+                                    angchk = self.check_angle(pnl)
+                                    if angchk:
+                                        self._edgpnls[i].append(pnl)
+                                else:
+                                    self._edgpnls[i].append(pnl)
+                            else:
+                                angchk = self.check_angle(pnl)
+                                if angchk:
+                                    self._edgpnls[i].append(pnl)
+                if edg.te or len(self._edgpnls[i]) > 0:
+                    self._edgpnls[i].append(self)
         return self._edgpnls
     @property
     def edginds(self):
@@ -144,9 +188,12 @@ class Panel(Poly):
     def edge_mu(self, mu: matrix):
         edgmu = []
         for i in range(self.num):
-            edgmu.append(0.0)
-            for ind, fac in zip(self.edginds[i], self.edgfacs[i]):
-                edgmu[i] += mu[ind, 0]*fac
+            if len(self.edginds[i]) == 0:
+                edgmu.append(None)
+            else:
+                edgmu.append(0.0)
+                for ind, fac in zip(self.edginds[i], self.edgfacs[i]):
+                    edgmu[i] += mu[ind, 0]*fac
         return edgmu
     @property
     def edgpntl(self):
@@ -166,25 +213,55 @@ class Panel(Poly):
             b = i
             mua = edgmu[a]
             mub = edgmu[b]
-            muc = pnlmu
-            xa = edgx[a]
-            xb = edgx[b]
-            xc = 0.0
-            ya = edgy[a]
-            yb = edgy[b]
-            yc = 0.0
-            J = xa*yb - xa*yc - xb*ya + xb*yc + xc*ya - xc*yb
-            Js += J
-            ybc = yb-yc
-            yca = yc-ya
-            yab = ya-yb
-            xcb = xc-xb
-            xac = xa-xc
-            xba = xb-xa
-            qxJ = mua*ybc + mub*yca + muc*yab
-            qxJs += qxJ
-            qyJ = mua*xcb + mub*xac + muc*xba
-            qyJs += qyJ
+            if mua is not None and mub is not None:
+                muc = pnlmu
+                xa = edgx[a]
+                xb = edgx[b]
+                xc = 0.0
+                ya = edgy[a]
+                yb = edgy[b]
+                yc = 0.0
+                J = xa*yb - xa*yc - xb*ya + xb*yc + xc*ya - xc*yb
+                Js += J
+                ybc = yb-yc
+                yca = yc-ya
+                yab = ya-yb
+                xcb = xc-xb
+                xac = xa-xc
+                xba = xb-xa
+                qxJ = mua*ybc + mub*yca + muc*yab
+                qxJs += qxJ
+                qyJ = mua*xcb + mub*xac + muc*xba
+                qyJs += qyJ
+        if Js == 0.0:
+            for i in range(self.num):
+                a = i-1
+                b = i
+                mua = edgmu[a]
+                if mua is None:
+                    mua = pnlmu
+                mub = edgmu[b]
+                if mub is None:
+                    mub = pnlmu
+                muc = pnlmu
+                xa = edgx[a]
+                xb = edgx[b]
+                xc = 0.0
+                ya = edgy[a]
+                yb = edgy[b]
+                yc = 0.0
+                J = xa*yb - xa*yc - xb*ya + xb*yc + xc*ya - xc*yb
+                Js += J
+                ybc = yb-yc
+                yca = yc-ya
+                yab = ya-yb
+                xcb = xc-xb
+                xac = xa-xc
+                xba = xb-xa
+                qxJ = mua*ybc + mub*yca + muc*yab
+                qxJs += qxJ
+                qyJ = mua*xcb + mub*xac + muc*xba
+                qyJs += qyJ
         qx = -qxJs/Js
         qy = -qyJs/Js
         return qx, qy
@@ -195,9 +272,18 @@ class Panel(Poly):
             for i, grd in enumerate(self.grds):
                 self._grdpnls.append([])
                 for pnl in grd.pnls:
-                    ang = angle_between_vectors(pnl.crd.dirz, self.crd.dirz)
-                    if abs(ang) < angtol:
-                        self._grdpnls[i].append(pnl)
+                    grpchk, srfchk, typchk = self.check_panel(pnl)
+                    if grpchk:
+                        angchk = self.check_angle(pnl)
+                        if angchk:
+                            self._grdpnls[i].append(pnl)
+                    elif srfchk and typchk:
+                        if grd.te:
+                            angchk = self.check_angle(pnl)
+                            if angchk:
+                                self._grdpnls[i].append(pnl)
+                        else:
+                            self._grdpnls[i].append(pnl)
         return self._grdpnls
     @property
     def grdinds(self):

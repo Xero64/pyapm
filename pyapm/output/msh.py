@@ -131,12 +131,22 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         mshfile.write('1\n')
         mshfile.write('{:d}\n'.format(lenpid))
         frmstr = '{:d} {:}\n'
+        maxval = float('-inf')
+        minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.nfres.nfcp[pnl.ind, 0]))
+            val = pres.nfres.nfcp[pnl.ind, 0]
+            if pnl.sct is None:
+                if val < minval:
+                    minval = val
+                if val > maxval:
+                    maxval = val
+            mshfile.write(frmstr.format(pnl.pid, val))
         mshfile.write('$EndElementData\n')
+        optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
+        optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
+        optstr += 'View[{:d}].CustomMin = {:};\n'.format(view, minval)
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
-        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
@@ -191,12 +201,22 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         mshfile.write('1\n')
         mshfile.write('{:d}\n'.format(lenpid))
         frmstr = '{:d} {:}\n'
+        maxval = float('-inf')
+        minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.nfres.nfql.x[pnl.ind, 0]))
+            val = pres.nfres.nfql.x[pnl.ind, 0]
+            if pnl.sct is None:
+                if val < minval:
+                    minval = val
+                if val > maxval:
+                    maxval = val
+            mshfile.write(frmstr.format(pnl.pid, val))
         mshfile.write('$EndElementData\n')
+        optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
+        optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
+        optstr += 'View[{:d}].CustomMin = {:};\n'.format(view, minval)
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
-        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
@@ -211,12 +231,22 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         mshfile.write('1\n')
         mshfile.write('{:d}\n'.format(lenpid))
         frmstr = '{:d} {:}\n'
+        maxval = float('-inf')
+        minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.nfres.nfql.y[pnl.ind, 0]))
+            val = pres.nfres.nfql.y[pnl.ind, 0]
+            if pnl.sct is None:
+                if val < minval:
+                    minval = val
+                if val > maxval:
+                    maxval = val
+            mshfile.write(frmstr.format(pnl.pid, val))
         mshfile.write('$EndElementData\n')
+        optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
+        optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
+        optstr += 'View[{:d}].CustomMin = {:};\n'.format(view, minval)
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
-        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
@@ -231,12 +261,22 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         mshfile.write('1\n')
         mshfile.write('{:d}\n'.format(lenpid))
         frmstr = '{:d} {:}\n'
+        maxval = float('-inf')
+        minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.nfres.nfqt[pnl.ind, 0]))
+            val = pres.nfres.nfqt[pnl.ind, 0]
+            if pnl.sct is None:
+                if val < minval:
+                    minval = val
+                if val > maxval:
+                    maxval = val
+            mshfile.write(frmstr.format(pnl.pid, val))
         mshfile.write('$EndElementData\n')
+        optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
+        optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
+        optstr += 'View[{:d}].CustomMin = {:};\n'.format(view, minval)
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
-        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
@@ -251,12 +291,22 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         mshfile.write('1\n')
         mshfile.write('{:d}\n'.format(lenpid))
         frmstr = '{:d} {:}\n'
+        maxval = float('-inf')
+        minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.nfres.nfprs[pnl.ind, 0]))
+            val = pres.nfres.nfprs[pnl.ind, 0]
+            if pnl.sct is None:
+                if val < minval:
+                    minval = val
+                if val > maxval:
+                    maxval = val
+            mshfile.write(frmstr.format(pnl.pid, val))
         mshfile.write('$EndElementData\n')
+        optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
+        optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
+        optstr += 'View[{:d}].CustomMin = {:};\n'.format(view, minval)
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
-        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
@@ -321,24 +371,35 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         mshfile.write('1\n')
         mshfile.write('{:d}\n'.format(lenpid))
         frmstr = '{:d} {:d}'
+        maxval = float('-inf')
+        minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
             vals = pnl.grid_res(pres.nfres.nfcp)
             numv = len(vals)
+            minvals = min(vals)
+            maxvals = max(vals)
+            if pnl.sct is None:
+                if minvals < minval:
+                    minval = minvals
+                if maxvals > maxval:
+                    maxval = maxvals
             mshfile.write(frmstr.format(pnl.pid, numv))
             for val in vals:
                 mshfile.write(' {:}'.format(val))
             mshfile.write('\n')
         mshfile.write('$EndElementNodeData\n')
+        optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
+        optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
+        optstr += 'View[{:d}].CustomMin = {:};\n'.format(view, minval)
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
-        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
         # Grid Normal Pressure
         mshfile.write('$ElementNodeData\n')
         mshfile.write('1\n')
-        mshfile.write('"Grid Pressure"\n')
+        mshfile.write('"Grid Normal Pressure"\n')
         mshfile.write('1\n')
         mshfile.write('0.0\n')
         mshfile.write('3\n')
@@ -346,17 +407,28 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         mshfile.write('1\n')
         mshfile.write('{:d}\n'.format(lenpid))
         frmstr = '{:d} {:d}'
+        maxval = float('-inf')
+        minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
             vals = pnl.grid_res(pres.nfres.nfprs)
             numv = len(vals)
+            minvals = min(vals)
+            maxvals = max(vals)
+            if pnl.sct is None:
+                if minvals < minval:
+                    minval = minvals
+                if maxvals > maxval:
+                    maxval = maxvals
             mshfile.write(frmstr.format(pnl.pid, numv))
             for val in vals:
                 mshfile.write(' {:}'.format(val))
             mshfile.write('\n')
         mshfile.write('$EndElementNodeData\n')
+        optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
+        optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
+        optstr += 'View[{:d}].CustomMin = {:};\n'.format(view, minval)
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
-        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1

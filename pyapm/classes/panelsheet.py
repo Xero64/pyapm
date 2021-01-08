@@ -115,10 +115,13 @@ class PanelSheet(object):
     def strps(self):
         if self._strps is None:
             self._strps = []
-            self._strps.append(PanelStrip(self.scta, self.prfs[0], self))
-            for i in range(len(self.prfs)-1):
-                self._strps.append(PanelStrip(self.prfs[i], self.prfs[i+1], self))
-            self._strps.append(PanelStrip(self.prfs[-1], self.sctb, self))
+            if len(self.prfs) == 0:
+                self._strps.append(PanelStrip(self.scta, self.sctb, self))
+            else:
+                self._strps.append(PanelStrip(self.scta, self.prfs[0], self))
+                for i in range(len(self.prfs)-1):
+                    self._strps.append(PanelStrip(self.prfs[i], self.prfs[i+1], self))
+                self._strps.append(PanelStrip(self.prfs[-1], self.sctb, self))
         return self._strps
     @property
     def tilt(self):
@@ -147,7 +150,9 @@ class PanelSheet(object):
         self.pnls = []
         for strp in self.strps:
             pid = strp.mesh_panels(pid)
-            self.pnls += strp.pnls
+            for pnl in strp.pnls:
+                pnl.sht = self
+                self.pnls.append(pnl)
         return pid
     def __repr__(self):
         return '<PanelSheet>'

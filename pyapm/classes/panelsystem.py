@@ -533,7 +533,7 @@ def panelsystem_from_json(jsonfilepath: str):
     zref = jsondata['zref']
     rref = Vector(xref, yref, zref)
 
-    gid, pid = 0, 0
+    gid, pid = 1, 1
     for surface in srfcs:
         gid = surface.mesh_grids(gid)
         pid = surface.mesh_panels(pid)
