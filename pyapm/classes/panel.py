@@ -91,8 +91,6 @@ class Panel(Poly):
             magy = vecy.return_magnitude()
             if magy < oor2:
                 vecy = dirz**khat
-            if vecy.y < 0.0:
-                vecy = -vecy
             diry = vecy.to_unit()
             dirx = (diry**dirz).to_unit()
             pntc = self.pnto.to_point()

@@ -493,7 +493,7 @@ def panelsystem_from_mesh(meshfilepath: str):
                 pnls[pid] = Panel(pid, pd['gids'])
                 if grp['noload']:
                     pnls[pid].noload = True
-                pnls[pid].grpid = grpid
+                pnls[pid].grp = grpid
         else:
             pnls[pid] = Panel(pid, pd['gids'])
     
