@@ -1,5 +1,5 @@
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
-from pygeom.geom3d import Vector, Coordinate, ihat, khat
+from pygeom.geom3d import Vector
 from numpy.matlib import zeros, ones
 from .boundedge import BoundEdge
 from .trailingedge import TrailingEdge
@@ -17,6 +17,7 @@ class HorseShoe(object):
     _tva: TrailingEdge = None
     _tvb: TrailingEdge = None
     _nrm: Vector = None
+    _width: float = None
     def __init__(self, grda: Vector, grdb: Vector, diro: Vector, ind: int=None):
         self.grda = grda
         self.grdb = grdb
@@ -66,26 +67,42 @@ class HorseShoe(object):
         if self._nrm is None:
             self._nrm = self.bvab.dirz
         return self._nrm
+    @property
+    def width(self):
+        if self._width is None:
+            diry = (self.nrm**self.diro).to_unit()
+            grday = self.grda*diry
+            grdby = self.grdb*diry
+            self._width = grdby - grday
+        return self._width
     def sign_local_z(self, pnts: MatrixVector):
         locz = (pnts - self.pnto)*self.nrm
-        sgnz = ones(locz.shape, float)
+        sgnz = ones(locz.shape, dtype=float)
         sgnz[locz <= 0.0] = -1.0
         return sgnz
     def doublet_influence_coefficients(self, pnts: MatrixVector):
-        phid = zeros(pnts.shape, float)
-        veld = zero_matrix_vector(pnts.shape, float)
+        phid = zeros(pnts.shape, dtype=float)
+        veld = zero_matrix_vector(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts)
-        phidab, veldab = self.bvab.doublet_influence_coefficients(pnts, sgnz=sgnz)
         phida, velda = self.tva.doublet_influence_coefficients(pnts, sgnz=sgnz)
         phidb, veldb = self.tvb.doublet_influence_coefficients(pnts, sgnz=sgnz)
-        phid = phidab + phida + phidb
-        veld = veldab + velda + veldb
+        phidab, veldab = self.bvab.doublet_influence_coefficients(pnts, sgnz=sgnz)
+        phid = phida + phidb + phidab
+        veld = velda + veldb + veldab
         return phid, veld
     def doublet_velocity_potentials(self, pnts: MatrixVector):
-        phid = zeros(pnts.shape, float)
+        phid = zeros(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts)
-        phidab = self.bvab.doublet_velocity_potentials(pnts, sgnz=sgnz)
         phida = self.tva.doublet_velocity_potentials(pnts, sgnz=sgnz)
         phidb = self.tvb.doublet_velocity_potentials(pnts, sgnz=sgnz)
-        phid = phidab + phida + phidb
+        phidab = self.bvab.doublet_velocity_potentials(pnts, sgnz=sgnz)
+        phid = phida + phidb + phidab
         return phid
+    def trefftz_plane_velocities(self, pnts: MatrixVector):
+        velda = self.tva.trefftz_plane_velocities(pnts)
+        veldb = self.tvb.trefftz_plane_velocities(pnts)
+        # print(f'ind = {self.ind}')
+        # print(f'velda = \n{velda}')
+        # print(f'veldb = \n{veldb}')
+        veld = velda + veldb
+        return veld

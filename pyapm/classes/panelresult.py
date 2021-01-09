@@ -30,6 +30,7 @@ class PanelResult(object):
     _mu: matrix = None
     _nfres = None
     _strpres = None
+    _ffres = None
     _stres = None
     _vfsl: MatrixVector = None
     def __init__(self, name: str, sys):
@@ -161,19 +162,25 @@ class PanelResult(object):
                 self._strpres = StripResult(self.nfres)
         return self._strpres
     @property
+    def ffres(self):
+        if self._ffres is None:
+            if self.sys.srfcs is not None:
+                self._ffres = FarFieldResult(self)
+        return self._ffres            
+    @property
     def stres(self):
         if self._stres is None:
             self._stres = StabilityResult(self)
         return self._stres
     def plot_strip_lift_force_distribution(self, ax=None, axis: str='b',
-                                           surfaces: list=[], normalise: bool=False):
+                                           surfaces: list=None, normalise: bool=False):
         if self.sys.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
-            if len(surfaces) == 0:
-                srfcs = [srfc for srfc in self.sys.srfcs]
+            if surfaces is None:
+                srfcs = self.sys.srfcs
             else:
                 srfcs = []
                 for srfc in self.sys.srfcs:
@@ -200,14 +207,14 @@ class PanelResult(object):
             ax.legend()
         return ax
     def plot_strip_side_force_distribution(self, ax=None, axis: str='b',
-                                           surfaces: list=[], normalise: bool=False):
+                                           surfaces: list=None, normalise: bool=False):
         if self.sys.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
-            if len(surfaces) == 0:
-                srfcs = [srfc for srfc in self.sys.srfcs]
+            if surfaces is None:
+                srfcs = self.sys.srfcs
             else:
                 srfcs = []
                 for srfc in self.sys.srfcs:
@@ -234,14 +241,14 @@ class PanelResult(object):
             ax.legend()
         return ax
     def plot_strip_drag_force_distribution(self, ax=None, axis: str='b',
-                                           surfaces: list=[], normalise: bool=False):
+                                           surfaces: list=None, normalise: bool=False):
         if self.sys.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
-            if len(surfaces) == 0:
-                srfcs = [srfc for srfc in self.sys.srfcs]
+            if surfaces is None:
+                srfcs = self.sys.srfcs
             else:
                 srfcs = []
                 for srfc in self.sys.srfcs:
@@ -265,6 +272,186 @@ class PanelResult(object):
                     z = srfc.strpz
                     if max(z) > min(z):
                         ax.plot(d, z, label=label)
+            ax.legend()
+        return ax
+    def plot_trefftz_lift_force_distribution(self, ax=None, axis: str='b',
+                                             surfaces: list=None, normalise: bool=False):
+        if self.sys.srfcs is not None:
+            if ax is None:
+                fig = figure(figsize=(12, 8))
+                ax = fig.gca()
+                ax.grid(True)
+            if surfaces is None:
+                srfcs = self.sys.srfcs
+            else:
+                srfcs = []
+                for srfc in self.sys.srfcs:
+                    if srfc.name in surfaces:
+                        srfcs.append(srfc)
+            for srfc in srfcs:
+                if normalise:
+                    l = [self.ffres.lift[strp.ind, 0]/strp.area/self.qfs for strp in srfc.strps]
+                else:
+                    l = [self.ffres.lift[strp.ind, 0]/strp.width for strp in srfc.strps]
+                label = self.name+' for '+srfc.name
+                if axis == 'b':
+                    b = srfc.strpb
+                    if max(b) > min(b):
+                        ax.plot(b, l, label=label)
+                elif axis == 'y':
+                    y = srfc.strpy
+                    if max(y) > min(y):
+                        ax.plot(y, l, label=label)
+                elif axis == 'z':
+                    z = srfc.strpz
+                    if max(z) > min(z):
+                        ax.plot(l, z, label=label)
+            ax.legend()
+        return ax
+    def plot_trefftz_side_force_distribution(self, ax=None, axis: str='b',
+                                             surfaces: list=None, normalise: bool=False):
+        if self.sys.srfcs is not None:
+            if ax is None:
+                fig = figure(figsize=(12, 8))
+                ax = fig.gca()
+                ax.grid(True)
+            if surfaces is None:
+                srfcs = self.sys.srfcs
+            else:
+                srfcs = []
+                for srfc in self.sys.srfcs:
+                    if srfc.name in surfaces:
+                        srfcs.append(srfc)
+            for srfc in srfcs:
+                if normalise:
+                    f = [self.ffres.side[strp.ind, 0]/strp.area/self.qfs for strp in srfc.strps]
+                else:
+                    f = [self.ffres.side[strp.ind, 0]/strp.width for strp in srfc.strps]
+                label = self.name+' for '+srfc.name
+                if axis == 'b':
+                    b = srfc.strpb
+                    if max(b) > min(b):
+                        ax.plot(b, f, label=label)
+                elif axis == 'y':
+                    y = srfc.strpy
+                    if max(y) > min(y):
+                        ax.plot(y, f, label=label)
+                elif axis == 'z':
+                    z = srfc.strpz
+                    if max(z) > min(z):
+                        ax.plot(f, z, label=label)
+            ax.legend()
+        return ax
+    def plot_trefftz_drag_force_distribution(self, ax=None, axis: str='b',
+                                             surfaces: list=None, normalise: bool=False):
+        if self.sys.srfcs is not None:
+            if ax is None:
+                fig = figure(figsize=(12, 8))
+                ax = fig.gca()
+                ax.grid(True)
+            if surfaces is None:
+                srfcs = self.sys.srfcs
+            else:
+                srfcs = []
+                for srfc in self.sys.srfcs:
+                    if srfc.name in surfaces:
+                        srfcs.append(srfc)
+            for srfc in srfcs:
+                if normalise:
+                    d = [self.ffres.drag[strp.ind, 0]/strp.area/self.qfs for strp in srfc.strps]
+                else:
+                    d = [self.ffres.drag[strp.ind, 0]/strp.width for strp in srfc.strps]
+                label = self.name + ' for ' + srfc.name
+                if axis == 'b':
+                    b = srfc.strpb
+                    if max(b) > min(b):
+                        ax.plot(b, d, label=label)
+                elif axis == 'y':
+                    y = srfc.strpy
+                    if max(y) > min(y):
+                        ax.plot(y, d, label=label)
+                elif axis == 'z':
+                    z = srfc.strpz
+                    if max(z) > min(z):
+                        ax.plot(d, z, label=label)
+            ax.legend()
+        return ax
+    def plot_trefftz_down_wash_distribution(self, ax=None, axis: str='b',
+                                            surfaces: list=None):
+        if self.sys.srfcs is not None:
+            if ax is None:
+                fig = figure(figsize=(12, 8))
+                ax = fig.gca()
+                ax.grid(True)
+            if surfaces is None:
+                srfcs = self.sys.srfcs
+            else:
+                srfcs = []
+                for srfc in self.sys.srfcs:
+                    if srfc.name in surfaces:
+                        srfcs.append(srfc)
+            for srfc in srfcs:
+                w = [self.ffres.wash[strp.ind, 0] for strp in srfc.strps]
+                # wa = [self.ffres.washa[strp.ind, 0] for strp in srfc.strps]
+                # wb = [self.ffres.washb[strp.ind, 0] for strp in srfc.strps]
+                label = self.name + ' for ' + srfc.name
+                if axis == 'b':
+                    b = srfc.strpb
+                    if max(b) > min(b):
+                        ax.plot(b, w, label=label)
+                        # ax.plot(b, wa, label=label)
+                        # ax.plot(b, wb, label=label)
+                elif axis == 'y':
+                    y = srfc.strpy
+                    if max(y) > min(y):
+                        ax.plot(y, w, label=label)
+                        # ax.plot(y, wa, label=label)
+                        # ax.plot(y, wb, label=label)
+                elif axis == 'z':
+                    z = srfc.strpz
+                    if max(z) > min(z):
+                        ax.plot(w, z, label=label)
+                        # ax.plot(wa, z, label=label)
+                        # ax.plot(wb, z, label=label)
+            ax.legend()
+        return ax
+    def plot_trefftz_circulation_distribution(self, ax=None, axis: str='b',
+                                              surfaces: list=None):
+        if self.sys.srfcs is not None:
+            if ax is None:
+                fig = figure(figsize=(12, 8))
+                ax = fig.gca()
+                ax.grid(True)
+            if surfaces is None:
+                srfcs = [srfc for srfc in self.sys.srfcs]
+            else:
+                srfcs = []
+                for srfc in self.sys.srfcs:
+                    if srfc.name in surfaces:
+                        srfcs.append(srfc)
+            for srfc in srfcs:
+                c = [self.ffres.circ[strp.ind, 0] for strp in srfc.strps]
+                # ma = [self.ffres.mua[strp.ind, 0] for strp in srfc.strps]
+                # mb = [self.ffres.mub[strp.ind, 0] for strp in srfc.strps]
+                label = self.name + ' for ' + srfc.name
+                if axis == 'b':
+                    b = srfc.strpb
+                    if max(b) > min(b):
+                        ax.plot(b, c, label=label)
+                        # ax.plot(b, ma, label=label)
+                        # ax.plot(b, mb, label=label)
+                elif axis == 'y':
+                    y = srfc.strpy
+                    if max(y) > min(y):
+                        ax.plot(y, c, label=label)
+                        # ax.plot(y, ma, label=label)
+                        # ax.plot(y, mb, label=label)
+                elif axis == 'z':
+                    z = srfc.strpz
+                    if max(z) > min(z):
+                        ax.plot(c, z, label=label)
+                        # ax.plot(ma, z, label=label)
+                        # ax.plot(mb, z, label=label)
             ax.legend()
         return ax
     @property
@@ -420,8 +607,6 @@ class NearFieldResult(object):
     res = None
     sig: matrix = None
     mu: matrix = None
-    # _nfvg = None
-    # _nfvl = None
     _nfql = None
     _nfqt = None
     _nfcp = None
@@ -638,8 +823,268 @@ class StripResult(object):
         return self._lift
 
 class FarFieldResult(object):
-    def __init__(self):
-        pass
+    res = None
+    _ffmu = None
+    _ffwsh = None
+    _fffrc = None
+    _ffmom = None
+    _fffrctot = None
+    _ffmomtot = None
+    # _mua = None
+    # _mub = None
+    _circ = None
+    # _washa = None
+    # _washb = None
+    _wash = None
+    _drag = None
+    _side = None
+    _lift = None
+    _CDi = None
+    _CY = None
+    _CL = None
+    _Cl = None
+    _Cm = None
+    _Cn = None
+    _e = None
+    _lod = None
+    def __init__(self, res: PanelResult):
+        self.res = res
+    @property
+    def ffmu(self):
+        if self._ffmu is None:
+            numhsv = self.res.sys.numhsv
+            self._ffmu = zeros((numhsv, 1), dtype=float)
+            for ind, hsv in enumerate(self.res.sys.hsvs):
+                self._ffmu[ind, 0] = self.res.mu[hsv.ind, 0]
+        return self._ffmu
+    @property
+    def ffwsh(self):
+        if self._ffwsh is None:
+            self._ffwsh = self.res.sys.awh*self.ffmu
+            # self._ffwsh += self.res.sys.hsvnrms*self.res.vfs
+            # self._ffwsh += self.res.sys.awd*self.res.mu
+            # self._ffwsh += self.res.sys.aws*self.res.sig
+        return self._ffwsh
+    @property
+    def fffrc(self):
+        if self._fffrc is None:
+            from pygeom.matrix3d import MatrixVector
+            x = self.res.rho*multiply(self.ffmu, self.res.sys.adh*self.ffmu)
+            y = self.res.rho*self.res.speed*multiply(self.ffmu, self.res.sys.ash)
+            z = self.res.rho*self.res.speed*multiply(self.ffmu, self.res.sys.alh)
+            self._fffrc = MatrixVector(x, y, z)
+        return self._fffrc
+    @property
+    def ffmom(self):
+        if self._ffmom is None:
+            self._ffmom = elementwise_cross_product(self.res.brm, self.fffrc)
+        return self._ffmom
+    @property
+    def fffrctot(self):
+        if self._fffrctot is None:
+            self._fffrctot = self.fffrc.sum()
+        return self._fffrctot
+    @property
+    def ffmomtot(self):
+        if self._ffmomtot is None:
+            self._ffmomtot = self.ffmom.sum()
+        return self._ffmomtot
+    # @property
+    # def mua(self):
+    #     if self._mua is None:
+    #         sys = self.res.sys
+    #         num = len(sys.strps)
+    #         self._mua = zeros((num, 1), dtype=float)
+    #         for i, strp in enumerate(sys.strps):
+    #             pnla = strp.pnls[0]
+    #             self._mua[i, 0] = self.res.mu[pnla.ind]
+    #     return self._mua
+    # @property
+    # def mub(self):
+    #     if self._mub is None:
+    #         sys = self.res.sys
+    #         num = len(sys.strps)
+    #         self._mub = zeros((num, 1), dtype=float)
+    #         for i, strp in enumerate(sys.strps):
+    #             pnlb = strp.pnls[-1]
+    #             self._mub[i, 0] = self.res.mu[pnlb.ind]
+    #     return self._mub
+    @property
+    def circ(self):
+        if self._circ is None:
+            sys = self.res.sys
+            num = len(sys.strps)
+            self._circ = zeros((num, 1), dtype=float)
+            for i, strp in enumerate(sys.strps):
+                pnla = strp.pnls[0]
+                pnlb = strp.pnls[-1]
+                mua = self.res.mu[pnla.ind]
+                mub = self.res.mu[pnlb.ind]
+                self._circ[i, 0] = mub-mua
+        return self._circ
+    # @property
+    # def washa(self):
+    #     if self._washa is None:
+    #         sys = self.res.sys
+    #         num = len(sys.strps)
+    #         self._washa = zeros((num, 1), dtype=float)
+    #         for i, strp in enumerate(sys.strps):
+    #             pnl = strp.pnls[0]
+    #             pind = pnl.ind
+    #             hinds = sys.phind[pind]
+    #             self._washa[i, 0] += self.ffwsh[hinds[0], 0]
+    #     return self._washa
+    # @property
+    # def washb(self):
+    #     if self._washb is None:
+    #         sys = self.res.sys
+    #         num = len(sys.strps)
+    #         self._washb = zeros((num, 1), dtype=float)
+    #         for i, strp in enumerate(sys.strps):
+    #             pnl = strp.pnls[-1]
+    #             pind = pnl.ind
+    #             hinds = sys.phind[pind]
+    #             self._washb[i, 0] = self.ffwsh[hinds[0], 0]
+    #     return self._washb
+    @property
+    def wash(self):
+        if self._wash is None:
+            sys = self.res.sys
+            num = len(sys.strps)
+            self._wash = zeros((num, 1), dtype=float)
+            for i, strp in enumerate(sys.strps):
+                pnla = strp.pnls[0]
+                pnlb = strp.pnls[-1]
+                # dista = (pnla.edgpnts[3]-pnla.pnto).return_magnitude()
+                # distb = (pnlb.edgpnts[1]-pnla.pnto).return_magnitude()
+                # dist = (pnlb.pnto - pnla.pnto).return_magnitude()
+                # dist = dista+distb
+                # mua = self.res.mu[pnla.ind]
+                # mub = self.res.mu[pnlb.ind]
+                # self._wash[i, 0] = (mub-mua)/dist
+                pinda = pnla.ind
+                pindb = pnlb.ind
+                hindsa = sys.phind[pinda]
+                hindsb = sys.phind[pindb]
+                cnt = 0
+                for hind in hindsa:
+                    cnt += 1
+                    self._wash[i, 0] -= self.ffwsh[hind, 0]
+                for hind in hindsb:
+                    cnt += 1
+                    self._wash[i, 0] += self.ffwsh[hind, 0]
+                self._wash[i, 0] = self._wash[i, 0]/cnt
+        return self._wash
+    @property
+    def drag(self):
+        if self._drag is None:
+            sys = self.res.sys
+            num = len(sys.strps)
+            self._drag = zeros((num, 1), dtype=float)
+            for i, _ in enumerate(sys.strps):
+                self._drag[i, 0] = -self.res.rho*self.wash[i, 0]*self.circ[i, 0]
+                # pnla = strp.pnls[0]
+                # pnlb = strp.pnls[-1]
+                # pinda = pnla.ind
+                # pindb = pnlb.ind
+                # hindsa = sys.phind[pinda]
+                # hindsb = sys.phind[pindb]
+                # for hind in hindsa:
+                #     self._drag[i, 0] += self.fffrc[hind, 0].x
+                # for hind in hindsb:
+                #     self._drag[i, 0] += self.fffrc[hind, 0].x
+        return self._drag
+    @property
+    def side(self):
+        if self._side is None:
+            sys = self.res.sys
+            num = len(sys.strps)
+            self._side = zeros((num, 1), dtype=float)
+            for i, strp in enumerate(sys.strps):
+                pnla = strp.pnls[0]
+                pnlb = strp.pnls[-1]
+                pinda = pnla.ind
+                pindb = pnlb.ind
+                hindsa = sys.phind[pinda]
+                hindsb = sys.phind[pindb]
+                for hind in hindsa:
+                    self._side[i, 0] += self.fffrc[hind, 0].y
+                for hind in hindsb:
+                    self._side[i, 0] += self.fffrc[hind, 0].y
+        return self._side
+    @property
+    def lift(self):
+        if self._lift is None:
+            sys = self.res.sys
+            num = len(sys.strps)
+            self._lift = zeros((num, 1), dtype=float)
+            for i, strp in enumerate(sys.strps):
+                pnla = strp.pnls[0]
+                pnlb = strp.pnls[-1]
+                pinda = pnla.ind
+                pindb = pnlb.ind
+                hindsa = sys.phind[pinda]
+                hindsb = sys.phind[pindb]
+                for hind in hindsa:
+                    self._lift[i, 0] += self.fffrc[hind, 0].z
+                for hind in hindsb:
+                    self._lift[i, 0] += self.fffrc[hind, 0].z
+        return self._lift
+    @property
+    def CDi(self):
+        if self._CDi is None:
+            Di = self.fffrctot.x
+            self._CDi = Di/self.res.qfs/self.res.sys.sref
+            self._CDi = fix_zero(self._CDi)
+        return self._CDi
+    @property
+    def CY(self):
+        if self._CY is None:
+            Y = self.fffrctot.y
+            self._CY = Y/self.res.qfs/self.res.sys.sref
+            self._CY = fix_zero(self._CY)
+        return self._CY
+    @property
+    def CL(self):
+        if self._CL is None:
+            L = self.fffrctot.z
+            self._CL = L/self.res.qfs/self.res.sys.sref
+            self._CL = fix_zero(self._CL)
+        return self._CL
+    @property
+    def Cl(self):
+        if self._Cl is None:
+            l = -self.ffmomtot.x
+            self._Cl = l/self.res.qfs/self.res.sys.sref/self.res.sys.bref
+            self._Cl = fix_zero(self._Cl)
+        return self._Cl
+    @property
+    def Cm(self):
+        if self._Cm is None:
+            m = self.ffmomtot.y
+            self._Cm = m/self.res.qfs/self.res.sys.sref/self.res.sys.cref
+            self._Cm = fix_zero(self._Cm)
+        return self._Cm
+    @property
+    def Cn(self):
+        if self._Cn is None:
+            n = -self.ffmomtot.z
+            self._Cn = n/self.res.qfs/self.res.sys.sref/self.res.sys.bref
+            self._Cn = fix_zero(self._Cn)
+        return self._Cn
+    @property
+    def e(self):
+        if self._e is None:
+            if self.CDi == 0.0:
+                if self.CL == 0.0 and self.CY == 0.0:
+                    self._e = 0.0
+                else:
+                    self._e = float('nan')
+            else:
+                from math import pi
+                self._e = (self.CL**2+self.CY**2)/pi/self.res.sys.ar/self.CDi
+                self._e = fix_zero(self._e)
+        return self._e
 
 class StabilityResult(object):
     res = None
@@ -931,8 +1376,7 @@ class StabilityResult(object):
     def __str__(self):
         return self.stability_derivatives._repr_markdown_()
     def _repr_markdown_(self):
-        return self.__str__()        
-
+        return self.__str__()
 
 def fix_zero(value: float, tol: float=1e-8):
     if abs(value) < tol:

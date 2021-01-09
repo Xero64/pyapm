@@ -1,3 +1,6 @@
+from pyvlm.tools import equal_spacing
+from pygeom.geom1d import LinearSpline, CubicSpline
+       
 class PanelFunction(object):
     var = None
     interp = None
@@ -11,14 +14,11 @@ class PanelFunction(object):
     def set_spline(self, bmax: float):
         if self.spacing == 'equal':
             num = len(self.values)
-            from pyvlm.tools import equal_spacing
             nspc = equal_spacing(num-1)
             spc = [bmax*nspci for nspci in nspc]
         if self.interp == 'linear':
-            from pygeom.geom1d import LinearSpline
             self.spline = LinearSpline(spc, self.values)
         elif self.interp == 'cubic':
-            from pygeom.geom1d import CubicSpline
             self.spline = CubicSpline(spc, self.values)
     def interpolate(self, b: float):
         return self.spline.single_interpolate_spline(b)

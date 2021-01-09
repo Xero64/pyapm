@@ -47,4 +47,3 @@ p4 = ax.plot(s4, label='s4')
 p5 = ax.plot(s5, label='s5')
 p6 = ax.plot(s6, label='s6')
 l = ax.legend()
-

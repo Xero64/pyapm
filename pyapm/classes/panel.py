@@ -1,7 +1,7 @@
 from .poly import Poly
 from .grid import Grid
 from .horseshoe import HorseShoe
-from typing import List, Dict
+from typing import List
 from pygeom.geom3d import Vector, Coordinate, ihat, khat
 from math import sqrt, acos, pi
 from numpy.matlib import matrix
@@ -32,11 +32,12 @@ class Panel(Poly):
     _grdinds: List[List[int]] = None
     _grdfacs: List[List[float]] = None
     def __init__(self, pid: int, gids: List[int]):
+        super(Panel, self).__init__()
         self.pid = pid
         self.gids = gids
         self.noload = False
     def set_grids(self, grds: List[Grid]):
-        super(Panel, self).__init__(grds)
+        super(Panel, self).set_grids(grds)
         for grd in self.grds:
             grd.pnls.append(self)
     def set_index(self, ind: int):

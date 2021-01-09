@@ -1,6 +1,5 @@
 from ..classes.panelresult import PanelResult
 from ..classes.panelsystem import PanelSystem
-from numpy.matlib import matrix
 
 def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
     psys = pres.sys

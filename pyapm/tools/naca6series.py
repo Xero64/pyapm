@@ -1,7 +1,6 @@
 from typing import List
 from .spacing import full_cosine_spacing, equal_spacing, linear_bias_left
 from math import log, pi, copysign, atan
-from matplotlib.pyplot import figure
 
 class NACA6Series(object):
     code: str = None

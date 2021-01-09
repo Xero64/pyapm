@@ -1,12 +1,13 @@
 from math import pi
 from pygeom.geom3d import Vector, Coordinate
-from pygeom.matrix3d import MatrixVector, zero_matrix_vector, elementwise_divide
-from numpy.matlib import matrix, ones, zeros, absolute, divide, multiply, full, arctan, nan_to_num, logical_and
+from pygeom.matrix3d import MatrixVector, elementwise_divide
+from numpy.matlib import matrix, ones, zeros, absolute, divide, multiply, arctan, square
 from .boundedge import phi_doublet_matrix
 
 tol = 1e-12
 piby2 = pi/2
 fourPi = 4*pi
+twoPi = 2*pi
 
 class TrailingEdge(object):
     pnto: Vector = None
@@ -105,6 +106,17 @@ class TrailingEdge(object):
         if factor:
             phid, veld = phid/fourPi, veld/fourPi
         return phid, veld
+    def trefftz_plane_velocities(self, pnts: MatrixVector):
+        rls = self.points_to_local(pnts)
+        rls.x = zeros(rls.shape, dtype=float)
+        # ro = Vector(0.0, self.grdo.y, self.grdo.z)
+        # o = rls-ro
+        oxx = MatrixVector(rls.x, rls.z, -rls.y)
+        oxx = -oxx
+        om2 = square(rls.y) + square(rls.z)
+        veldl = elementwise_divide(oxx, om2)*self.faco
+        veld = self.vectors_to_global(veldl)*self.faco
+        return veld/twoPi
     def __str__(self):
         outstr = ''
         outstr += f'pnto = {self.pnto}\n'

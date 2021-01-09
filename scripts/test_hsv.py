@@ -6,7 +6,7 @@ from pyapm.classes.horseshoe import HorseShoe
 from time import perf_counter
 from matplotlib.pyplot import figure
 from pyapm.tools.functions import mean, derivative
-from numpy.matlib import absolute, zeros
+from numpy.matlib import absolute
 
 #%% Create Trailing Edge Vortex
 grda = Vector(-1.0, 1.0, 0.0)

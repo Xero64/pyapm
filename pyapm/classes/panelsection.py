@@ -1,5 +1,5 @@
 from pygeom.geom3d import Vector
-from pygeom.matrix3d import MatrixVector, zero_matrix_vector
+from pygeom.matrix3d import zero_matrix_vector
 from .panel import Panel
 from .panelprofile import PanelProfile
 from ..tools.airfoil import airfoil_from_dat
@@ -49,7 +49,7 @@ class PanelSection(PanelProfile):
         sect.bval = self.bval
         sect.bpos = -self.bpos
         if self.tilt is not None:
-            sect._tilt = -self._tilt
+            sect.set_tilt(-self._tilt)
         return sect
     def set_cnum(self, cnum: int):
         self.cnum = cnum

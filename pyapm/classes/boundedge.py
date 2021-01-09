@@ -1,9 +1,7 @@
 from pygeom.geom3d import Vector, Coordinate
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
-from math import pi, atan, log, atan2
-from numpy.matlib import matrix, ones, zeros, absolute, divide, multiply, full, arctan, nan_to_num, logical_and
-from numpy.matlib import log as matlog
-from time import perf_counter
+from math import pi
+from numpy.matlib import matrix, ones, absolute, divide, multiply, arctan, log, logical_and
 from pygeom.matrix3d import elementwise_dot_product, elementwise_cross_product
 from pygeom.matrix3d import elementwise_multiply
 
@@ -196,7 +194,7 @@ def phi_source_matrix(am, bm, dab, rl, phid):
     denrab = am+bm-dab
     Pab = divide(numrab, denrab)
     Pab[denrab == 0.0] = 1.0
-    Qab = matlog(Pab)
+    Qab = log(Pab)
     tmps = multiply(rl.y, Qab)
     phis = -multiply(rl.z, phid) - tmps 
     return phis, Qab
@@ -222,5 +220,4 @@ def vel_source_matrix(Qab, rl, phid):
     faco = ones(Qab.shape, dtype=float)
     faco[rl.z != 0.0] = -1.0
     velsl.z = multiply(faco, phid)
-    velsl = velsl
     return velsl

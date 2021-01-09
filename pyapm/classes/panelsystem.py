@@ -6,9 +6,10 @@ from typing import Dict, List
 from .panel import Panel
 from .grid import Grid
 from .horseshoe import HorseShoe
-from numpy.matlib import zeros, matrix, divide, repeat
+from numpy.matlib import zeros, matrix
 from time import perf_counter
 from matplotlib.pyplot import figure
+from py2md.classes import MDTable
 
 class PanelSystem(object):
     name: str = None
@@ -36,15 +37,24 @@ class PanelSystem(object):
     _avs: MatrixVector = None
     _avh: MatrixVector = None
     _avm: MatrixVector = None
-    _sig: MatrixVector = None
     _bps: MatrixVector = None
     _ans: matrix = None
     _anm: matrix = None
     _bnm: matrix = None
+    _hsvpnts: MatrixVector = None
+    _hsvnrms: MatrixVector = None
+    _awd: matrix = None
+    _aws: matrix = None
+    _awh: matrix = None
+    _adh: matrix = None
+    _ash: matrix = None
+    _alh: matrix = None
+    _sig: MatrixVector = None
     _mu: MatrixVector = None
     _ar: float = None
     _area: float = None
     _strps: List[object] = None
+    _phind: Dict[int, List[int]] = None
     def __init__(self, name: str, grds: Dict[int, Grid], pnls: Dict[int, Panel],
                  bref: float, cref: float, sref: float, rref: Vector):
         self.name = name
@@ -68,19 +78,24 @@ class PanelSystem(object):
             if attr[0] == '_':
                 self.__dict__[attr] = None
     def set_horseshoes(self, diro: Vector):
-        self._hsvs = None
         for pnl in self.pnls.values():
             pnl.set_horseshoes(diro)
+        self._hsvs = None
         self._numhsv = None
         self._aph = None
         self._avh = None
         self._apm = None
         self._avm = None
         self._anm = None
-        self._gph = None
-        self._gvh = None
-        self._gpm = None
-        self._gvm = None
+        self._hsvpnts = None
+        self._hsvnrms = None
+        self._awd = None
+        self._aws = None
+        self._awh = None
+        self._adh = None
+        self._ash = None
+        self._alh = None
+        self._phind = None
     @property
     def ar(self):
         if self._ar is None:
@@ -141,6 +156,17 @@ class PanelSystem(object):
             for pnl in self.pnls.values():
                 self._hsvs = self._hsvs + pnl.hsvs
         return self._hsvs
+    @property
+    def phind(self):
+        if self._phind is None:
+            self._phind = {}
+            for i, hsv in enumerate(self.hsvs):
+                pind = hsv.ind
+                if pind in self._phind:
+                    self._phind[pind].append(i)
+                else:
+                    self._phind[pind] = [i]
+        return self._phind
     @property
     def bps(self):
         if self._bps is None:
@@ -207,6 +233,84 @@ class PanelSystem(object):
         if self._anm is None:
             self._anm = elementwise_dot_product(self.nrms.repeat(self.numpnl, axis=1), self.avm)
         return self._anm
+    @property
+    def hsvpnts(self):
+        if self._hsvpnts is None:
+            self._hsvpnts = zero_matrix_vector((self.numhsv, 1), dtype=float)
+            for i, hsv in enumerate(self.hsvs):
+                self._hsvpnts[i, 0] = hsv.pnto
+        return self._hsvpnts
+    @property
+    def hsvnrms(self):
+        if self._hsvnrms is None:
+            self._hsvnrms = zero_matrix_vector((self.numhsv, 1), dtype=float)
+            for i, hsv in enumerate(self.hsvs):
+                self._hsvnrms[i, 0] = hsv.nrm
+                # self._hsvnrms[i, 0] = Vector(0.0, 0.0, 1.0)
+        return self._hsvnrms
+    def assemble_panels_wash(self, time: bool=True):
+        if time:
+            start = perf_counter()
+        shp = (self.numhsv, self.numpnl)
+        self._awd = zeros(shp, dtype=float)
+        self._aws = zeros(shp, dtype=float)
+        for pnl in self.pnls.values():
+            ind = pnl.ind
+            _, _, avd, avs = pnl.influence_coefficients(self.hsvpnts)
+            self._awd[:, ind] = elementwise_dot_product(avd, self.hsvnrms)
+            self._aws[:, ind] = elementwise_dot_product(avs, self.hsvnrms)
+        if time:
+            finish = perf_counter()
+            elapsed = finish - start
+            print(f'Wash matrix assembly time is {elapsed:.3f} seconds.')
+    def assemble_horseshoes_wash(self, time: bool=True):
+        if time:
+            start = perf_counter()
+        shp = (self.numhsv, self.numhsv)
+        self._awh = zeros(shp, dtype=float)
+        for i, hsv in enumerate(self.hsvs):
+            avh = hsv.trefftz_plane_velocities(self.hsvpnts)
+            self._awh[:, i] = elementwise_dot_product(avh, self.hsvnrms)
+        if time:
+            finish = perf_counter()
+            elapsed = finish - start
+            print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
+    @property
+    def awh(self):
+        if self._awh is None:
+            self.assemble_horseshoes_wash(time=False)
+        return self._awh
+    @property
+    def awd(self):
+        if self._awd is None:
+            self.assemble_panels_wash(time=False)
+        return self._awd
+    @property
+    def aws(self):
+        if self._aws is None:
+            self.assemble_panels_wash(time=False)
+        return self._aws
+    @property
+    def adh(self):
+        if self._adh is None:
+            self._adh = zeros(self.awh.shape, dtype=float)
+            for i, hsv in enumerate(self.hsvs):
+                self._adh[:, i] = self._awh[:, i]*hsv.width
+        return self._adh
+    @property
+    def ash(self):
+        if self._ash is None:
+            self._ash = zeros((self.numhsv, 1), dtype=float)
+            for i, hsv in enumerate(self.hsvs):
+                self._ash[i, 0] = -hsv.vecab.z
+        return self._ash
+    @property
+    def alh(self):
+        if self._alh is None:
+            self._alh = zeros((self.numhsv, 1), dtype=float)
+            for i, hsv in enumerate(self.hsvs):
+                self._alh[i, 0] = hsv.vecab.y
+        return self._alh
     @property
     def sig(self):
         if self._sig is None:
@@ -306,13 +410,13 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'System solution time is {elapsed:.3f} seconds.')
-    def plot_twist_distribution(self, ax=None, axis: str='b', surfaces: list=[]):
+    def plot_twist_distribution(self, ax=None, axis: str='b', surfaces: list=None):
         if self.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
-            if len(surfaces) == 0:
+            if surfaces is None:
                 srfcs = [srfc for srfc in self.srfcs]
             else:
                 srfcs = []
@@ -336,13 +440,13 @@ class PanelSystem(object):
                         ax.plot(z, t, label=label)
             ax.legend()
         return ax
-    def plot_chord_distribution(self, ax=None, axis: str='b', surfaces: list=[]):
+    def plot_chord_distribution(self, ax=None, axis: str='b', surfaces: list=None):
         if self.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
-            if len(surfaces) == 0:
+            if surfaces is None:
                 srfcs = [srfc for srfc in self.srfcs]
             else:
                 srfcs = []
@@ -366,13 +470,13 @@ class PanelSystem(object):
                         ax.plot(z, c, label=label)
             ax.legend()
         return ax
-    def plot_tilt_distribution(self, ax=None, axis: str='b', surfaces: list=[]):
+    def plot_tilt_distribution(self, ax=None, axis: str='b', surfaces: list=None):
         if self.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
-            if len(surfaces) == 0:
+            if surfaces is None:
                 srfcs = [srfc for srfc in self.srfcs]
             else:
                 srfcs = []
@@ -396,13 +500,13 @@ class PanelSystem(object):
                         ax.plot(z, t, label=label)
             ax.legend()
         return ax
-    def plot_strip_width_distribution(self, ax=None, axis: str='b', surfaces: list=[]):
+    def plot_strip_width_distribution(self, ax=None, axis: str='b', surfaces: list=None):
         if self.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
-            if len(surfaces) == 0:
+            if surfaces is None:
                 srfcs = [srfc for srfc in self.srfcs]
             else:
                 srfcs = []
@@ -429,7 +533,6 @@ class PanelSystem(object):
     def __repr__(self):
         return '<PanelSystem: {:s}>'.format(self.name)
     def __str__(self):
-        from py2md.classes import MDTable
         outstr = '# Panel System '+self.name+'\n'
         table = MDTable()
         table.add_column('Name', 's', data=[self.name])
@@ -448,12 +551,12 @@ class PanelSystem(object):
         return outstr
     def _repr_markdown_(self):
         return self.__str__()
-    
+
 def panelsystem_from_mesh(meshfilepath: str):
 
     with open(meshfilepath, 'rt') as meshfile:
         data = load(meshfile)
-    
+
     name = data['name']
     bref = data['bref']
     cref = data['cref']
@@ -496,7 +599,7 @@ def panelsystem_from_mesh(meshfilepath: str):
                 pnls[pid].grp = grpid
         else:
             pnls[pid] = Panel(pid, pd['gids'])
-    
+
     return PanelSystem(name, grds, pnls, bref, cref, sref, rref)
 
 def panelsystem_from_json(jsonfilepath: str):
@@ -519,11 +622,11 @@ def panelsystem_from_json(jsonfilepath: str):
                         del sectdata['airfoil']
                     else:
                         sectdata['airfoil'] = airfoil
-    
+
     srfcs = []
     for surfdata in jsondata['surfaces']:
         srfcs.append(panelsurface_from_json(surfdata))
-    
+
     name = jsondata['name']
     bref = jsondata['bref']
     cref = jsondata['cref']
@@ -544,7 +647,7 @@ def panelsystem_from_json(jsonfilepath: str):
             grds[grd.gid] = grd
         for pnl in surface.pnls:
             pnls[pnl.pid] = pnl
-        
+
     psys = PanelSystem(name, grds, pnls, bref, cref, sref, rref)
     psys.srfcs = srfcs
 

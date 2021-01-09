@@ -4,7 +4,7 @@ from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector
 from pyapm.classes.poly import Poly
 from time import perf_counter
-from matplotlib.pyplot import figure, clim
+from matplotlib.pyplot import figure
 from pyapm.tools.functions import mean, derivative
 from numpy.matlib import absolute
 
@@ -28,7 +28,7 @@ grds = [Vector(ro*cos(th[i]), ro*sin(th[i]), 0.0) if i % 2 == 0 else Vector(ri*c
 # ]
 
 #%% Print Bound Edge
-poly = Poly(grds)
+poly = Poly()
 
 #%% Mesh Points
 xorg = 0.0

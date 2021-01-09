@@ -56,7 +56,7 @@ class PanelSurface(object):
                     sct.chord = fnc.interpolate(sct.bval)
             if fnc.var == 'tilt':
                 for sct in self.scts:
-                    sct._tilt = fnc.interpolate(sct.bval)                
+                    sct.set_tilt(fnc.interpolate(sct.bval))
         if self.mirror:
             ymir = self.scts[0].point.y
             scts = [sct.mirror_section_in_y(ymir=ymir) for sct in self.scts]

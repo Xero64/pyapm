@@ -2,12 +2,9 @@
 from pyapm.classes import Grid, Panel, PanelSystem, PanelResult
 from pyapm.output.msh import panelresult_to_msh
 from pyfoil.airfoil import naca_to_xyt
-from numpy.matlib import zeros, matrix, ones
-from numpy.linalg import solve
-from math import cos, sin, radians
+from numpy.matlib import zeros
 from pyvlm.tools import full_cosine_spacing
 from pygeom.geom3d import Vector
-from pygeom.matrix3d import MatrixVector, solve_matrix_vector, elementwise_dot_product
 
 #%% Create Grids
 xznum = 20

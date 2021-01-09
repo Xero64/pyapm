@@ -1,10 +1,7 @@
-from math import pi, sin, cos, acos, degrees, log, copysign, sqrt, atan
 from matplotlib.pyplot import figure
 from pygeom.geom2d import CubicSpline2D, Point2D
 from .spacing import full_cosine_spacing, equal_spacing
-from pygeom.geom1d import CubicSpline
 from typing import List
-from numpy.matlib import matrix
 
 class Airfoil(object):
     name: str = None

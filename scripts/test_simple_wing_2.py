@@ -7,18 +7,22 @@ from pyapm.output.msh import panelresult_to_msh
 jsonfilepath = r'../files/Test_Simple_Wing_2.json'
 psys = panelsystem_from_json(jsonfilepath)
 
+#%% Solve Panel Result
+rho = 1.225
+speed = 50.0
+alpha = 5.0
+
+pres = PanelResult('Test Case', psys)
+pres.set_density(rho=rho)
+pres.set_state(alpha=alpha, speed=speed)
+
+#%% Set Horseshoe Direction
+psys.set_horseshoes(pres.vfs.to_unit())
+
+#%% Assemble and Solve
 psys.assemble_panels()
 psys.assemble_horseshoes()
 psys.solve_system()
-
-#%% Solve Panel Result
-rho = 1.225
-speed = 1.0
-alpha = 5.0
-
-pres = PanelResult(f'Test Case', psys)
-pres.set_density(rho=rho)
-pres.set_state(alpha=alpha, speed=speed)
 
 #%% Output MSH File
 mshfilepath = '..\\outputs\\' + psys.name + '.msh'
@@ -39,16 +43,33 @@ for pid in sorted(psys.pnls):
     qfs = pnl.crd.vector_to_local(pres.vfs)
     print(f'qx = {qx+qfs.x}, qy = {qy+qfs.y}')
 
-#%% Solve Panel Result
-rho = 1.225
-speed = 1.0
-alpha = 5.0
-pbo2V = 0.3
+#%% Distribution Plots
+axd = pres.plot_strip_drag_force_distribution()
+_ = axd.set_ylabel('Drag Force [N/m]')
+_ = axd.set_xlabel('Span-Wise Coordinate - y [m]')
+# _ = pres.plot_trefftz_drag_force_distribution(ax=axd)
+axs = pres.plot_strip_side_force_distribution()
+_ = axs.set_ylabel('Side Force [N/m]')
+_ = axs.set_xlabel('Span-Wise Coordinate - y [m]')
+# _ = pres.plot_trefftz_side_force_distribution(ax=axs)
+axl = pres.plot_strip_lift_force_distribution()
+_ = axl.set_ylabel('Lift Force [N/m]')
+_ = axl.set_xlabel('Span-Wise Coordinate - y [m]')
+# _ = pres.plot_trefftz_lift_force_distribution(ax=axl)
+# axw = pres.plot_trefftz_down_wash_distribution()
+# _ = axw.set_ylabel('Wash [m/s]')
+# _ = axw.set_xlabel('Span-Wise Coordinate - y [m]')
 
-pres = PanelResult(f'Test Case', psys)
-pres.set_density(rho=rho)
-pres.set_state(alpha=alpha, speed=speed, pbo2V=pbo2V)
+# #%% Solve Panel Result
+# rho = 1.225
+# speed = 1.0
+# alpha = 5.0
+# pbo2V = 0.3
 
-#%% Output MSH File
-mshfilepath = '..\\outputs\\Test Simple Wing 2 Roll.msh'
-panelresult_to_msh(pres, mshfilepath)
+# pres = PanelResult(f'Test Case', psys)
+# pres.set_density(rho=rho)
+# pres.set_state(alpha=alpha, speed=speed, pbo2V=pbo2V)
+
+# #%% Output MSH File
+# mshfilepath = '..\\outputs\\Test Simple Wing 2 Roll.msh'
+# panelresult_to_msh(pres, mshfilepath)
