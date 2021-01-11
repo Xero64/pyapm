@@ -4,7 +4,7 @@ from pyapm.classes import PanelResult, panelsystem_from_json
 from pyapm.output.msh import panelresult_to_msh
 
 #%% Create Panel Mesh
-jsonfilepath = r'../files/Prandtl-D2.json'
+jsonfilepath = '../files/Prandtl-D2.json'
 psys = panelsystem_from_json(jsonfilepath)
 psys.assemble_panels()
 psys.assemble_horseshoes()
@@ -12,7 +12,7 @@ psys.solve_system()
 
 #%% Solve Panel Result
 alpha = 0.0
-speed = 13.0
+speed = 12.9
 rho = 1.145
 
 pres = PanelResult('Design Point', psys)
@@ -28,7 +28,7 @@ panelresult_to_msh(pres, mshfilepath)
 
 #%% Solve Panel Result
 alpha = 0.0
-speed = 13.0
+speed = 12.9
 pbo2V = 0.01
 rho = 1.145
 
@@ -40,5 +40,5 @@ display_markdown(pres)
 display_markdown(pres.surface_loads)
 display_markdown(pres.stability_derivatives)
 
-mshfilepath = '..\\outputs\\' + pres.name + '.msh'
+mshfilepath = '../outputs/' + pres.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)

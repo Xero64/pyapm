@@ -544,8 +544,18 @@ class PanelSystem(object):
         table.add_column('zref', '.3f', data=[self.rref.z])
         outstr += table._repr_markdown_()
         table = MDTable()
+        if self.grds is not None:
+            table.add_column('# Grids', 'd', data=[self.numgrd])
+        else:
+            table.add_column('# Grids', 'd', data=[0])
         if self.pnls is not None:
-            table.add_column('# Panels', 'd', data=[len(self.pnls)])
+            table.add_column('# Panels', 'd', data=[self.numpnl])
+        else:
+            table.add_column('# Panels', 'd', data=[0])
+        if self.hsvs is not None:
+            table.add_column('# Horseshoe Vortices', 'd', data=[self.numhsv])
+        else:
+            table.add_column('# Horseshoe Vortices', 'd', data=[0])
         if len(table.columns) > 0:
             outstr += table._repr_markdown_()
         return outstr

@@ -2,11 +2,16 @@
 from IPython.display import display_markdown
 from pyapm.classes import PanelResult, panelsystem_from_json
 from pyapm.output.msh import panelresult_to_msh
+from pyvlm.tools import Bell
 
 #%% Create Panel Mesh
 jsonfilepath = '../files/Prandtl-D2.json'
 psys = panelsystem_from_json(jsonfilepath)
 display_markdown(psys)
+
+#%% Create Bell Distribution
+bell = Bell(3.75, psys.srfcs[0].prfy)
+bell.set_ym(psys.srfcs[0].strpy)
 
 #%% System Plots
 axt1 = psys.plot_twist_distribution()
@@ -33,6 +38,9 @@ psys.solve_system()
 speed = 12.9
 rho = 1.145
 
+bell.set_density(rho)
+bell.set_speed(speed)
+
 pres = PanelResult('Design Point', psys)
 pres.set_density(rho=rho)
 pres.set_state(speed=speed)
@@ -40,25 +48,30 @@ pres.set_state(speed=speed)
 display_markdown(pres)
 display_markdown(pres.surface_loads)
 
+bell.set_lift(pres.nfres.nffrctot.z)
+
 mshfilepath = '../outputs/' + psys.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)
 
 #%% Distribution Plots
-axd = pres.plot_strip_drag_force_distribution()
+axd = pres.plot_strip_drag_force_distribution(axis='y')
 _ = axd.set_ylabel('Drag Force [N/m]')
 _ = axd.set_xlabel('Span-Wise Coordinate - b [m]')
-# _ = pres.plot_trefftz_drag_force_distribution(ax=axd)
-axs = pres.plot_strip_side_force_distribution()
+_ = pres.plot_trefftz_drag_force_distribution(ax=axd, axis='y')
+_ = bell.plot_drag_distribution(ax=axd)
+axs = pres.plot_strip_side_force_distribution(axis='y')
 _ = axs.set_ylabel('Side Force [N/m]')
 _ = axs.set_xlabel('Span-Wise Coordinate - b [m]')
-# _ = pres.plot_trefftz_side_force_distribution(ax=axs)
-axl = pres.plot_strip_lift_force_distribution()
+_ = pres.plot_trefftz_side_force_distribution(ax=axs, axis='y')
+axl = pres.plot_strip_lift_force_distribution(axis='y')
 _ = axl.set_ylabel('Lift Force [N/m]')
 _ = axl.set_xlabel('Span-Wise Coordinate - b [m]')
-# _ = pres.plot_trefftz_lift_force_distribution(ax=axl)
+_ = pres.plot_trefftz_lift_force_distribution(ax=axl, axis='y')
+_ = bell.plot_lift_distribution(ax=axl)
 # axc = pres.plot_trefftz_circulation_distribution()
 # _ = axc.set_ylabel('Circulation [m^2/s]')
 # _ = axc.set_xlabel('Span-Wise Coordinate - b [m]')
-# axw = pres.plot_trefftz_down_wash_distribution()
-# _ = axw.set_ylabel('Wash [m/s]')
-# _ = axw.set_xlabel('Span-Wise Coordinate - b [m]')
+axw = pres.plot_trefftz_down_wash_distribution(axis='y')
+_ = axw.set_ylabel('Wash [m/s]')
+_ = axw.set_xlabel('Span-Wise Coordinate - b [m]')
+_ = bell.plot_trefftz_wash_distribution(ax=axw)

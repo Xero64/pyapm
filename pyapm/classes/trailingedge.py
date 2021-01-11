@@ -114,7 +114,11 @@ class TrailingEdge(object):
         oxx = MatrixVector(rls.x, rls.z, -rls.y)
         oxx = -oxx
         om2 = square(rls.y) + square(rls.z)
+        chkom2 = (absolute(om2) < tol)
         veldl = elementwise_divide(oxx, om2)*self.faco
+        veldl.x[chkom2] = 0.0
+        veldl.y[chkom2] = 0.0
+        veldl.z[chkom2] = 0.0
         veld = self.vectors_to_global(veldl)*self.faco
         return veld/twoPi
     def __str__(self):

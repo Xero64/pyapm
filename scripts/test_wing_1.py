@@ -3,7 +3,7 @@ from pyapm.classes import PanelResult, panelsystem_from_json
 from pyapm.output.msh import panelresult_to_msh
 
 #%% Create Panel Mesh
-jsonfilepath = r'../files/Test_Wing_1.json'
+jsonfilepath = '../files/Test_Wing_1.json'
 psys = panelsystem_from_json(jsonfilepath)
 
 psys.assemble_panels()

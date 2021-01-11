@@ -836,6 +836,7 @@ class FarFieldResult(object):
     # _washa = None
     # _washb = None
     _wash = None
+    _wash_v2 = None
     _drag = None
     _side = None
     _lift = None
@@ -947,6 +948,23 @@ class FarFieldResult(object):
     #             self._washb[i, 0] = self.ffwsh[hinds[0], 0]
     #     return self._washb
     @property
+    def wash_v2(self):
+        if self._wash_v2 is None:
+            sys = self.res.sys
+            num = len(sys.strps)
+            index = []
+            for strp in sys.strps:
+                hinds = sys.phind[strp.pnls[0].ind]
+                index.append(hinds[0])
+            num = len(index)
+            awh = zeros((num, num), dtype=float)
+            for i, indi in enumerate(index):
+                for j, indj in enumerate(index):
+                    awh[i, j] = sys.awh[indi, indj]
+            # awh = self.res.sys.awh[index, index]
+            self._wash_v2 = awh*self.circ
+        return self._wash_v2
+    @property
     def wash(self):
         if self._wash is None:
             sys = self.res.sys
@@ -973,7 +991,7 @@ class FarFieldResult(object):
                 for hind in hindsb:
                     cnt += 1
                     self._wash[i, 0] += self.ffwsh[hind, 0]
-                self._wash[i, 0] = self._wash[i, 0]/cnt
+                self._wash[i, 0] = self._wash[i, 0]/cnt/2
         return self._wash
     @property
     def drag(self):
@@ -981,8 +999,8 @@ class FarFieldResult(object):
             sys = self.res.sys
             num = len(sys.strps)
             self._drag = zeros((num, 1), dtype=float)
-            for i, _ in enumerate(sys.strps):
-                self._drag[i, 0] = -self.res.rho*self.wash[i, 0]*self.circ[i, 0]
+            for i, strp in enumerate(sys.strps):
+                self._drag[i, 0] = self.res.rho*self.wash_v2[i, 0]*self.circ[i, 0]*strp.width
                 # pnla = strp.pnls[0]
                 # pnlb = strp.pnls[-1]
                 # pinda = pnla.ind

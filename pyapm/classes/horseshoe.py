@@ -101,8 +101,5 @@ class HorseShoe(object):
     def trefftz_plane_velocities(self, pnts: MatrixVector):
         velda = self.tva.trefftz_plane_velocities(pnts)
         veldb = self.tvb.trefftz_plane_velocities(pnts)
-        # print(f'ind = {self.ind}')
-        # print(f'velda = \n{velda}')
-        # print(f'veldb = \n{veldb}')
         veld = velda + veldb
         return veld

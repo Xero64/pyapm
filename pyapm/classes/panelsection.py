@@ -124,7 +124,7 @@ class PanelSection(PanelProfile):
             pid += 1
         return pid
     def __repr__(self):
-        return f'<PanelSection at {self.point:}>'
+        return f'<pyapm.PanelSection at {self.point:}>'
 
 def panelsection_from_json(sectdata: dict) -> PanelSection:
     xpos = sectdata['xpos']

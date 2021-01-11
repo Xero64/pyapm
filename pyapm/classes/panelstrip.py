@@ -83,3 +83,5 @@ class PanelStrip(object):
     @property
     def pind(self):
         return [pnl.ind for pnl in self.pnls]
+    def __repr__(self):
+        return '<pyapm.PanelStrip>'
