@@ -112,7 +112,7 @@ pres.set_state(alpha=alpha, speed=speed)
 display_markdown(pres)
 display_markdown(pres.surface_loads)
 
-mshfilepath = '..\\outputs\\' + psys.name + '.msh'
+mshfilepath = '../results/' + psys.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)
 
 ```
@@ -122,7 +122,7 @@ panelresult_to_msh(pres, mshfilepath)
 You can generate a Gmsh mesh file (*.msh) directly from a Python script using the following code snippet.
 
 ```python
-mshfilepath = '..\\outputs\\' + psys.name + '.msh'
+mshfilepath = '../results/' + psys.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)
 ```
 

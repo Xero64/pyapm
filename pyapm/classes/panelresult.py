@@ -6,6 +6,7 @@ from numpy.matlib import matrix, ones, zeros
 from numpy.matlib import sqrt, square, multiply, absolute
 from matplotlib.pyplot import figure
 from py2md.classes import MDTable, MDReport, MDHeading
+from ..tools import betm_from_mach
 
 tol = 1e-12
 
@@ -26,16 +27,20 @@ class PanelResult(object):
     _vfs: Vector = None
     _ofs: Vector = None
     _qfs: float = None
+    _nrms: MatrixVector = None
+    _rrel: MatrixVector = None
     _unsig: matrix = None
     _unmu: matrix = None
+    _unphi: matrix = None
     _sig: matrix = None
     _mu: matrix = None
+    _phi: matrix = None
     _nfres = None
     _strpres = None
     _ffres = None
     _stres = None
     _vfsl: MatrixVector = None
-    def __init__(self, name: str, sys):
+    def __init__(self, name: str, sys: object):
         self.name = name
         self.sys = sys
         self.initialise()
@@ -133,15 +138,36 @@ class PanelResult(object):
             self._qfs = self.rho*self.speed**2/2
         return self._qfs
     @property
+    def nrms(self):
+        if self._nrms is None:
+            self._nrms = self.sys.nrms(self.mach)
+        return self._nrms
+    @property
+    def rrel(self):
+        if self._rrel is None:
+            if self.rcg is None:
+                self._rrel = self.sys.rrel(self.mach)
+            else:
+                betm = betm_from_mach(self.mach)
+                rrel = self.sys.pnts-self.rcg
+                rrel.x = rrel.x/betm
+                self._rrel = rrel
+        return self._rrel
+    @property
     def unsig(self):
         if self._unsig is None:
-            self._unsig = self.sys.sig # ungam(self.mach)
+            self._unsig = self.sys.unsig(self.mach)
         return self._unsig
     @property
     def unmu(self):
         if self._unmu is None:
-            self._unmu = self.sys.mu # ungam(self.mach)
+            self._unmu = self.sys.unmu(self.mach)
         return self._unmu
+    @property
+    def unphi(self):
+        if self._unphi is None:
+            self._unphi = self.sys.unphi(self.mach)
+        return self._unphi
     @property
     def sig(self):
         if self._sig is None:
@@ -152,6 +178,11 @@ class PanelResult(object):
         if self._mu is None:
             self._mu = self.unmu[:, 0]*self.vfs + self.unmu[:, 1]*self.ofs
         return self._mu
+    @property
+    def phi(self):
+        if self._phi is None:
+            self._phi = self.unphi[:, 0]*self.vfs + self.unphi[:, 1]*self.ofs
+        return self._phi
     @property
     def nfres(self):
         if self._nfres is None:
@@ -456,6 +487,16 @@ class PanelResult(object):
                         # ax.plot(mb, z, label=label)
             ax.legend()
         return ax
+    def to_result(self, name: str=''):
+        if name == '':
+            name = self.name
+        res = PanelResult(name, self.sys)
+        res.set_density(rho=self.rho)
+        res.set_state(speed=self.speed, alpha=self.alpha, beta=self.beta,
+                      pbo2V=self.pbo2V, qco2V=self.qco2V, rbo2V=self.rbo2V)
+        # res.set_controls(**self.ctrls)
+        res.set_cg(self.rcg)
+        return res
     @property
     def stability_derivatives(self):
         return self.stres.stability_derivatives
@@ -609,7 +650,6 @@ class NearFieldResult(object):
     _nfql = None
     _nfqt = None
     _nfcp = None
-    _nfphi = None
     _nfprs = None
     _nffrc = None
     _nfmom = None
@@ -658,12 +698,6 @@ class NearFieldResult(object):
             self._nfcp = 1.0 - square(self.nfqt)/self.res.speed**2
         return self._nfcp
     @property
-    def nfphi(self):
-        if self._nfphi is None:
-            self._nfphi = self.res.sys.apm*self.mu + self.res.sys.aps*self.sig
-            self._nfphi[absolute(self._nfphi) < tol] = 0.0
-        return self._nfphi
-    @property
     def nfprs(self):
         if self._nfprs is None:
             self._nfprs = self.res.qfs*self.nfcp
@@ -671,12 +705,12 @@ class NearFieldResult(object):
     @property
     def nffrc(self):
         if self._nffrc is None:
-            self._nffrc = -elementwise_multiply(self.res.sys.nrms, multiply(self.nfprs, self.res.sys.pnla))
+            self._nffrc = -elementwise_multiply(self.res.nrms, multiply(self.nfprs, self.res.sys.pnla))
         return self._nffrc
     @property
     def nfmom(self):
         if self._nfmom is None:
-            self._nfmom = elementwise_cross_product(self.res.sys.rrel, self.nffrc)
+            self._nfmom = elementwise_cross_product(self.res.rrel, self.nffrc)
         return self._nfmom
     @property
     def nffrctot(self):
@@ -1399,7 +1433,7 @@ def fix_zero(value: float, tol: float=1e-8):
         value = 0.0
     return value
 
-def panelresult_from_dict(psys: PanelSystem, resdata: dict):
+def panelresult_from_dict(psys: object, resdata: dict):
     name = resdata['name']
     if 'inherit' in resdata:
         inherit = resdata['inherit']

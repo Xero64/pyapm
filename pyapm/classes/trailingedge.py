@@ -70,16 +70,20 @@ class TrailingEdge(object):
             vec = self.grdo-self.pntc
             self._grdol = Vector(vec*self.dirx, vec*self.diry, vec*self.dirz)
         return self._grdol
-    def points_to_local(self, pnts: MatrixVector):
+    def points_to_local(self, pnts: MatrixVector, betm: float=1.0):
         vecs = pnts-self.pntc
+        if betm != 1.0:
+            vecs.x = vecs.x/betm
         return MatrixVector(vecs*self.dirx, vecs*self.diry, vecs*self.dirz)
     def vectors_to_global(self, vecs: MatrixVector):
         dirx = Vector(self.dirx.x, self.diry.x, self.dirz.x)
         diry = Vector(self.dirx.y, self.diry.y, self.dirz.y)
         dirz = Vector(self.dirx.z, self.diry.z, self.dirz.z)
         return MatrixVector(vecs*dirx, vecs*diry, vecs*dirz)
-    def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool=False, sgnz: matrix=None, factor: bool=True):
-        rls = self.points_to_local(pnts)
+    def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool=False,
+                                    sgnz: matrix=None, factor: bool=True,
+                                    betm: float=1.0):
+        rls = self.points_to_local(pnts, betm=betm)
         absx = absolute(rls.x)
         rls.x[absx < tol] = 0.0
         absy = absolute(rls.y)
@@ -99,8 +103,12 @@ class TrailingEdge(object):
             return phid, rls, ovs, oms
         else:
             return phid
-    def doublet_influence_coefficients(self, pnts: MatrixVector, sgnz: matrix=None, factor: bool=True):
-        phid, _, ov, om = self.doublet_velocity_potentials(pnts, extraout=True, sgnz=sgnz, factor=False)
+    def doublet_influence_coefficients(self, pnts: MatrixVector,
+                                       sgnz: matrix=None, factor: bool=True,
+                                       betm: float=1.0):
+        phid, _, ov, om = self.doublet_velocity_potentials(pnts, extraout=True,
+                                                           sgnz=sgnz, factor=False,
+                                                           betm=betm)
         veldl = vel_doublet_matrix(ov, om, self.faco)
         veld = self.vectors_to_global(veldl)*self.faco
         if factor:
@@ -111,8 +119,7 @@ class TrailingEdge(object):
         rls.x = zeros(rls.shape, dtype=float)
         # ro = Vector(0.0, self.grdo.y, self.grdo.z)
         # o = rls-ro
-        oxx = MatrixVector(rls.x, rls.z, -rls.y)
-        oxx = -oxx
+        oxx = MatrixVector(rls.x, -rls.z, rls.y)
         om2 = square(rls.y) + square(rls.z)
         chkom2 = (absolute(om2) < tol)
         veldl = elementwise_divide(oxx, om2)*self.faco

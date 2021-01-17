@@ -72,7 +72,8 @@ bref = yrng
 cref = 1.0
 sref = bref*cref
 rref = Vector(0.25, 0.0, 0.0)
-psys = PanelSystem(name, grids, panels, bref, cref, sref, rref)
+psys = PanelSystem(name, bref, cref, sref, rref)
+psys.set_mesh(grids, panels)
 
 psys.assemble_panels()
 psys.assemble_horseshoes()
@@ -85,5 +86,5 @@ pres = PanelResult(f'AoA = {alpha:.1f} degrees', psys)
 pres.set_state(alpha = alpha)
 
 #%% Output MSH File
-mshfilepath = '..\\outputs\\' + psys.name + '.msh'
+mshfilepath = '../results/' + psys.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)

@@ -120,36 +120,6 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
-        # Panel Coefficient of Pressure
-        mshfile.write('$ElementData\n')
-        mshfile.write('1\n')
-        mshfile.write('"Panel Coefficient of Pressure"\n')
-        mshfile.write('1\n')
-        mshfile.write('0.0\n')
-        mshfile.write('3\n')
-        mshfile.write('0\n')
-        mshfile.write('1\n')
-        mshfile.write('{:d}\n'.format(lenpid))
-        frmstr = '{:d} {:}\n'
-        maxval = float('-inf')
-        minval = float('+inf')
-        for pid in pidlst:
-            pnl = psys.pnls[pid]
-            val = pres.nfres.nfcp[pnl.ind, 0]
-            if pnl.sct is None:
-                if val < minval:
-                    minval = val
-                if val > maxval:
-                    maxval = val
-            mshfile.write(frmstr.format(pnl.pid, val))
-        mshfile.write('$EndElementData\n')
-        optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
-        optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
-        optstr += 'View[{:d}].CustomMin = {:};\n'.format(view, minval)
-        optstr += 'View[{:d}].Light = 0;\n'.format(view)
-        optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
-        optstr += 'View[{:d}].Visible = 0;\n'.format(view)
-        view += 1
         # Panel Velocity Potential
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
@@ -163,27 +133,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         frmstr = '{:d} {:}\n'
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.nfres.nfphi[pnl.ind, 0]))
-        mshfile.write('$EndElementData\n')
-        optstr += 'View[{:d}].Light = 0;\n'.format(view)
-        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
-        optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
-        optstr += 'View[{:d}].Visible = 0;\n'.format(view)
-        view += 1
-        # Panel Normal Velocity
-        mshfile.write('$ElementData\n')
-        mshfile.write('1\n')
-        mshfile.write('"Panel Normal Velocity"\n')
-        mshfile.write('1\n')
-        mshfile.write('0.0\n')
-        mshfile.write('3\n')
-        mshfile.write('0\n')
-        mshfile.write('1\n')
-        mshfile.write('{:d}\n'.format(lenpid))
-        frmstr = '{:d} {:}\n'
-        for pid in pidlst:
-            pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.nfres.nfql.z[pnl.ind, 0]))
+            mshfile.write(frmstr.format(pnl.pid, pres.phi[pnl.ind, 0]))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
         optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
@@ -250,10 +200,30 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
-        # Panel Tangential Velocity
+        # Panel Normal Velocity
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
-        mshfile.write('"Panel Tangential Velocity"\n')
+        mshfile.write('"Panel Normal Velocity"\n')
+        mshfile.write('1\n')
+        mshfile.write('0.0\n')
+        mshfile.write('3\n')
+        mshfile.write('0\n')
+        mshfile.write('1\n')
+        mshfile.write('{:d}\n'.format(lenpid))
+        frmstr = '{:d} {:}\n'
+        for pid in pidlst:
+            pnl = psys.pnls[pid]
+            mshfile.write(frmstr.format(pnl.pid, pres.nfres.nfql.z[pnl.ind, 0]))
+        mshfile.write('$EndElementData\n')
+        optstr += 'View[{:d}].Light = 0;\n'.format(view)
+        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
+        optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
+        optstr += 'View[{:d}].Visible = 0;\n'.format(view)
+        view += 1
+        # Panel Surface Velocity
+        mshfile.write('$ElementData\n')
+        mshfile.write('1\n')
+        mshfile.write('"Panel Surface Velocity"\n')
         mshfile.write('1\n')
         mshfile.write('0.0\n')
         mshfile.write('3\n')
@@ -266,6 +236,36 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         for pid in pidlst:
             pnl = psys.pnls[pid]
             val = pres.nfres.nfqt[pnl.ind, 0]
+            if pnl.sct is None:
+                if val < minval:
+                    minval = val
+                if val > maxval:
+                    maxval = val
+            mshfile.write(frmstr.format(pnl.pid, val))
+        mshfile.write('$EndElementData\n')
+        optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
+        optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
+        optstr += 'View[{:d}].CustomMin = {:};\n'.format(view, minval)
+        optstr += 'View[{:d}].Light = 0;\n'.format(view)
+        optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
+        optstr += 'View[{:d}].Visible = 0;\n'.format(view)
+        view += 1
+        # Panel Coefficient of Pressure
+        mshfile.write('$ElementData\n')
+        mshfile.write('1\n')
+        mshfile.write('"Panel Coefficient of Pressure"\n')
+        mshfile.write('1\n')
+        mshfile.write('0.0\n')
+        mshfile.write('3\n')
+        mshfile.write('0\n')
+        mshfile.write('1\n')
+        mshfile.write('{:d}\n'.format(lenpid))
+        frmstr = '{:d} {:}\n'
+        maxval = float('-inf')
+        minval = float('+inf')
+        for pid in pidlst:
+            pnl = psys.pnls[pid]
+            val = pres.nfres.nfcp[pnl.ind, 0]
             if pnl.sct is None:
                 if val < minval:
                     minval = val

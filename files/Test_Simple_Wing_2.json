@@ -38,5 +38,13 @@
                 }
             ]
         }
+    ],
+    "cases": [
+        {
+            "name": "Test Case",
+            "alpha": 5.0,
+            "speed": 50.0,
+            "density": 1.225
+        }
     ]
 }

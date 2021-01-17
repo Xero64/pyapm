@@ -1,6 +1,6 @@
 #%% Import Dependencies
 from IPython.display import display_markdown
-from pyapm.classes import PanelResult, panelsystem_from_json
+from pyapm.classes import panelsystem_from_json
 from pyapm.outputs.msh import panelresult_to_msh
 
 #%% Create Panel Mesh
@@ -30,17 +30,12 @@ psys.assemble_horseshoes()
 psys.solve_system()
 
 #%% Solve Panel Result
-speed = 12.9
-rho = 1.145
-
-pres = PanelResult('Design Point', psys)
-pres.set_density(rho=rho)
-pres.set_state(speed=speed)
+pres = psys.results['Design Point']
 
 display_markdown(pres)
 display_markdown(pres.surface_loads)
 
-mshfilepath = '../outputs/' + psys.name + '.msh'
+mshfilepath = '../results/' + psys.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)
 
 #%% Distribution Plots

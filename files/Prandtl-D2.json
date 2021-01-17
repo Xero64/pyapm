@@ -74,6 +74,11 @@
             "alpha": 0.0,
             "speed": 13.0,
             "density": 1.145
+        },
+        {
+            "name": "Roll Case",
+            "inherit": "Design Point",
+            "pbo2V": 0.1
         }
     ]
 }

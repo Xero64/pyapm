@@ -1,6 +1,6 @@
 #%% Import Dependencies
 from IPython.display import display_markdown
-from pyapm.classes import panelsystem_from_json, PanelResult
+from pyapm.classes import panelsystem_from_json#, PanelResult
 from pyapm.outputs.msh import panelresult_to_msh
 
 #%% Create Panel System
@@ -8,13 +8,15 @@ jsonfilepath = '../files/Test_Simple_Wing_2.json'
 psys = panelsystem_from_json(jsonfilepath)
 
 #%% Solve Panel Result
-rho = 1.225
-speed = 50.0
-alpha = 5.0
+# rho = 1.225
+# speed = 50.0
+# alpha = 5.0
 
-pres = PanelResult('Test Case', psys)
-pres.set_density(rho=rho)
-pres.set_state(alpha=alpha, speed=speed)
+# pres = PanelResult('Test Case', psys)
+# pres.set_density(rho=rho)
+# pres.set_state(alpha=alpha, speed=speed)
+
+pres = psys.results['Test Case']
 
 #%% Set Horseshoe Direction
 psys.set_horseshoes(pres.vfs.to_unit())
@@ -25,7 +27,7 @@ psys.assemble_horseshoes()
 psys.solve_system()
 
 #%% Output MSH File
-mshfilepath = '../outputs/' + psys.name + '.msh'
+mshfilepath = '../results/' + psys.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)
 
 #%% Display Result
@@ -71,5 +73,5 @@ _ = axw.set_xlabel('Span-Wise Coordinate - y [m]')
 # pres.set_state(alpha=alpha, speed=speed, pbo2V=pbo2V)
 
 # #%% Output MSH File
-# mshfilepath = '..\\outputs\\Test Simple Wing 2 Roll.msh'
+# mshfilepath = '../results/Test Simple Wing 2 Roll.msh'
 # panelresult_to_msh(pres, mshfilepath)
