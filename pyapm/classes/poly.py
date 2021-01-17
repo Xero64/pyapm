@@ -1,8 +1,8 @@
+from typing import List
+from pygeom.geom3d import Vector
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from numpy.matlib import zeros, ones
-from pygeom.geom3d import Vector
 from .boundedge import BoundEdge
-from typing import List
 
 class Poly(object):
     grds: List[Vector] = None

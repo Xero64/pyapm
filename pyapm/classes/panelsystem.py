@@ -1,15 +1,18 @@
 from json import load
+from typing import Dict, List
+from time import perf_counter
+from os.path import dirname, join, exists
+from numpy.matlib import zeros, matrix
+from matplotlib.pyplot import figure
+from py2md.classes import MDTable
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector, MatrixVector
 from pygeom.matrix3d import solve_matrix_vector, elementwise_dot_product, elementwise_cross_product
-from typing import Dict, List
 from .panel import Panel
 from .grid import Grid
 from .horseshoe import HorseShoe
-from numpy.matlib import zeros, matrix
-from time import perf_counter
-from matplotlib.pyplot import figure
-from py2md.classes import MDTable
+from .panelsurface import panelsurface_from_json, PanelSurface
+from .panelresult import panelresult_from_dict
 
 class PanelSystem(object):
     name: str = None
@@ -21,6 +24,7 @@ class PanelSystem(object):
     rref: float = None
     srfcs = None
     results = None
+    source: str = None
     _hsvs: List[HorseShoe] = None
     _numgrd: int = None
     _numpnl: int = None
@@ -55,16 +59,20 @@ class PanelSystem(object):
     _area: float = None
     _strps: List[object] = None
     _phind: Dict[int, List[int]] = None
-    def __init__(self, name: str, grds: Dict[int, Grid], pnls: Dict[int, Panel],
-                 bref: float, cref: float, sref: float, rref: Vector):
+    def __init__(self, name: str, bref: float, cref: float, sref: float, rref: Vector):
         self.name = name
-        self.grds = grds
-        self.pnls = pnls
         self.bref = bref
         self.cref = cref
         self.sref = sref
         self.rref = rref
         self.results = {}
+    def set_mesh(self, grds: Dict[int, Grid], pnls: Dict[int, Panel]):
+        self.grds = grds
+        self.pnls = pnls
+        self.update()
+    def set_geom(self, srfcs: List[PanelSurface]=None):
+        self.srfcs = srfcs
+        self.mesh()
         self.update()
     def update(self):
         for ind, grd in enumerate(self.grds.values()):
@@ -530,6 +538,18 @@ class PanelSystem(object):
                         ax.plot(z, w, label=label)
             ax.legend()
         return ax
+    def mesh(self):
+        if self.srfcs:
+            gid, pid = 1, 1
+            for surface in self.srfcs:
+                gid = surface.mesh_grids(gid)
+                pid = surface.mesh_panels(pid)
+            grds, pnls = {}, {}
+            for surface in self.srfcs:
+                for grd in surface.grds:
+                    grds[grd.gid] = grd
+                for pnl in surface.pnls:
+                    pnls[pnl.pid] = pnl
     def __repr__(self):
         return '<PanelSystem: {:s}>'.format(self.name)
     def __str__(self):
@@ -562,22 +582,40 @@ class PanelSystem(object):
     def _repr_markdown_(self):
         return self.__str__()
 
-def panelsystem_from_mesh(meshfilepath: str):
+def panelsystem_from_json(jsonfilepath: str):
 
-    with open(meshfilepath, 'rt') as meshfile:
-        data = load(meshfile)
+    with open(jsonfilepath, 'rt') as jsonfile:
+        sysdct = load(jsonfile)
 
-    name = data['name']
-    bref = data['bref']
-    cref = data['cref']
-    sref = data['sref']
-    xref = data['xref']
-    yref = data['yref']
-    zref = data['zref']
+    sysdct['source'] = jsonfilepath
+
+    if 'type' in sysdct:
+        filetype = sysdct['type']
+
+    if filetype == 'geom':
+        psys = panelsystem_from_geom(sysdct)
+    elif filetype == 'mesh':
+        psys = panelsystem_from_mesh(sysdct)
+    else:
+        return ValueError('Incorrect file type.')
+
+    psys.source = jsonfilepath
+
+    return psys
+
+def panelsystem_from_mesh(sysdct: Dict[str, any]):
+
+    name = sysdct['name']
+    bref = sysdct['bref']
+    cref = sysdct['cref']
+    sref = sysdct['sref']
+    xref = sysdct['xref']
+    yref = sysdct['yref']
+    zref = sysdct['zref']
     rref = Vector(xref, yref, zref)
 
     grds = {}
-    griddata = data['grids']
+    griddata = sysdct['grids']
     for gidstr, gd in griddata.items():
         gid = int(gidstr)
         if 'te' not in gd:
@@ -585,8 +623,8 @@ def panelsystem_from_mesh(meshfilepath: str):
         grds[gid] = Grid(gid, gd['x'], gd['y'], gd['z'], gd['te'])
 
     grps = {}
-    if 'groups' in data:
-        groupdata = data['groups']
+    if 'groups' in sysdct:
+        groupdata = sysdct['groups']
         for grpidstr, grpdata in groupdata.items():
             grpid = int(grpidstr)
             grps[grpid] = grpdata
@@ -596,7 +634,7 @@ def panelsystem_from_mesh(meshfilepath: str):
                 grps[grpid]['noload'] = False
 
     pnls = {}
-    paneldata = data['panels']
+    paneldata = sysdct['panels']
     for pidstr, pd in paneldata.items():
         pid = int(pidstr)
         if 'grpid' in pd:
@@ -610,55 +648,58 @@ def panelsystem_from_mesh(meshfilepath: str):
         else:
             pnls[pid] = Panel(pid, pd['gids'])
 
-    return PanelSystem(name, grds, pnls, bref, cref, sref, rref)
+    psys = PanelSystem(name, bref, cref, sref, rref)
+    psys.set_mesh(grds, pnls)
 
-def panelsystem_from_json(jsonfilepath: str):
-    with open(jsonfilepath, 'rt') as jsonfile:
-        jsondata = load(jsonfile)
-
-    from os.path import dirname, join, exists
-    from .panelsurface import panelsurface_from_json
-
-    path = dirname(jsonfilepath)
-
-    for surfdata in jsondata['surfaces']:
-        for sectdata in surfdata['sections']:
-            if 'airfoil' in sectdata:
-                airfoil = sectdata['airfoil']
-                if airfoil[-4:] == '.dat':
-                    airfoil = join(path, airfoil)
-                    if not exists(airfoil):
-                        print(f'Airfoil {airfoil} does not exist.')
-                        del sectdata['airfoil']
-                    else:
-                        sectdata['airfoil'] = airfoil
-
-    srfcs = []
-    for surfdata in jsondata['surfaces']:
-        srfcs.append(panelsurface_from_json(surfdata))
-
-    name = jsondata['name']
-    bref = jsondata['bref']
-    cref = jsondata['cref']
-    sref = jsondata['sref']
-    xref = jsondata['xref']
-    yref = jsondata['yref']
-    zref = jsondata['zref']
-    rref = Vector(xref, yref, zref)
-
-    gid, pid = 1, 1
-    for surface in srfcs:
-        gid = surface.mesh_grids(gid)
-        pid = surface.mesh_panels(pid)
-
-    grds, pnls = {}, {}
-    for surface in srfcs:
-        for grd in surface.grds:
-            grds[grd.gid] = grd
-        for pnl in surface.pnls:
-            pnls[pnl.pid] = pnl
-
-    psys = PanelSystem(name, grds, pnls, bref, cref, sref, rref)
-    psys.srfcs = srfcs
+    if 'cases' in sysdct and sysdct:
+        panelresults_from_dict(psys, sysdct['cases'])
 
     return psys
+
+def panelsystem_from_geom(sysdct: Dict[str, any]):
+
+    if 'source' in sysdct:
+        path = dirname(sysdct['source'])
+
+        for surfdata in sysdct['surfaces']:
+            for sectdata in surfdata['sections']:
+                if 'airfoil' in sectdata:
+                    airfoil = sectdata['airfoil']
+                    if airfoil[-4:] == '.dat':
+                        airfoil = join(path, airfoil)
+                        if not exists(airfoil):
+                            print(f'Airfoil {airfoil} does not exist.')
+                            del sectdata['airfoil']
+                        else:
+                            sectdata['airfoil'] = airfoil
+
+    srfcs = []
+    for surfdata in sysdct['surfaces']:
+        srfcs.append(panelsurface_from_json(surfdata))
+
+    name = sysdct['name']
+    bref = sysdct['bref']
+    cref = sysdct['cref']
+    sref = sysdct['sref']
+    xref = sysdct['xref']
+    yref = sysdct['yref']
+    zref = sysdct['zref']
+    rref = Vector(xref, yref, zref)
+
+    psys = PanelSystem(name, bref, cref, sref, rref)
+    psys.set_geom(srfcs)
+
+    if 'cases' in sysdct and sysdct:
+        psys.mesh()
+        panelresults_from_dict(psys, sysdct['cases'])
+
+    return psys
+
+def panelresults_from_dict(psys: PanelSystem, cases: dict):
+
+    for i in range(len(cases)):
+        resdata = cases[i]
+        # if 'trim' in resdata:
+        #     latticetrim_from_json(lsys, resdata)
+        # else:
+        panelresult_from_dict(psys, resdata)

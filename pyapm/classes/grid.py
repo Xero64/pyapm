@@ -1,5 +1,5 @@
-from pygeom.geom3d import Vector
 from typing import List
+from pygeom.geom3d import Vector
 
 class Grid(Vector):
     gid: int = None

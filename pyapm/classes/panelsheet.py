@@ -1,19 +1,21 @@
+from math import degrees, atan2
+from typing import List, Dict
+from numpy.matlib import matrix
 from .panelsection import PanelSection
 from .panelstrip import PanelStrip
 from .panelprofile import PanelProfile
 from .panelfunction import PanelFunction
 from .grid import Grid
 from .panel import Panel
-from typing import List, Dict
-from numpy.matlib import matrix
 from ..tools import equal_spacing, semi_cosine_spacing, full_cosine_spacing
-from math import degrees, atan2
 
 class PanelSheet(object):
     scta: PanelSection = None
     sctb: PanelSection = None
     fncs: Dict[str, PanelFunction] = None
     _noload: bool = None
+    _nomesh: bool = None
+    _nohsv: bool = None
     _bnum: int = None
     _bspc: str = None
     _bdst: List[float] = None
@@ -43,6 +45,22 @@ class PanelSheet(object):
             else:
                 self._noload = self.scta.noload
         return self._noload
+    @property
+    def nomesh(self) -> bool:
+        if self._nomesh is None:
+            if self.mirror:
+                self._nomesh = self.sctb.nomesh
+            else:
+                self._nomesh = self.scta.nomesh
+        return self._nomesh
+    @property
+    def nohsv(self) -> bool:
+        if self._nohsv is None:
+            if self.mirror:
+                self._nohsv = self.sctb.nohsv
+            else:
+                self._nohsv = self.scta.nohsv
+        return self._nohsv
     @property
     def bnum(self) -> int:
         if self._bnum is None:
@@ -109,6 +127,7 @@ class PanelSheet(object):
                 prf.sctb = self.sctb
                 prf.bval = bd
                 prf.bpos = bpos
+                prf.nohsv = self.nohsv
                 self._prfs.append(prf)
         return self._prfs
     @property
@@ -142,17 +161,19 @@ class PanelSheet(object):
         return self._area
     def mesh_grids(self, gid: int):
         self.grds = []
-        for prf in self.prfs:
-            gid = prf.mesh_grids(gid)
-            self.grds += prf.grds
+        if not self.nomesh:
+            for prf in self.prfs:
+                gid = prf.mesh_grids(gid)
+                self.grds += prf.grds
         return gid
     def mesh_panels(self, pid: int):
         self.pnls = []
-        for strp in self.strps:
-            pid = strp.mesh_panels(pid)
-            for pnl in strp.pnls:
-                pnl.sht = self
-                self.pnls.append(pnl)
+        if not self.nomesh:
+            for strp in self.strps:
+                pid = strp.mesh_panels(pid)
+                for pnl in strp.pnls:
+                    pnl.sht = self
+                    self.pnls.append(pnl)
         return pid
     def __repr__(self):
         return '<PanelSheet>'

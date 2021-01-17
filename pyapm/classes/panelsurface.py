@@ -1,5 +1,6 @@
-from pygeom.geom3d import Vector
+from math import sqrt
 from typing import List, Dict
+from pygeom.geom3d import Vector
 from .grid import Grid
 from .panel import Panel
 from .panelsection import PanelSection, panelsection_from_json
@@ -7,7 +8,6 @@ from .panelfunction import PanelFunction, panelfunction_from_json
 from .panelsheet import PanelSheet
 from .panelstrip import PanelStrip
 from .panelprofile import PanelProfile
-from math import sqrt
 
 class PanelSurface(object):
     name: str = None

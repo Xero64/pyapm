@@ -1,7 +1,7 @@
+from math import sqrt
+from typing import List
 from .panel import Panel
 from .panelprofile import PanelProfile
-from typing import List
-from math import sqrt
 
 class PanelStrip(object):
     prfa: PanelProfile = None

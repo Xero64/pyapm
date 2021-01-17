@@ -1,6 +1,6 @@
-from pyvlm.tools import equal_spacing
 from pygeom.geom1d import LinearSpline, CubicSpline
-       
+from ..tools import equal_spacing
+
 class PanelFunction(object):
     var = None
     interp = None

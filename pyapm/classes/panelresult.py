@@ -1,10 +1,11 @@
+from math import cos, sin, radians
 from pygeom.geom3d import Vector, Coordinate
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from pygeom.matrix3d import elementwise_dot_product, elementwise_multiply, elementwise_cross_product
 from numpy.matlib import matrix, ones, zeros
-from math import cos, sin, radians
 from numpy.matlib import sqrt, square, multiply, absolute
 from matplotlib.pyplot import figure
+from py2md.classes import MDTable, MDReport, MDHeading
 
 tol = 1e-12
 
@@ -19,6 +20,7 @@ class PanelResult(object):
     pbo2V: float = None
     qco2V: float = None
     rbo2V: float = None
+    rcg: Vector = None
     _acs: Coordinate = None
     _wcs: Coordinate = None
     _vfs: Vector = None
@@ -89,7 +91,7 @@ class PanelResult(object):
         return self._acs
     @property
     def wcs(self):
-        if self._wcs is None:    
+        if self._wcs is None:
             pnt = self.sys.rref
             dirx = -1.0*self.acs.dirx
             diry = self.acs.diry
@@ -166,7 +168,7 @@ class PanelResult(object):
         if self._ffres is None:
             if self.sys.srfcs is not None:
                 self._ffres = FarFieldResult(self)
-        return self._ffres            
+        return self._ffres
     @property
     def stres(self):
         if self._stres is None:
@@ -463,8 +465,6 @@ class PanelResult(object):
     @property
     def surface_loads(self):
         if self.sys.srfcs is not None:
-            from py2md.classes import MDTable, MDReport, MDHeading
-            from math import atan
             report = MDReport()
             heading = MDHeading('Surface Loads', 2)
             report.add_object(heading)
@@ -523,7 +523,6 @@ class PanelResult(object):
             report.add_object(table2)
             return report
     def __str__(self):
-        from py2md.classes import MDTable
         from . import cfrm, dfrm, efrm
         outstr = '# Panel Result '+self.name+' for '+self.sys.name+'\n'
         table = MDTable()
@@ -577,19 +576,19 @@ class PanelResult(object):
             #     lod = self.nfres.CL/(self.pdres.CDo+self.nfres.CDi)
             #     table.add_column('L/D', '.5g', data=[lod])
             outstr += table._repr_markdown_()
-        # if self.phi is not None:
-        #     table = MDTable()
-        #     table.add_column('CDi_ff', dfrm, data=[self.trres.CDi])
-        #     table.add_column('CY_ff', cfrm, data=[self.trres.CY])
-        #     table.add_column('CL_ff', cfrm, data=[self.trres.CL])
-        #     # table.add_column('Cl_ff', cfrm, data=[self.trres.Cl])
-        #     # table.add_column('Cm_ff', cfrm, data=[self.trres.Cm])
-        #     # table.add_column('Cn_ff', cfrm, data=[self.trres.Cn])
-        #     table.add_column('e', efrm, data=[self.trres.e])
-        #     if self.sys.cdo != 0.0:
-        #         lod_ff = self.trres.CL/(self.pdres.CDo+self.trres.CDi)
-        #         table.add_column('L/D_ff', '.5g', data=[lod_ff])
-        #     outstr += table._repr_markdown_()
+        if self.ffres is not None:
+            table = MDTable()
+            table.add_column('CDi_ff', dfrm, data=[self.ffres.CDi])
+            table.add_column('CY_ff', cfrm, data=[self.ffres.CY])
+            table.add_column('CL_ff', cfrm, data=[self.ffres.CL])
+            # table.add_column('Cl_ff', cfrm, data=[self.trres.Cl])
+            # table.add_column('Cm_ff', cfrm, data=[self.trres.Cm])
+            # table.add_column('Cn_ff', cfrm, data=[self.trres.Cn])
+            table.add_column('e', efrm, data=[self.ffres.e])
+            # if self.sys.cdo != 0.0:
+            #     lod_ff = self.ffres.CL/(self.pdres.CDo+self.ffres.CDi)
+            #     table.add_column('L/D_ff', '.5g', data=[lod_ff])
+            outstr += table._repr_markdown_()
         return outstr
     def __repr__(self):
         return f'<PanelResult: {self.name}>'
@@ -869,7 +868,6 @@ class FarFieldResult(object):
     @property
     def fffrc(self):
         if self._fffrc is None:
-            from pygeom.matrix3d import MatrixVector
             x = self.res.rho*multiply(self.ffmu, self.res.sys.adh*self.ffmu)
             y = self.res.rho*self.res.speed*multiply(self.ffmu, self.res.sys.ash)
             z = self.res.rho*self.res.speed*multiply(self.ffmu, self.res.sys.alh)
@@ -1400,3 +1398,49 @@ def fix_zero(value: float, tol: float=1e-8):
     if abs(value) < tol:
         value = 0.0
     return value
+
+def panelresult_from_dict(psys: PanelSystem, resdata: dict):
+    name = resdata['name']
+    if 'inherit' in resdata:
+        inherit = resdata['inherit']
+        if inherit in psys.results:
+            pres = psys.results[inherit].to_result(name=name)
+    else:
+        pres = PanelResult(name, psys)
+    for key in resdata:
+        if key == 'name':
+            continue
+        elif key == 'inherit':
+            continue
+        elif key == 'density':
+            rho = resdata['density']
+            pres.set_density(rho=rho)
+        elif key == 'mach':
+            mach = resdata['mach']
+            pres.set_state(mach=mach)
+        elif key == 'speed':
+            speed = resdata['speed']
+            pres.set_state(speed=speed)
+        elif key ==  'alpha':
+            alpha = resdata['alpha']
+            pres.set_state(alpha=alpha)
+        elif key ==  'beta':
+            beta = resdata['beta']
+            pres.set_state(beta=beta)
+        elif key ==  'pbo2V':
+            pbo2V = resdata['pbo2V']
+            pres.set_state(pbo2V=pbo2V)
+        elif key ==  'qco2V':
+            qco2V = resdata['qco2V']
+            pres.set_state(qco2V=qco2V)
+        elif key ==  'rbo2V':
+            rbo2V = resdata['rbo2V']
+            pres.set_state(rbo2V=rbo2V)
+        elif key in pres.ctrls:
+            pres.ctrls[key] = resdata[key]
+        elif key == 'rcg':
+            rcgdata = resdata[key]
+            rcg = Point(rcgdata['x'], rcgdata['y'], rcgdata['z'])
+            pres.set_cg(rcg)
+    psys.results[name] = pres
+    return pres

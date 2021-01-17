@@ -1,7 +1,7 @@
 from math import pi
+from numpy.matlib import matrix, ones, zeros, absolute, divide, multiply, arctan, square
 from pygeom.geom3d import Vector, Coordinate
 from pygeom.matrix3d import MatrixVector, elementwise_divide
-from numpy.matlib import matrix, ones, zeros, absolute, divide, multiply, arctan, square
 from .boundedge import phi_doublet_matrix
 
 tol = 1e-12

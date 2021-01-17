@@ -1,6 +1,6 @@
 #%% Import Dependencies
 from pyapm.classes import PanelResult, panelsystem_from_json
-from pyapm.output.msh import panelresult_to_msh
+from pyapm.outputs.msh import panelresult_to_msh
 
 #%% Create Panel Mesh
 jsonfilepath = '../files/Test_Wing_1.json'

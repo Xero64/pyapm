@@ -1,7 +1,7 @@
 #%% Import Dependencies
 from IPython.display import display_markdown
 from pyapm.classes import PanelResult, panelsystem_from_json
-from pyapm.output.msh import panelresult_to_msh
+from pyapm.outputs.msh import panelresult_to_msh
 from pyvlm.tools import Bell
 
 #%% Create Panel Mesh

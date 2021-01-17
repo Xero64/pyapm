@@ -1,7 +1,7 @@
-from pygeom.geom3d import Vector, Coordinate
-from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from math import pi
 from numpy.matlib import matrix, ones, absolute, divide, multiply, arctan, log, logical_and
+from pygeom.geom3d import Vector, Coordinate
+from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from pygeom.matrix3d import elementwise_dot_product, elementwise_cross_product
 from pygeom.matrix3d import elementwise_multiply
 
@@ -196,7 +196,7 @@ def phi_source_matrix(am, bm, dab, rl, phid):
     Pab[denrab == 0.0] = 1.0
     Qab = log(Pab)
     tmps = multiply(rl.y, Qab)
-    phis = -multiply(rl.z, phid) - tmps 
+    phis = -multiply(rl.z, phid) - tmps
     return phis, Qab
 
 def vel_doublet_matrix(av, am, bv, bm):

@@ -1,8 +1,8 @@
-from .grid import Grid
-from pygeom.geom3d import Vector, Coordinate
-from typing import List
 from math import radians, sin, cos
+from typing import List
+from pygeom.geom3d import Vector, Coordinate
 from pygeom.matrix3d import vector_to_global
+from .grid import Grid
 
 class PanelProfile(object):
     point: Vector = None
@@ -15,6 +15,7 @@ class PanelProfile(object):
     scta: object = None
     sctb: object = None
     grds: List[Grid] = None
+    nohsv: bool = None
     def __init__(self, point: Vector, chord: float, twist: float):
         self.point = point
         self.chord = chord
@@ -58,7 +59,8 @@ class PanelProfile(object):
         for i in range(num):
             te = False
             if i == 0 or i == num-1:
-                te = True
+                if not self.nohsv:
+                    te = True
             self.grds.append(Grid(gid, shp[0, i].x, shp[0, i].y, shp[0, i].z, te))
             gid += 1
         return gid

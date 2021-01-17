@@ -1,6 +1,6 @@
+from numpy.matlib import zeros, ones
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from pygeom.geom3d import Vector
-from numpy.matlib import zeros, ones
 from .boundedge import BoundEdge
 from .trailingedge import TrailingEdge
 

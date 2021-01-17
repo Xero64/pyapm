@@ -1,12 +1,12 @@
+from math import cos, radians
+from typing import List
+from numpy.matlib import absolute
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector
 from .panel import Panel
 from .panelprofile import PanelProfile
 from ..tools.airfoil import airfoil_from_dat
 from ..tools.naca4 import NACA4
-from typing import List
-from numpy.matlib import absolute
-from math import cos, radians
 
 tol = 1e-12
 
@@ -21,6 +21,8 @@ class PanelSection(PanelProfile):
     shta: object = None
     shtb: object = None
     pnls: List[Panel] = None
+    noload: bool = None
+    nomesh: bool = None
     _thkcor: float = None
     def __init__(self, point: Vector, chord: float, twist: float, airfoil: object):
         super(PanelSection, self).__init__(point, chord, twist)
@@ -32,6 +34,8 @@ class PanelSection(PanelProfile):
         self.bnum = 1
         self.bspc = 'equal'
         self.noload = False
+        self.nomesh = False
+        self.nohsv = False
         self.xoc = 0.0
         self.zoc = 0.0
     def mirror_section_in_y(self, ymir: float=0.0):
@@ -94,11 +98,11 @@ class PanelSection(PanelProfile):
         profile = profile-offset
         return profile
     def mesh_panels(self, pid: int, reverse: bool):
-        self.pnls = []
-        if self.shta is not None:
-            noload = self.shta.noload
-        if self.shtb is not None:
+        if self.shta is None:
             noload = self.shtb.noload
+        else:
+            noload = self.shta.noload
+        self.pnls = []
         numgrd = len(self.grds)
         n = numgrd-1
         numpnl = int(n/2)
@@ -157,4 +161,8 @@ def panelsection_from_json(sectdata: dict) -> PanelSection:
         sect.zoc = sectdata['zoc']
     if 'noload' in sectdata:
         sect.noload = sectdata['noload']
+    if 'nomesh' in sectdata:
+        sect.nomesh = sectdata['nomesh']
+    if 'nohsv' in sectdata:
+        sect.nohsv = sectdata['nohsv']
     return sect

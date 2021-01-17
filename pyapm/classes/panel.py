@@ -1,10 +1,10 @@
+from math import sqrt, acos, pi
+from typing import List
+from numpy.matlib import matrix
+from pygeom.geom3d import Vector, Coordinate, ihat, khat
 from .poly import Poly
 from .grid import Grid
 from .horseshoe import HorseShoe
-from typing import List
-from pygeom.geom3d import Vector, Coordinate, ihat, khat
-from math import sqrt, acos, pi
-from numpy.matlib import matrix
 
 oor2 = 1/sqrt(2.0)
 angtol = pi/4

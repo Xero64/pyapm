@@ -27,9 +27,14 @@ share/python-wheels/
 *.egg
 MANIFEST
 
-# Outputs
-outputs/*.msh
-outputs/*.opt
+# Folders
+excel/
+notes/
+symbolic/
+notebooks/
+research/
+results/*.msh
+results/*.opt
 
 # Symbolic
 symbolic
