@@ -1,8 +1,11 @@
+from math import pi
 from numpy.matlib import zeros, ones
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from pygeom.geom3d import Vector
 from .boundedge import BoundEdge
 from .trailingedge import TrailingEdge
+
+twoPi = 2*pi
 
 class HorseShoe(object):
     grda: Vector = None
@@ -108,3 +111,15 @@ class HorseShoe(object):
         veldb = self.tvb.trefftz_plane_velocities(pnts)
         veld = velda + veldb
         return veld
+    # def trefftz_velocity(self, pnt: Vector):
+    #     r = Vector(0.0, pnt.y, pnt.z)
+    #     ra = Vector(0.0, self.grda.y, self.grda.z)
+    #     rb = Vector(0.0, self.grdb.y, self.grdb.z)
+    #     a = r-ra
+    #     b = r-rb
+    #     axx = Vector(0.0, a.z, -a.y)
+    #     bxx = Vector(0.0, b.z, -b.y)
+    #     am2 = a*a
+    #     bm2 = b*b
+    #     vel = (axx/am2-bxx/bm2)/twoPi
+    #     return vel

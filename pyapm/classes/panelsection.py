@@ -24,6 +24,7 @@ class PanelSection(PanelProfile):
     noload: bool = None
     nomesh: bool = None
     _thkcor: float = None
+    _scttyp: str = None
     def __init__(self, point: Vector, chord: float, twist: float, airfoil: object):
         super(PanelSection, self).__init__(point, chord, twist)
         self.point = point
@@ -84,6 +85,25 @@ class PanelSection(PanelProfile):
                 halfdelta = (self.shtb.tilt - self.shta.tilt)/2
                 self._thkcor = 1.0/cos(radians(halfdelta))
         return self._thkcor
+    @property
+    def scttyp(self):
+        if self._scttyp is None:
+            if self.shta is not None and self.shtb is not None:
+                if self.shta.nomesh and self.shtb.nomesh:
+                    self._scttyp = 'notip'
+            if self.shta is None:
+                if not self.shtb.nomesh:
+                    self._scttyp = 'begtip'
+            elif self.shta.nomesh:
+                if not self.shtb.nomesh:
+                    self._scttyp = 'begtip'
+            if self.shtb is None:
+                if not self.shta.nomesh:
+                    self._scttyp = 'endtip'
+            elif self.shtb.nomesh:
+                if not self.shta.nomesh:
+                    self._scttyp = 'endtip'
+        return self._scttyp
     def get_profile(self):
         num = self.cnum*2+1
         profile = zero_matrix_vector((1, num), dtype=float)
@@ -97,35 +117,45 @@ class PanelSection(PanelProfile):
         offset = Vector(self.xoc, 0.0, self.zoc)
         profile = profile-offset
         return profile
-    def mesh_panels(self, pid: int, reverse: bool):
-        if self.shta is None:
-            noload = self.shtb.noload
-        else:
-            noload = self.shta.noload
+    def mesh_panels(self, pid: int):
+        mesh = False
+        reverse = False
+        if self.scttyp == 'begtip':
+            mesh = True
+            reverse = True
+        elif self.scttyp == 'endtip':
+            mesh = True
         self.pnls = []
-        numgrd = len(self.grds)
-        n = numgrd-1
-        numpnl = int(n/2)
-        for i in range(numpnl):
-            grds = []
-            grds.append(self.grds[i])
-            grds.append(self.grds[i+1])
-            grds.append(self.grds[n-i-1])
-            grds.append(self.grds[n-i])
-            dist = (grds[0]-grds[-1]).return_magnitude()
-            if dist < tol:
-                grds = grds[:-1]
-            if reverse:
-                grds.reverse()
-            gids = []
-            for grd in grds:
-                if grd.gid not in gids:
-                    gids.append(grd.gid)
-            pnl = Panel(pid, gids)
-            pnl.noload = noload
-            pnl.sct = self
-            self.pnls.append(pnl)
-            pid += 1
+        if mesh:
+            if self.shta is None:
+                noload = self.shtb.noload
+            elif self.shtb is None:
+                noload = self.shta.noload
+            else:
+                noload = False
+            numgrd = len(self.grds)
+            n = numgrd-1
+            numpnl = int(n/2)
+            for i in range(numpnl):
+                grds = []
+                grds.append(self.grds[i])
+                grds.append(self.grds[i+1])
+                grds.append(self.grds[n-i-1])
+                grds.append(self.grds[n-i])
+                dist = (grds[0]-grds[-1]).return_magnitude()
+                if dist < tol:
+                    grds = grds[:-1]
+                if reverse:
+                    grds.reverse()
+                gids = []
+                for grd in grds:
+                    if grd.gid not in gids:
+                        gids.append(grd.gid)
+                pnl = Panel(pid, gids)
+                pnl.noload = noload
+                pnl.sct = self
+                self.pnls.append(pnl)
+                pid += 1
         return pid
     def __repr__(self):
         return f'<pyapm.PanelSection at {self.point:}>'

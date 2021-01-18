@@ -314,6 +314,24 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
+    # def assemble_horseshoes_wash_v2(self, time: bool=True):
+    #     if time:
+    #         start = perf_counter()
+    #     shp = (self.numhsv, self.numhsv)
+    #     self._awh = zeros(shp, dtype=float)
+    #     for i, hsvi in enumerate(self.hsvs):
+    #         for j, hsvj in enumerate(self.hsvs):
+    #             avh = hsvj.trefftz_velocity(hsvi.pnto)
+    #             # self._awh[i, j] = avh*hsvi.nrm
+    #             if hsvi.nrm.z < 0:
+    #                 nrm = Vector(0.0, 0.0, -1.0)
+    #             else:
+    #                 nrm = Vector(0.0, 0.0, 1.0)
+    #             self._awh[i, j] = avh*nrm
+    #     if time:
+    #         finish = perf_counter()
+    #         elapsed = finish - start
+    #         print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
     @property
     def awh(self):
         if self._awh is None:

@@ -137,22 +137,18 @@ class PanelSurface(object):
                 pnl.srfc = self
                 self.pnls.append(pnl)
         if self.close:
-            pid = self.mesh_tip_panels(pid)
-            scta = self.scts[0]
-            for pnl in scta.pnls:
-                pnl.srfc = self
-                self.pnls.append(pnl)
-            sctb = self.scts[-1]
-            for pnl in sctb.pnls:
-                pnl.srfc = self
-                self.pnls.append(pnl)
+            for sct in self.scts:
+                pid = sct.mesh_panels(pid)
+                for pnl in sct.pnls:
+                    pnl.srfc = self
+                    self.pnls.append(pnl)
         return pid
-    def mesh_tip_panels(self, pid: int):
-        scta = self.scts[0]
-        pid = scta.mesh_panels(pid, reverse=True)
-        sctb = self.scts[-1]
-        pid = sctb.mesh_panels(pid, reverse=False)
-        return pid
+    # def mesh_tip_panels(self, pid: int):
+    #     scta = self.scts[0]
+    #     pid = scta.mesh_panels(pid, reverse=True)
+    #     sctb = self.scts[-1]
+    #     pid = sctb.mesh_panels(pid, reverse=False)
+    #     return pid
     @property
     def pinds(self):
         pinds = []
