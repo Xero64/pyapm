@@ -1470,8 +1470,8 @@ def panelresult_from_dict(psys: object, resdata: dict):
         elif key ==  'rbo2V':
             rbo2V = resdata['rbo2V']
             pres.set_state(rbo2V=rbo2V)
-        elif key in pres.ctrls:
-            pres.ctrls[key] = resdata[key]
+        # elif key in pres.ctrls:
+        #     pres.ctrls[key] = resdata[key]
         elif key == 'rcg':
             rcgdata = resdata[key]
             rcg = Point(rcgdata['x'], rcgdata['y'], rcgdata['z'])
