@@ -202,27 +202,39 @@ class PanelSystem(object):
             self._bnm[mach] = -self.nrms(mach)-self.ans(mach)*self.unsig(mach)
         return self._bnm[mach]
     def apd(self, mach: float=0.0):
-        if self._apd is None or mach not in self._apd:
+        if self._apd is None:
+            self._apd = {}
+        if mach not in self._apd:
             self.assemble_panels(False, mach=mach)
         return self._apd[mach]
     def avd(self, mach: float=0.0):
-        if self._avd is None or mach not in self._avd:
+        if self._avd is None:
+            self._avd = {}
+        if mach not in self._avd:
             self.assemble_panels_full(False, mach=mach)
         return self._avd[mach]
     def aps(self, mach: float=0.0):
-        if self._aps is None or mach not in self._aps:
+        if self._aps is None:
+            self._aps = {}
+        if mach not in self._aps:
             self.assemble_panels(False, mach=mach)
         return self._aps[mach]
     def avs(self, mach: float=0.0):
-        if self._avs is None or mach not in self._avs:
+        if self._avs is None:
+            self._avs = {}
+        if mach not in self._avs:
             self.assemble_panels_full(False, mach=mach)
         return self._avs[mach]
     def aph(self, mach: float=0.0):
         if self._aph is None:
+            self._aph = {}
+        if mach not in self._aph:
             self.assemble_horseshoes(False, mach=mach)
         return self._aph[mach]
     def avh(self, mach: float=0.0):
         if self._avh is None:
+            self._avh = {}
+        if mach not in self._avh:
             self.assemble_horseshoes_full(False, mach=mach)
         return self._avh[mach]
     def apm(self, mach: float=0.0):
