@@ -27,8 +27,7 @@ class PanelResult(object):
     _vfs: Vector = None
     _ofs: Vector = None
     _qfs: float = None
-    _nrms: MatrixVector = None
-    _rrel: MatrixVector = None
+    _arm: MatrixVector = None
     _unsig: matrix = None
     _unmu: matrix = None
     _unphi: matrix = None
@@ -39,6 +38,7 @@ class PanelResult(object):
     _strpres = None
     _ffres = None
     _stres = None
+    _vfsg: MatrixVector = None
     _vfsl: MatrixVector = None
     def __init__(self, name: str, sys: object):
         self.name = name
@@ -126,33 +126,30 @@ class PanelResult(object):
             self._ofs = self.calc_ofs(self.pbo2V, self.qco2V, self.rbo2V)
         return self._ofs
     @property
+    def arm(self):
+        if self._arm is None:
+            if self.rcg is None:
+                self._arm = self.sys.rrel
+            else:
+                self._arm = self.sys.pnts-self.rcg
+        return self._arm
+    @property
+    def vfsg(self):
+        if self._vfsg is None:
+            self._vfsg = self.vfs-self.ofs**self.sys.rrel
+        return self._vfsg
+    @property
     def vfsl(self):
         if self._vfsl is None:
             self._vfsl = zero_matrix_vector((self.sys.numpnl, 1), dtype=float)
             for pnl in self.sys.pnls.values():
-                self._vfsl[pnl.ind, 0] = pnl.crd.vector_to_local(self.vfs)
+                self._vfsl[pnl.ind, 0] = pnl.crd.vector_to_local(self.vfsg[pnl.ind, 0])
         return self._vfsl
     @property
     def qfs(self):
         if self._qfs is None:
             self._qfs = self.rho*self.speed**2/2
         return self._qfs
-    @property
-    def nrms(self):
-        if self._nrms is None:
-            self._nrms = self.sys.nrms(self.mach)
-        return self._nrms
-    @property
-    def rrel(self):
-        if self._rrel is None:
-            if self.rcg is None:
-                self._rrel = self.sys.rrel(self.mach)
-            else:
-                betm = betm_from_mach(self.mach)
-                rrel = self.sys.pnts-self.rcg
-                rrel.x = rrel.x/betm
-                self._rrel = rrel
-        return self._rrel
     @property
     def unsig(self):
         if self._unsig is None:
@@ -705,12 +702,12 @@ class NearFieldResult(object):
     @property
     def nffrc(self):
         if self._nffrc is None:
-            self._nffrc = -elementwise_multiply(self.res.nrms, multiply(self.nfprs, self.res.sys.pnla))
+            self._nffrc = -elementwise_multiply(self.res.sys.nrms, multiply(self.nfprs, self.res.sys.pnla))
         return self._nffrc
     @property
     def nfmom(self):
         if self._nfmom is None:
-            self._nfmom = elementwise_cross_product(self.res.rrel, self.nffrc)
+            self._nfmom = elementwise_cross_product(self.res.arm, self.nffrc)
         return self._nfmom
     @property
     def nffrctot(self):

@@ -32,8 +32,8 @@ class PanelSystem(object):
     _numhsv: int = None
     _pnts: MatrixVector = None
     _pnla: matrix = None
-    _nrms: Dict[float, MatrixVector] = None
-    _rrel: Dict[float, MatrixVector] = None
+    _nrms: MatrixVector = None
+    _rrel: MatrixVector = None
     _apd: Dict[float, matrix] = None
     _aps: Dict[float, matrix] = None
     _aph: Dict[float, matrix] = None
@@ -141,29 +141,18 @@ class PanelSystem(object):
             for pnl in self.pnls.values():
                 self._pnts[pnl.ind, 0] = pnl.pnto
         return self._pnts
-    def rrel(self, mach: float=0.0):
+    @property
+    def rrel(self):
         if self._rrel is None:
-            self._rrel = {}
-        if mach not in self._rrel:
-            betm = betm_from_mach(mach)
-            rrel = self.pnts-self.rref
-            rrel.x = rrel.x/betm
-            self._rrel[mach] = rrel
-        return self._rrel[mach]
-    def nrms(self, mach: float=0.0):
+            self._rrel = self.pnts-self.rref
+        return self._rrel
+    @property
+    def nrms(self):
         if self._nrms is None:
-            self._nrms = {}
-        if mach not in self._nrms:
-            nrms = zero_matrix_vector((self.numpnl, 1), dtype=float)
-            betm = betm_from_mach(mach)
-            if betm == 1.0:
-                for pnl in self.pnls.values():
-                    nrms[pnl.ind, 0] = pnl.nrm
-            else:
-                for pnl in self.pnls.values():
-                    nrms[pnl.ind, 0] = Vector(pnl.nrm.x/betm, pnl.nrm.y, pnl.nrm.z)
-            self._nrms[mach] = nrms
-        return self._nrms[mach]
+            self._nrms = zero_matrix_vector((self.numpnl, 1), dtype=float)
+            for pnl in self.pnls.values():
+                self._nrms[pnl.ind, 0] = pnl.nrm
+        return self._nrms
     @property
     def pnla(self):
         if self._pnla is None:
@@ -199,7 +188,7 @@ class PanelSystem(object):
         if self._bnm is None:
             self._bnm = {}
         if mach not in self._bnm:
-            self._bnm[mach] = -self.nrms(mach)-self.ans(mach)*self.unsig(mach)
+            self._bnm[mach] = -self.nrms-self.ans(mach)*self.unsig(mach)
         return self._bnm[mach]
     def apd(self, mach: float=0.0):
         if self._apd is None:
@@ -263,15 +252,15 @@ class PanelSystem(object):
         if self._ans is None:
             self._ans = {}
         if mach not in self._ans:
-            nrms = self.nrms(mach).repeat(self.numpnl, axis=1)
+            nrms = self.nrms.repeat(self.numpnl, axis=1)
             self._ans[mach] = elementwise_dot_product(nrms, self.avs(mach))
         return self._ans[mach]
     def anm(self, mach: float=0.0):
         if self._anm is None:
             self._anm = {}
         if mach not in self._anm:
-            nrms = self.nrms(mach).repeat(self.numpnl, axis=1)
-            self._anm[mach] = elementwise_dot_product(nrms, self.avm)
+            nrms = self.nrms.repeat(self.numpnl, axis=1)
+            self._anm[mach] = elementwise_dot_product(nrms, self.avm(mach))
         return self._anm[mach]
     @property
     def hsvpnts(self):
@@ -385,8 +374,8 @@ class PanelSystem(object):
             self._unsig = {}
         if mach not in self._unsig:
             unsig = zero_matrix_vector((self.numpnl, 2), dtype=float)
-            unsig[:, 0] = -self.nrms(mach)
-            unsig[:, 1] = elementwise_cross_product(self.rrel(mach), self.nrms(mach))
+            unsig[:, 0] = -self.nrms
+            unsig[:, 1] = elementwise_cross_product(self.rrel, self.nrms)
             self._unsig[mach] = unsig
         return self._unsig[mach]
     def unmu(self, mach: float=0.0):
