@@ -742,6 +742,9 @@ def panelsystem_from_mesh(sysdct: Dict[str, any]):
     if 'cases' in sysdct and sysdct:
         panelresults_from_dict(psys, sysdct['cases'])
 
+    if 'source' in sysdct:
+        psys.source = sysdct['source']
+
     return psys
 
 def panelsystem_from_geom(sysdct: Dict[str, any]):
@@ -779,6 +782,9 @@ def panelsystem_from_geom(sysdct: Dict[str, any]):
 
     if 'cases' in sysdct and sysdct:
         panelresults_from_dict(psys, sysdct['cases'])
+
+    if 'source' in sysdct:
+        psys.source = sysdct['source']
 
     return psys
 

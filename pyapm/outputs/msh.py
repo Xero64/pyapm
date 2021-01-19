@@ -1,4 +1,4 @@
-from os.path import dirname, join
+# from os.path import dirname, join
 from ..classes.panelresult import PanelResult
 from ..classes.panelsystem import PanelSystem
 
@@ -506,11 +506,12 @@ def panelsystem_to_msh(psys: PanelSystem, mshfilepath: str):
 
 def panelresults_to_msh(psys: PanelSystem, outputs: dict):
 
-    path = dirname(psys.source)
+    # path = dirname(psys.source)
 
     for case in psys.results:
         pres = psys.results[case]
         for output in outputs[case]:
             output = output.lower()
             if output[-4:] == '.msh':
-                panelresult_to_msh(pres, join(path, output))
+                # panelresult_to_msh(pres, join(path, output))
+                panelresult_to_msh(pres, output)
