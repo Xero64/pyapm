@@ -33,8 +33,7 @@ grds = [
 ]
 
 #%% Create Poly
-poly = Poly()
-poly.set_grids(grds)
+poly = Poly(grds)
 
 #%% Create Dirichlet Poly
 dpnl = DirichletPoly(grds)

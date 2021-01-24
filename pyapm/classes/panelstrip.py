@@ -32,8 +32,8 @@ class PanelStrip(object):
             grd2 = self.prfa.grds[i+1]
             grd3 = self.prfb.grds[i+1]
             grd4 = self.prfb.grds[i]
-            gids = [grd1.gid, grd2.gid, grd3.gid, grd4.gid]
-            pnl = Panel(pid, gids)
+            grds = [grd1, grd2, grd3, grd4]
+            pnl = Panel(pid, grds)
             pnl.noload = self.noload
             self.pnls.append(pnl)
             pid += 1

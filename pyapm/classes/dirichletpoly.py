@@ -75,7 +75,7 @@ class DirichletPoly(object):
     @property
     def nrm(self):
         if self._nrm is None:
-            self._nrm = self._sumaxb.to_unit()
+            self._nrm = self.sumaxb.to_unit()
         return self._nrm
     def relative_mach(self, pnts: MatrixVector, pnt: Vector,
                       betx: float=1.0, bety: float=1.0, betz: float=1.0):

@@ -81,8 +81,8 @@ class PanelSystem(object):
         for ind, grd in enumerate(self.grds.values()):
             grd.set_index(ind)
         for ind, pnl in enumerate(self.pnls.values()):
-            grds = [self.grds[gid] for gid in pnl.gids]
-            pnl.set_grids(grds)
+            # grds = [self.grds[gid] for gid in pnl.gids]
+            # pnl.set_grids(grds)
             pnl.set_index(ind)
     def reset(self):
         for attr in self.__dict__:
@@ -399,7 +399,7 @@ class PanelSystem(object):
         betm = betm_from_mach(mach)
         for pnl in self.pnls.values():
             ind = pnl.ind
-            apd[:, ind], aps[:, ind] = pnl.velocity_potentials(self.pnts, betm=betm)
+            apd[:, ind], aps[:, ind] = pnl.velocity_potentials(self.pnts, betx=betm)
         if self._apd is None:
             self._apd = {}
         self._apd[mach] = apd
@@ -421,7 +421,7 @@ class PanelSystem(object):
         betm = betm_from_mach(mach)
         for pnl in self.pnls.values():
             ind = pnl.ind
-            apd[:, ind], aps[:, ind], avd[:, ind], avs[:, ind] = pnl.influence_coefficients(self.pnts, betm=betm)
+            apd[:, ind], aps[:, ind], avd[:, ind], avs[:, ind] = pnl.influence_coefficients(self.pnts, betx=betm)
         if self._apd is None:
             self._apd = {}
         self._apd[mach] = apd
@@ -445,7 +445,7 @@ class PanelSystem(object):
         aph = zeros(shp, dtype=float)
         betm = betm_from_mach(mach)
         for i, hsv in enumerate(self.hsvs):
-            aph[:, i] = hsv.doublet_velocity_potentials(self.pnts, betm=betm)
+            aph[:, i] = hsv.doublet_velocity_potentials(self.pnts, betx=betm)
         if self._aph is None:
             self._aph = {}
         self._aph[mach] = aph
@@ -461,7 +461,7 @@ class PanelSystem(object):
         avh = zero_matrix_vector(shp, dtype=float)
         betm = betm_from_mach(mach)
         for i, hsv in enumerate(self.hsvs):
-            aph[:, i], avh[:, i] = hsv.doublet_influence_coefficients(self.pnts, betm=betm)
+            aph[:, i], avh[:, i] = hsv.doublet_influence_coefficients(self.pnts, betx=betm)
         if self._aph is None:
             self._aph = {}
         self._aph[mach] = aph
@@ -729,12 +729,14 @@ def panelsystem_from_mesh(sysdct: Dict[str, any]):
             grpid = pd['grpid']
             grp = grps[grpid]
             if not grp['exclude']:
-                pnls[pid] = Panel(pid, pd['gids'])
+                pnlgrds = [grds[gidi] for gidi in pd['gids']]
+                pnls[pid] = Panel(pid, pnlgrds)
                 if grp['noload']:
                     pnls[pid].noload = True
                 pnls[pid].grp = grpid
         else:
-            pnls[pid] = Panel(pid, pd['gids'])
+            pnlgrds = [grds[gidi] for gidi in pd['gids']]
+            pnls[pid] = Panel(pid, pnlgrds)
 
     psys = PanelSystem(name, bref, cref, sref, rref)
     psys.set_mesh(grds, pnls)

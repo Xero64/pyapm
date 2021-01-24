@@ -43,7 +43,7 @@ start = perf_counter()
 phid, veld = hsd.doublet_influence_coefficients(pnts)
 finished = perf_counter()
 elapsed = finished-start
-print(f'Horseshoe Time elapsed is {elapsed:.2f} seconds.')
+print(f'Horseshoe Doublet Time elapsed is {elapsed:.2f} seconds.')
 
 if zorg == 0.0:
     phiv[absolute(phiv) < 1e-12] = 0.0
@@ -141,7 +141,7 @@ start = perf_counter()
 phid, veld = hsd.doublet_influence_coefficients(pnts)
 finished = perf_counter()
 elapsed = finished-start
-print(f'Horseshoe Time elapsed is {elapsed:.2f} seconds.')
+print(f'Horseshoe Doublet Time elapsed is {elapsed:.2f} seconds.')
 
 #%% Doublet Velocity Potential
 figp = figure(figsize = (12, 10))
@@ -231,7 +231,7 @@ start = perf_counter()
 phid, veld = hsd.doublet_influence_coefficients(pnts)
 finished = perf_counter()
 elapsed = finished-start
-print(f'Horseshoe Time elapsed is {elapsed:.2f} seconds.')
+print(f'Horseshoe Doublet Time elapsed is {elapsed:.2f} seconds.')
 
 #%% Doublet Velocity Potential
 figp = figure(figsize = (12, 10))

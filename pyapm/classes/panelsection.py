@@ -147,11 +147,11 @@ class PanelSection(PanelProfile):
                     grds = grds[:-1]
                 if reverse:
                     grds.reverse()
-                gids = []
+                pnlgrds = []
                 for grd in grds:
-                    if grd.gid not in gids:
-                        gids.append(grd.gid)
-                pnl = Panel(pid, gids)
+                    if grd not in pnlgrds:
+                        pnlgrds.append(grd)
+                pnl = Panel(pid, pnlgrds)
                 pnl.noload = noload
                 pnl.sct = self
                 self.pnls.append(pnl)

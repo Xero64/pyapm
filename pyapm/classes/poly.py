@@ -11,10 +11,7 @@ class Poly(object):
     _edgs: List[BoundEdge] = None
     _nrm: Vector = None
     _area: float = None
-    def __init__(self, grds: List[Vector]=None):
-        if grds is not None:
-            self.set_grids(grds)
-    def set_grids(self, grds: List[Vector]):
+    def __init__(self, grds: List[Vector]):
         self.grds = grds
     @property
     def num(self):

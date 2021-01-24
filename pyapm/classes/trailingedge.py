@@ -100,9 +100,10 @@ class TrailingEdge(object):
         if factor:
             phid = phid/fourPi
         if extraout:
-            return phid, rls, ovs, oms
+            output = phid, rls, ovs, oms
         else:
-            return phid
+            output = phid
+        return output
     def doublet_influence_coefficients(self, pnts: MatrixVector,
                                        sgnz: matrix=None, factor: bool=True,
                                        betm: float=1.0):

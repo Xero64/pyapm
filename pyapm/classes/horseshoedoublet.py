@@ -1,19 +1,22 @@
 from math import pi
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import MatrixVector, elementwise_divide, zero_matrix_vector
-from numpy.matlib import matrix, zeros, multiply, divide, arctan, ones, absolute
+from numpy.matlib import matrix, zeros, multiply, divide, arctan, ones, absolute, square
 from .dirichletpoly import phi_doublet_matrix, vel_doublet_matrix
 
 tol = 1e-12
 piby2 = pi/2
 fourPi = 4*pi
+twoPi = 2*pi
 
-class HorseshoeDoublet(object):
+class HorseshoeDoublet():
     grda: Vector = None
     grdb: Vector = None
     ind: int = None
     _vecab: Vector = None
     _lenab: Vector = None
+    _pntc: Vector = None
+    _pnto: Vector = None
     _nrm: Vector = None
     _width: float = None
     def __init__(self, grda: Vector, grdb: Vector, diro: Vector, ind: int=None):
@@ -36,6 +39,16 @@ class HorseshoeDoublet(object):
             self._lenab = self._vecab.return_magnitude()
         return self._lenab
     @property
+    def pntc(self):
+        if self._pntc is None:
+            self._pntc = self.grda + self.vecab/2
+        return self._pntc
+    @property
+    def pnto(self):
+        if self._pnto is None:
+            self._pnto = self.pntc + self.lenab*self.diro/2
+        return self._pnto
+    @property
     def nrm(self):
         if self._nrm is None:
             self._nrm = (self.vecab**self.diro).to_unit()
@@ -48,26 +61,6 @@ class HorseshoeDoublet(object):
             grdby = self.grdb*diry
             self._width = grdby - grday
         return self._width
-    # def sign_local_z(self, pnts: MatrixVector, betm: float=1.0):
-    #     vecs = pnts-self.pnto
-    #     nrm = self.nrm
-    #     if betm != 1.0:
-    #         vecs.x = vecs.x/betm
-    #         nrm = Vector(self.nrm.x/betm, self.nrm.y, self.nrm.z)
-    #     locz = vecs*nrm
-    #     sgnz = ones(locz.shape, float)
-    #     sgnz[locz <= 0.0] = -1.0
-    #     return sgnz
-    # def doublet_influence_coefficients(self, pnts: MatrixVector, betm: float=1.0):
-    #     phid = zeros(pnts.shape, dtype=float)
-    #     veld = zero_matrix_vector(pnts.shape, dtype=float)
-    #     sgnz = self.sign_local_z(pnts, betm=betm)
-    #     phida, velda = self.tva.doublet_influence_coefficients(pnts, sgnz=sgnz, betm=betm)
-    #     phidb, veldb = self.tvb.doublet_influence_coefficients(pnts, sgnz=sgnz, betm=betm)
-    #     phidab, veldab = self.bvab.doublet_influence_coefficients(pnts, sgnz=sgnz, betm=betm)
-    #     phid = phida + phidb + phidab
-    #     veld = velda + veldb + veldab
-    #     return phid, veld
     def relative_mach(self, pnts: MatrixVector, pnt: Vector,
                       betx: float=1.0, bety: float=1.0, betz: float=1.0):
         vecs = pnts-pnt
@@ -165,11 +158,54 @@ class HorseshoeDoublet(object):
         else:
             output = phid
         return output
-    def velocity_potentials(self, pnts: MatrixVector,
-                            betx: float=1.0, bety: float=1.0, betz: float=1.0):
+    def doublet_velocity_potentials(self, pnts: MatrixVector,
+                                    betx: float=1.0, bety: float=1.0, betz: float=1.0):
         phi = self.doublet_influence_coefficients(pnts, incvel=False,
                                                   betx=betx, bety=bety, betz=betz)
         return phi
+    def trefftz_plane_velocities(self, pnts: MatrixVector,
+                                 betx: float=1.0, bety: float=1.0, betz: float=1.0):
+        # Trailing Vortex A
+        agcs = self.relative_mach(pnts, self.grda, betx=betx, bety=bety, betz=betz)
+        dirxa = -self.diro
+        dirza = self.nrm
+        dirya = dirza**dirxa
+        alcs = MatrixVector(agcs*dirxa, agcs*dirya, agcs*dirza)
+        alcs.x = zeros(alcs.shape, dtype=float)
+        axx = MatrixVector(alcs.x, -alcs.z, alcs.y)
+        am2 = square(alcs.y) + square(alcs.z)
+        chkam2 = (absolute(am2) < tol)
+        faca = -1.0
+        veldl = elementwise_divide(axx, am2)*faca
+        veldl.x[chkam2] = 0.0
+        veldl.y[chkam2] = 0.0
+        veldl.z[chkam2] = 0.0
+        dirxi = Vector(dirxa.x, dirya.x, dirza.x)
+        diryi = Vector(dirxa.y, dirya.y, dirza.y)
+        dirzi = Vector(dirxa.z, dirya.z, dirza.z)
+        velda = MatrixVector(veldl*dirxi, veldl*diryi, veldl*dirzi)*faca
+        # Trailing Vortex B
+        bgcs = self.relative_mach(pnts, self.grdb, betx=betx, bety=bety, betz=betz)
+        dirxb = self.diro
+        dirzb = self.nrm
+        diryb = dirzb**dirxb
+        blcs = MatrixVector(bgcs*dirxb, bgcs*diryb, bgcs*dirzb)
+        blcs.x = zeros(blcs.shape, dtype=float)
+        bxx = MatrixVector(blcs.x, -blcs.z, blcs.y)
+        bm2 = square(blcs.y) + square(blcs.z)
+        chkbm2 = (absolute(bm2) < tol)
+        facb = 1.0
+        veldl = elementwise_divide(bxx, bm2)*facb
+        veldl.x[chkbm2] = 0.0
+        veldl.y[chkbm2] = 0.0
+        veldl.z[chkbm2] = 0.0
+        dirxi = Vector(dirxb.x, diryb.x, dirzb.x)
+        diryi = Vector(dirxb.y, diryb.y, dirzb.y)
+        dirzi = Vector(dirxb.z, diryb.z, dirzb.z)
+        veldb = MatrixVector(veldl*dirxi, veldl*diryi, veldl*dirzi)*facb
+        # Add Together
+        veld = velda + veldb
+        return veld/twoPi
 
 def vel_trailing_doublet_matrix(ov, om, faco):
     ov = faco*ov

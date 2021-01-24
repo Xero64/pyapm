@@ -2,14 +2,16 @@ from math import sqrt, acos, pi
 from typing import List
 from numpy.matlib import matrix
 from pygeom.geom3d import Vector, Coordinate, ihat, khat
-from .poly import Poly
 from .grid import Grid
-from .horseshoe import HorseShoe
+# from .poly import Poly
+# from .horseshoe import HorseShoe
+from .dirichletpoly import DirichletPoly
+from .horseshoedoublet import HorseshoeDoublet
 
 oor2 = 1/sqrt(2.0)
 angtol = pi/4
 
-class Panel(Poly):
+class Panel(DirichletPoly):
     pid: int = None
     gids: List[int] = None
     ind: int = None
@@ -19,7 +21,7 @@ class Panel(Poly):
     sct: object = None
     srfc: object = None
     _crd: Coordinate = None
-    _hsvs: List[HorseShoe] = None
+    _hsvs: List[HorseshoeDoublet] = None
     _grdlocs: List[Vector] = None
     _edgpnls: List[object] = None
     _edginds: List[List[int]] = None
@@ -31,15 +33,16 @@ class Panel(Poly):
     _grdpnls: List[List[object]] = None
     _grdinds: List[List[int]] = None
     _grdfacs: List[List[float]] = None
-    def __init__(self, pid: int, gids: List[int]):
-        super(Panel, self).__init__()
+    def __init__(self, pid: int, grds: List[Grid]):
+        super().__init__(grds)
         self.pid = pid
-        self.gids = gids
         self.noload = False
-    def set_grids(self, grds: List[Grid]):
-        super(Panel, self).set_grids(grds)
         for grd in self.grds:
             grd.pnls.append(self)
+    # def set_grids(self, grds: List[Grid]):
+    #     super(Panel, self).set_grids(grds)
+    #     for grd in self.grds:
+    #         grd.pnls.append(self)
     def set_index(self, ind: int):
         self.ind = ind
     def set_horseshoes(self, diro: Vector):
@@ -49,7 +52,7 @@ class Panel(Poly):
             if a == self.num:
                 a = 0
             if self.grds[a].te and self.grds[b].te:
-                self._hsvs.append(HorseShoe(self.grds[a], self.grds[b], diro, self.ind))
+                self._hsvs.append(HorseshoeDoublet(self.grds[a], self.grds[b], diro, self.ind))
     def check_panel(self, pnl):
         if pnl.grp is not None and self.grp is not None:
             grpchk = pnl.grp == self.grp
@@ -81,9 +84,14 @@ class Panel(Poly):
         ang = angle_between_vectors(pnl.crd.dirz, self.crd.dirz)
         angchk = abs(ang) < angtol
         return angchk
-    def check_edge(self, pnl, edg):
+    # def check_edge(self, pnl, edg):
+    #     edgchk = False
+    #     if edg.grda in pnl.grds and edg.grdb in pnl.grds:
+    #         edgchk = True
+    #     return edgchk
+    def check_edge(self, pnl, grda, grdb):
         edgchk = False
-        if edg.grda in pnl.grds and edg.grdb in pnl.grds:
+        if grda in pnl.grds and grdb in pnl.grds:
             edgchk = True
         return edgchk
     @property
@@ -108,7 +116,7 @@ class Panel(Poly):
                 if a == self.num:
                     a = 0
                 if self.grds[a].te and self.grds[b].te:
-                    self._hsvs.append(HorseShoe(self.grds[a], self.grds[b], ihat, self.ind))
+                    self._hsvs.append(HorseshoeDoublet(self.grds[a], self.grds[b], ihat, self.ind))
         return self._hsvs
     @property
     def area(self):
@@ -127,15 +135,17 @@ class Panel(Poly):
     def edgpnls(self):
         if self._edgpnls is None:
             self._edgpnls = []
-            for i, edg in enumerate(self.edgs):
+            for i in range(self.num):
+                grda = self.grds[i-1]
+                grdb = self.grds[i]
                 self._edgpnls.append([])
-                for pnl in edg.grda.pnls:
+                for pnl in grda.pnls:
                     if pnl is not self:
-                        edgchk = self.check_edge(pnl, edg)
+                        edgchk = self.check_edge(pnl, grda, grdb)
                         if edgchk:
                             _, srfchk, _ = self.check_panel(pnl)
                             if srfchk:
-                                if not edg.te:
+                                if not grda.te and not grdb.te:
                                     angchk = self.check_angle(pnl)
                                     if angchk:
                                         self._edgpnls[i].append(pnl)
@@ -145,9 +155,36 @@ class Panel(Poly):
                                 angchk = self.check_angle(pnl)
                                 if angchk:
                                     self._edgpnls[i].append(pnl)
-                if edg.te or len(self._edgpnls[i]) > 0:
+                if grda.te and grdb.te:
+                    self._edgpnls[i].append(self)
+                elif len(self._edgpnls[i]) > 0:
                     self._edgpnls[i].append(self)
         return self._edgpnls
+    # @property
+    # def edgpnls(self):
+    #     if self._edgpnls is None:
+    #         self._edgpnls = []
+    #         for i, edg in enumerate(self.edgs):
+    #             self._edgpnls.append([])
+    #             for pnl in edg.grda.pnls:
+    #                 if pnl is not self:
+    #                     edgchk = self.check_edge(pnl, edg)
+    #                     if edgchk:
+    #                         _, srfchk, _ = self.check_panel(pnl)
+    #                         if srfchk:
+    #                             if not edg.te:
+    #                                 angchk = self.check_angle(pnl)
+    #                                 if angchk:
+    #                                     self._edgpnls[i].append(pnl)
+    #                             else:
+    #                                 self._edgpnls[i].append(pnl)
+    #                         else:
+    #                             angchk = self.check_angle(pnl)
+    #                             if angchk:
+    #                                 self._edgpnls[i].append(pnl)
+    #             if edg.te or len(self._edgpnls[i]) > 0:
+    #                 self._edgpnls[i].append(self)
+    #     return self._edgpnls
     @property
     def edginds(self):
         if self._edginds is None:
@@ -160,7 +197,11 @@ class Panel(Poly):
     @property
     def edgpnts(self):
         if self._edgpnts is None:
-            self._edgpnts = [(edg.grda+edg.grdb)/2 for edg in self.edgs]
+            self._edgpnts = []
+            for i in range(self.num):
+                grda = self.grds[i-1]
+                grdb = self.grds[i]
+                self._edgpnts.append((grda+grdb)/2)
         return self._edgpnts
     @property
     def edgdist(self):
