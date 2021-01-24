@@ -52,17 +52,19 @@ class Panel(Poly):
                 self._hsvs.append(HorseShoe(self.grds[a], self.grds[b], diro, self.ind))
     def check_panel(self, pnl):
         if pnl.grp is not None and self.grp is not None:
-            if pnl.grp == self.grp:
-                grpchk = True
-            else:
-                grpchk = False
+            grpchk = pnl.grp == self.grp
+            # if pnl.grp == self.grp:
+            #     grpchk = True
+            # else:
+            #     grpchk = False
         else:
             grpchk = False
         if pnl.srfc is not None and self.srfc is not None:
-            if pnl.srfc == self.srfc:
-                srfchk = True
-            else:
-                srfchk = False
+            srfchk = pnl.srfc == self.srfc
+            # if pnl.srfc == self.srfc:
+            #     srfchk = True
+            # else:
+            #     srfchk = False
         else:
             srfchk = False
         if srfchk:
