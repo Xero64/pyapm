@@ -81,8 +81,6 @@ class PanelSystem(object):
         for ind, grd in enumerate(self.grds.values()):
             grd.set_index(ind)
         for ind, pnl in enumerate(self.pnls.values()):
-            # grds = [self.grds[gid] for gid in pnl.gids]
-            # pnl.set_grids(grds)
             pnl.set_index(ind)
     def reset(self):
         for attr in self.__dict__:
@@ -677,8 +675,13 @@ def panelsystem_from_json(jsonfilepath: str):
 
     sysdct['source'] = jsonfilepath
 
+    filetype = None
     if 'type' in sysdct:
         filetype = sysdct['type']
+    elif 'panels' in sysdct and 'grids' in sysdct:
+        filetype = 'mesh'
+    elif 'surfaces' in sysdct:
+        filetype = 'geom'
 
     if filetype == 'geom':
         psys = panelsystem_from_geom(sysdct)
