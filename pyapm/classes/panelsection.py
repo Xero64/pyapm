@@ -184,7 +184,7 @@ def panelsection_from_json(sectdata: dict) -> PanelSection:
     if 'bspc' in sectdata:
         sect.bspc = sectdata['bspc']
     if 'tilt' in sectdata:
-        sect.tilt = sectdata['tilt']
+        sect.set_tilt(sectdata['tilt'])
     if 'xoc' in sectdata:
         sect.xoc = sectdata['xoc']
     if 'zoc' in sectdata:
