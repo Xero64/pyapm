@@ -46,50 +46,50 @@ class Poly(object):
             for edg in self.edgs:
                 self._area += edg.area
         return self._area
-    def sign_local_z(self, pnts: MatrixVector, betm: float=1.0):
+    def sign_local_z(self, pnts: MatrixVector, betx: float=1.0):
         vecs = pnts-self.pnto
         nrm = self.nrm
-        if betm != 1.0:
-            vecs.x = vecs.x/betm
-            nrm = Vector(self.nrm.x/betm, self.nrm.y, self.nrm.z)
+        if betx != 1.0:
+            vecs.x = vecs.x/betx
+            nrm = Vector(self.nrm.x/betx, self.nrm.y, self.nrm.z)
         locz = vecs*nrm
         sgnz = ones(locz.shape, float)
         sgnz[locz <= 0.0] = -1.0
         return sgnz
-    def influence_coefficients(self, pnts: MatrixVector, betm: float=1.0):
+    def influence_coefficients(self, pnts: MatrixVector, betx: float=1.0):
         phiv = zeros(pnts.shape, float)
         phis = zeros(pnts.shape, float)
         velv = zero_matrix_vector(pnts.shape, float)
         vels = zero_matrix_vector(pnts.shape, float)
-        sgnz = self.sign_local_z(pnts, betm=betm)
+        sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
-            ephiv, ephis, evelv, evels = edg.influence_coefficients(pnts, sgnz=sgnz, betm=betm)
+            ephiv, ephis, evelv, evels = edg.influence_coefficients(pnts, sgnz=sgnz, betx=betx)
             phiv += ephiv
             phis += ephis
             velv += evelv
             vels += evels
         return phiv, phis, velv, vels
-    def doublet_influence_coefficients(self, pnts: MatrixVector, betm: float=1.0):
+    def doublet_influence_coefficients(self, pnts: MatrixVector, betx: float=1.0):
         phiv = zeros(pnts.shape, float)
         velv = zero_matrix_vector(pnts.shape, float)
-        sgnz = self.sign_local_z(pnts, betm=betm)
+        sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
-            ephiv, evelv = edg.doublet_influence_coefficients(pnts, sgnz=sgnz, betm=betm)
+            ephiv, evelv = edg.doublet_influence_coefficients(pnts, sgnz=sgnz, betx=betx)
             phiv += ephiv
             velv += evelv
         return phiv, velv
-    def doublet_velocity_potentials(self, pnts: MatrixVector, betm: float=1.0):
+    def doublet_velocity_potentials(self, pnts: MatrixVector, betx: float=1.0):
         phiv = zeros(pnts.shape, float)
-        sgnz = self.sign_local_z(pnts, betm=betm)
+        sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
-            phiv += edg.doublet_velocity_potentials(pnts, sgnz=sgnz, betm=betm)
+            phiv += edg.doublet_velocity_potentials(pnts, sgnz=sgnz, betx=betx)
         return phiv
-    def velocity_potentials(self, pnts: MatrixVector, betm: float=1.0):
+    def velocity_potentials(self, pnts: MatrixVector, betx: float=1.0):
         phiv = zeros(pnts.shape, float)
         phis = zeros(pnts.shape, float)
-        sgnz = self.sign_local_z(pnts, betm=betm)
+        sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
-            ephiv, ephis = edg.velocity_potentials(pnts, sgnz=sgnz, betm=betm)
+            ephiv, ephis = edg.velocity_potentials(pnts, sgnz=sgnz, betx=betx)
             phiv += ephiv
             phis += ephis
         return phiv, phis

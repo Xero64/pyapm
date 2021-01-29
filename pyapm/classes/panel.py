@@ -3,8 +3,6 @@ from typing import List
 from numpy.matlib import matrix
 from pygeom.geom3d import Vector, Coordinate, ihat, khat
 from .grid import Grid
-# from .poly import Poly
-# from .horseshoe import HorseShoe
 from .dirichletpoly import DirichletPoly
 from .horseshoedoublet import HorseshoeDoublet
 
@@ -39,35 +37,22 @@ class Panel(DirichletPoly):
         self.noload = False
         for grd in self.grds:
             grd.pnls.append(self)
-    # def set_grids(self, grds: List[Grid]):
-    #     super(Panel, self).set_grids(grds)
-    #     for grd in self.grds:
-    #         grd.pnls.append(self)
     def set_index(self, ind: int):
         self.ind = ind
     def set_horseshoes(self, diro: Vector):
         self._hsvs = []
-        for b in range(self.num):
-            a = b+1
-            if a == self.num:
-                a = 0
-            if self.grds[a].te and self.grds[b].te:
-                self._hsvs.append(HorseshoeDoublet(self.grds[a], self.grds[b], diro, self.ind))
+        for i in range(self.num):
+            grda = self.grds[i]
+            grdb = self.grds[i-1]
+            if grda.te and grdb.te:
+                self._hsvs.append(HorseshoeDoublet(grda, grdb, diro, self.ind))
     def check_panel(self, pnl):
         if pnl.grp is not None and self.grp is not None:
             grpchk = pnl.grp == self.grp
-            # if pnl.grp == self.grp:
-            #     grpchk = True
-            # else:
-            #     grpchk = False
         else:
             grpchk = False
         if pnl.srfc is not None and self.srfc is not None:
             srfchk = pnl.srfc == self.srfc
-            # if pnl.srfc == self.srfc:
-            #     srfchk = True
-            # else:
-            #     srfchk = False
         else:
             srfchk = False
         if srfchk:
@@ -84,11 +69,6 @@ class Panel(DirichletPoly):
         ang = angle_between_vectors(pnl.crd.dirz, self.crd.dirz)
         angchk = abs(ang) < angtol
         return angchk
-    # def check_edge(self, pnl, edg):
-    #     edgchk = False
-    #     if edg.grda in pnl.grds and edg.grdb in pnl.grds:
-    #         edgchk = True
-    #     return edgchk
     def check_edge(self, pnl, grda, grdb):
         edgchk = False
         if grda in pnl.grds and grdb in pnl.grds:
@@ -111,19 +91,19 @@ class Panel(DirichletPoly):
     def hsvs(self):
         if self._hsvs is None:
             self._hsvs = []
-            for b in range(self.num):
-                a = b+1
-                if a == self.num:
-                    a = 0
-                if self.grds[a].te and self.grds[b].te:
-                    self._hsvs.append(HorseshoeDoublet(self.grds[a], self.grds[b], ihat, self.ind))
+            for i in range(self.num):
+                grda = self.grds[i]
+                grdb = self.grds[i-1]
+                if grda.te and grdb.te:
+                    self._hsvs.append(HorseshoeDoublet(grda, grdb, ihat, self.ind))
         return self._hsvs
     @property
     def area(self):
         if self.noload:
-            return 0.0
+            area = 0.0
         else:
-            return super(Panel, self).area
+            area = super().area
+        return area
     @property
     def grdlocs(self):
         if self._grdlocs is None:
@@ -160,31 +140,6 @@ class Panel(DirichletPoly):
                 elif len(self._edgpnls[i]) > 0:
                     self._edgpnls[i].append(self)
         return self._edgpnls
-    # @property
-    # def edgpnls(self):
-    #     if self._edgpnls is None:
-    #         self._edgpnls = []
-    #         for i, edg in enumerate(self.edgs):
-    #             self._edgpnls.append([])
-    #             for pnl in edg.grda.pnls:
-    #                 if pnl is not self:
-    #                     edgchk = self.check_edge(pnl, edg)
-    #                     if edgchk:
-    #                         _, srfchk, _ = self.check_panel(pnl)
-    #                         if srfchk:
-    #                             if not edg.te:
-    #                                 angchk = self.check_angle(pnl)
-    #                                 if angchk:
-    #                                     self._edgpnls[i].append(pnl)
-    #                             else:
-    #                                 self._edgpnls[i].append(pnl)
-    #                         else:
-    #                             angchk = self.check_angle(pnl)
-    #                             if angchk:
-    #                                 self._edgpnls[i].append(pnl)
-    #             if edg.te or len(self._edgpnls[i]) > 0:
-    #                 self._edgpnls[i].append(self)
-    #     return self._edgpnls
     @property
     def edginds(self):
         if self._edginds is None:
@@ -201,7 +156,24 @@ class Panel(DirichletPoly):
             for i in range(self.num):
                 grda = self.grds[i-1]
                 grdb = self.grds[i]
-                self._edgpnts.append((grda+grdb)/2)
+                if len(self.edgpnls[i]) == 2:
+                    pnla = self.edgpnls[i][-1]
+                    pnlb = self.edgpnls[i][-2]
+                    dirx = (grdb-grda).to_unit()
+                    dirza = pnla.nrm
+                    dirzb = pnlb.nrm
+                    dirya = dirza**dirx
+                    diryb = dirzb**dirx
+                    veca = pnla.pnto - grda
+                    vecb = pnlb.pnto - grda
+                    xa = veca*dirx
+                    xb = vecb*dirx
+                    ya = veca*dirya
+                    yb = vecb*diryb
+                    xc = xa - (xb-xa)/(yb-ya)*ya
+                    self._edgpnts.append(grda + dirx*xc)
+                else:
+                    self._edgpnts.append((grda + grdb)/2)
         return self._edgpnts
     @property
     def edgdist(self):

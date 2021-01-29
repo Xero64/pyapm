@@ -26,7 +26,7 @@ class PanelSection(PanelProfile):
     _thkcor: float = None
     _scttyp: str = None
     def __init__(self, point: Vector, chord: float, twist: float, airfoil: object):
-        super(PanelSection, self).__init__(point, chord, twist)
+        super().__init__(point, chord, twist)
         self.point = point
         self.chord = chord
         self.twist = twist

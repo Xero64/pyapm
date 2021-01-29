@@ -351,7 +351,7 @@ class PanelSystem(object):
         if self._adh is None:
             self._adh = zeros(self.awh.shape, dtype=float)
             for i, hsv in enumerate(self.hsvs):
-                self._adh[:, i] = self._awh[:, i]*hsv.width
+                self._adh[:, i] = -self._awh[:, i]*hsv.width
         return self._adh
     @property
     def ash(self):

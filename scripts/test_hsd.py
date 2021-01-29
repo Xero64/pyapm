@@ -8,9 +8,12 @@ from matplotlib.pyplot import figure
 from numpy.matlib import absolute
 
 #%% Create Trailing Edge Vortex
-grda = Vector(-0.25, 0.75, 0.0)
-grdb = Vector(-1.25, -1.25, 0.0)
-diro = Vector(1.0, 0.25, 0.0).to_unit()
+# grda = Vector(-0.25, 0.75, 0.0)
+# grdb = Vector(-1.25, -1.25, 0.0)
+# diro = Vector(1.0, 0.25, 0.0).to_unit()
+grda = Vector(-1.0, 1.0, 0.0)
+grdb = Vector(-1.0, -1.0, 0.0)
+diro = Vector(1.0, 0.0, 0.0).to_unit()
 
 hsv = HorseShoe(grda, grdb, diro)
 hsd = HorseshoeDoublet(grda, grdb, diro)
@@ -18,7 +21,7 @@ hsd = HorseshoeDoublet(grda, grdb, diro)
 #%% Mesh Points
 xorg = 0.0
 yorg = 0.0
-zorg = -0.05
+zorg = 0.0
 numx = 201
 numy = 201
 xamp = 2.0
@@ -115,7 +118,7 @@ cbd = figd.colorbar(cfd)
 
 #%% Mesh Points
 xorg = 0.0
-yorg = -1.5
+yorg = 0.0
 zorg = 0.0
 numx = 201
 numz = 201

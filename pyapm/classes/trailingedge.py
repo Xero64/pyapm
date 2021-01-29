@@ -70,10 +70,10 @@ class TrailingEdge(object):
             vec = self.grdo-self.pntc
             self._grdol = Vector(vec*self.dirx, vec*self.diry, vec*self.dirz)
         return self._grdol
-    def points_to_local(self, pnts: MatrixVector, betm: float=1.0):
+    def points_to_local(self, pnts: MatrixVector, betx: float=1.0):
         vecs = pnts-self.pntc
-        if betm != 1.0:
-            vecs.x = vecs.x/betm
+        if betx != 1.0:
+            vecs.x = vecs.x/betx
         return MatrixVector(vecs*self.dirx, vecs*self.diry, vecs*self.dirz)
     def vectors_to_global(self, vecs: MatrixVector):
         dirx = Vector(self.dirx.x, self.diry.x, self.dirz.x)
@@ -82,8 +82,8 @@ class TrailingEdge(object):
         return MatrixVector(vecs*dirx, vecs*diry, vecs*dirz)
     def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool=False,
                                     sgnz: matrix=None, factor: bool=True,
-                                    betm: float=1.0):
-        rls = self.points_to_local(pnts, betm=betm)
+                                    betx: float=1.0):
+        rls = self.points_to_local(pnts, betx=betx)
         absx = absolute(rls.x)
         rls.x[absx < tol] = 0.0
         absy = absolute(rls.y)
@@ -106,10 +106,10 @@ class TrailingEdge(object):
         return output
     def doublet_influence_coefficients(self, pnts: MatrixVector,
                                        sgnz: matrix=None, factor: bool=True,
-                                       betm: float=1.0):
+                                       betx: float=1.0):
         phid, _, ov, om = self.doublet_velocity_potentials(pnts, extraout=True,
                                                            sgnz=sgnz, factor=False,
-                                                           betm=betm)
+                                                           betx=betx)
         veldl = vel_doublet_matrix(ov, om, self.faco)
         veld = self.vectors_to_global(veldl)*self.faco
         if factor:

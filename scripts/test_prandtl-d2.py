@@ -1,7 +1,11 @@
 #%% Import Dependencies
 from IPython.display import display_markdown
-from pyapm.classes import panelsystem_from_json
+from pyapm import panelsystem_from_json
+from pyapm.classes.horseshoevortex2d import HorseshoeVortex2D, Vector2D
 from pyapm.outputs.msh import panelresult_to_msh
+from matplotlib.pyplot import figure
+from pygeom.matrix2d import zero_matrix_vector, elementwise_dot_product
+from numpy.matlib import zeros
 
 #%% Create Panel Mesh
 jsonfilepath = '../files/Prandtl-D2.json'
@@ -51,9 +55,89 @@ axl = pres.plot_strip_lift_force_distribution()
 _ = axl.set_ylabel('Lift Force [N/m]')
 _ = axl.set_xlabel('Span-Wise Coordinate - b [m]')
 # _ = pres.plot_trefftz_lift_force_distribution(ax=axl)
-# axc = pres.plot_trefftz_circulation_distribution()
-# _ = axc.set_ylabel('Circulation [m^2/s]')
-# _ = axc.set_xlabel('Span-Wise Coordinate - b [m]')
-# axw = pres.plot_trefftz_down_wash_distribution()
-# _ = axw.set_ylabel('Wash [m/s]')
-# _ = axw.set_xlabel('Span-Wise Coordinate - b [m]')
+axc = pres.plot_trefftz_circulation_distribution()
+_ = axc.set_ylabel('Circulation [m^2/s]')
+_ = axc.set_xlabel('Span-Wise Coordinate - b [m]')
+axw = pres.plot_trefftz_wash_distribution()
+_ = axw.set_ylabel('Wash [m/s]')
+_ = axw.set_xlabel('Span-Wise Coordinate - b [m]')
+
+#%% Extra Plots
+fig = figure(figsize=(12, 8))
+ax = fig.gca()
+
+hsvs = psys.hsvs[1::2]
+hsv2ds = []
+
+ylst = []
+zlst = []
+
+ypos = []
+for hsv in hsvs:
+    y = [hsv.grdb.y, hsv.grda.y]
+    z = [hsv.grdb.z, hsv.grda.z]
+    ax.plot(y, z)
+    ypos.append(hsv.pnto.y)
+    ylst += y
+    zlst += z
+
+ylst = ylst[0::2] + [ylst[-1]]
+# print(ylst)
+
+zlst = zlst[0::2] + [zlst[-1]]
+# print(zlst)
+
+for i in range(len(ylst)-1):
+    grda = Vector2D(ylst[i], zlst[i])
+    grdb = Vector2D(ylst[i+1], zlst[i+1])
+    hsv2ds.append(HorseshoeVortex2D(grda, grdb))
+
+circ = pres.ffres.circ.transpose().tolist()[0]
+
+lift = [pres.rho*pres.speed*circi for circi in circ]
+
+fig = figure(figsize=(12, 8))
+ax = fig.gca()
+ax.grid(True)
+ax.plot(ypos, circ)
+
+fig = figure(figsize=(12, 8))
+ax = fig.gca()
+ax.grid(True)
+ax.plot(ypos, lift)
+
+awh = psys.awh[1::2, 1::2]
+
+wash = awh*pres.ffres.circ
+
+wash = wash.transpose().tolist()[0]
+
+fig = figure(figsize=(12, 8))
+ax = fig.gca()
+ax.grid(True)
+_ = ax.plot(ypos, wash)
+
+#%% Horseshoe Vortex 2D
+num = len(hsv2ds)
+
+hsvpnts = zero_matrix_vector((num, 1), dtype=float)
+hsvnrms = zero_matrix_vector((num, 1), dtype=float)
+for i, hsv in enumerate(hsv2ds):
+    hsvpnts[i, 0] = hsv.pnt
+    hsvnrms[i, 0] = hsv.nrm
+
+awh2d = zeros((num, num), dtype=float)
+
+for i, hsv in enumerate(hsv2ds):
+    avh = hsv.induced_velocity(hsvpnts)
+    awh2d[:, i] = elementwise_dot_product(hsvnrms, avh)
+    # awh2d[:, i] = avh.y
+
+wash2d = awh2d*pres.ffres.circ
+
+wash2d = wash2d.transpose().tolist()[0]
+
+fig = figure(figsize=(12, 8))
+ax = fig.gca()
+ax.grid(True)
+_ = ax.plot(ypos, wash2d)

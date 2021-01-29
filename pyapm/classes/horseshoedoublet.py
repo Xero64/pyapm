@@ -118,7 +118,7 @@ class HorseshoeDoublet():
         alcs = MatrixVector(agcs*dirxa, agcs*dirya, agcs*dirza)
         # Trailing Edge A Velocity Potential
         phida, amag = phi_doublet_matrix(alcs, sgnz)
-        phidt = phi_trailing_doublet_matrix(alcs, sgnz, -1.0)
+        phidt = phi_trailing_doublet_matrix(alcs, sgnz)
         phidi = phida + phidt
         # Add Trailing Edge A Velocity Potentials
         phid += phidi
@@ -138,7 +138,7 @@ class HorseshoeDoublet():
         blcs = MatrixVector(bgcs*dirxb, bgcs*diryb, bgcs*dirzb)
         # Trailing Edge B Velocity Potential
         phidb, bmag = phi_doublet_matrix(blcs, sgnz)
-        phidt = phi_trailing_doublet_matrix(blcs, sgnz, 1.0)
+        phidt = phi_trailing_doublet_matrix(blcs, sgnz)
         phidi = phidb + phidt
         # Add Trailing Edge B Velocity Potentials
         phid += phidi
@@ -218,13 +218,13 @@ def vel_trailing_doublet_matrix(ov, om, faco):
     velol.z[chko] = 0.0
     return velol
 
-def phi_trailing_doublet_matrix(rls: MatrixVector, sgnz: matrix, faco: float):
+def phi_trailing_doublet_matrix(rls: MatrixVector, sgnz: matrix):
     ths = zeros(rls.shape, dtype=float)
     ths[rls.y > 0.0] = piby2
-    ths[rls.y == 0.0] = -piby2*faco
+    ths[rls.y == 0.0] = -piby2
     ths[rls.y < 0.0] = -piby2
     gs = divide(rls.z, rls.y)
     Js = arctan(gs)
-    Js[rls.y == 0.0] = -piby2*faco
+    Js[rls.y == 0.0] = -piby2
     phids = Js - multiply(sgnz, ths)
     return phids

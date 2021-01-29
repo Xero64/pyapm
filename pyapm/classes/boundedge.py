@@ -111,10 +111,10 @@ class BoundEdge(object):
             return True
         else:
             return False
-    def points_to_local(self, pnts: MatrixVector, betm: float=1.0):
+    def points_to_local(self, pnts: MatrixVector, betx: float=1.0):
         vecs = pnts-self.pntc
-        if betm != 1.0:
-            vecs.x = vecs.x/betm
+        if betx != 1.0:
+            vecs.x = vecs.x/betx
         return MatrixVector(vecs*self.dirx, vecs*self.diry, vecs*self.dirz)
     def vectors_to_global(self, vecs: MatrixVector):
         dirx = Vector(self.dirx.x, self.diry.x, self.dirz.x)
@@ -123,8 +123,8 @@ class BoundEdge(object):
         return MatrixVector(vecs*dirx, vecs*diry, vecs*dirz)
     def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool=False,
                                     sgnz: matrix=None, factor: bool=True,
-                                    betm: float=1.0):
-        rls = self.points_to_local(pnts, betm=betm)
+                                    betx: float=1.0):
+        rls = self.points_to_local(pnts, betx=betx)
         absx = absolute(rls.x)
         rls.x[absx < tol] = 0.0
         absy = absolute(rls.y)
@@ -146,29 +146,29 @@ class BoundEdge(object):
         else:
             return phids
     def doublet_influence_coefficients(self, pnts: MatrixVector,
-                                       sgnz: matrix=None, factor: bool=True, betm: float=1.0):
+                                       sgnz: matrix=None, factor: bool=True, betx: float=1.0):
         phid, _, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True,
                                                                    sgnz=sgnz, factor=False,
-                                                                   betm=betm)
+                                                                   betx=betx)
         veldl = vel_doublet_matrix(av, am, bv, bm)
         veld = self.vectors_to_global(veldl)
         if factor:
             phid, veld = phid/fourPi, veld/fourPi
         return phid, veld
     def velocity_potentials(self, pnts: MatrixVector,
-                            sgnz: matrix=None, factor: bool=True, betm: float=1.0):
+                            sgnz: matrix=None, factor: bool=True, betx: float=1.0):
         phid, rl, _, am, _, bm = self.doublet_velocity_potentials(pnts, extraout=True,
                                                                   sgnz=sgnz, factor=False,
-                                                                  betm=betm)
+                                                                  betx=betx)
         phis, _ = phi_source_matrix(am, bm, self.lenab, rl, phid)
         if factor:
             phid, phis = phid/fourPi, phis/fourPi
         return phid, phis
     def influence_coefficients(self, pnts: MatrixVector,
-                               sgnz: matrix=None, factor: bool=True, betm: float=1.0):
+                               sgnz: matrix=None, factor: bool=True, betx: float=1.0):
         phid, rl, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True,
                                                                     sgnz=sgnz, factor=False,
-                                                                    betm=betm)
+                                                                    betx=betx)
         phis, Qab = phi_source_matrix(am, bm, self.lenab, rl, phid)
         velsl = vel_source_matrix(Qab, rl, phid)
         vels = self.vectors_to_global(velsl)

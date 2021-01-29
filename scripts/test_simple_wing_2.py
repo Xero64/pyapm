@@ -58,7 +58,7 @@ axl = pres.plot_strip_lift_force_distribution()
 _ = axl.set_ylabel('Lift Force [N/m]')
 _ = axl.set_xlabel('Span-Wise Coordinate - y [m]')
 _ = pres.plot_trefftz_lift_force_distribution(ax=axl)
-axw = pres.plot_trefftz_down_wash_distribution()
+axw = pres.plot_trefftz_wash_distribution()
 _ = axw.set_ylabel('Wash [m/s]')
 _ = axw.set_xlabel('Span-Wise Coordinate - y [m]')
 

@@ -406,8 +406,8 @@ class PanelResult(object):
                         ax.plot(d, z, label=label)
             ax.legend()
         return ax
-    def plot_trefftz_down_wash_distribution(self, ax=None, axis: str='b',
-                                            surfaces: list=None):
+    def plot_trefftz_wash_distribution(self, ax=None, axis: str='b',
+                                       surfaces: list=None):
         if self.sys.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
@@ -823,12 +823,12 @@ class StripResult(object):
         if self._stfrc is None:
             sys = self.nfres.res.sys
             num = len(sys.strps)
-            self._stfrc = zero_matrix_vector((num, 1))
+            self._stfrc = zero_matrix_vector((num, 1), dtype=float)
             for strp in sys.strps:
                 i = strp.ind
                 for pnl in strp.pnls:
                     j = pnl.ind
-                    self._stfrc[i, 0] = self._stfrc[i, 0]+self.nfres.nffrc[j, 0]
+                    self._stfrc[i, 0] += self.nfres.nffrc[j, 0]
         return self._stfrc
     @property
     def drag(self):
@@ -866,7 +866,7 @@ class FarFieldResult(object):
     # _washa = None
     # _washb = None
     _wash = None
-    _wash_v2 = None
+    # _wash_v2 = None
     _drag = None
     _side = None
     _lift = None
@@ -950,7 +950,7 @@ class FarFieldResult(object):
                 pnlb = strp.pnls[-1]
                 mua = self.res.mu[pnla.ind]
                 mub = self.res.mu[pnlb.ind]
-                self._circ[i, 0] = mub-mua
+                self._circ[i, 0] = mua-mub
         return self._circ
     # @property
     # def washa(self):
@@ -976,23 +976,23 @@ class FarFieldResult(object):
     #             hinds = sys.phind[pind]
     #             self._washb[i, 0] = self.ffwsh[hinds[0], 0]
     #     return self._washb
-    @property
-    def wash_v2(self):
-        if self._wash_v2 is None:
-            sys = self.res.sys
-            num = len(sys.strps)
-            index = []
-            for strp in sys.strps:
-                hinds = sys.phind[strp.pnls[0].ind]
-                index.append(hinds[0])
-            num = len(index)
-            awh = zeros((num, num), dtype=float)
-            for i, indi in enumerate(index):
-                for j, indj in enumerate(index):
-                    awh[i, j] = sys.awh[indi, indj]
-            # awh = self.res.sys.awh[index, index]
-            self._wash_v2 = awh*self.circ
-        return self._wash_v2
+    # @property
+    # def wash_v2(self):
+    #     if self._wash_v2 is None:
+    #         sys = self.res.sys
+    #         num = len(sys.strps)
+    #         index = []
+    #         for strp in sys.strps:
+    #             hinds = sys.phind[strp.pnls[0].ind]
+    #             index.append(hinds[0])
+    #         num = len(index)
+    #         awh = zeros((num, num), dtype=float)
+    #         for i, indi in enumerate(index):
+    #             for j, indj in enumerate(index):
+    #                 awh[i, j] = sys.awh[indi, indj]
+    #         # awh = self.res.sys.awh[index, index]
+    #         self._wash_v2 = awh*self.circ
+    #     return self._wash_v2
     @property
     def wash(self):
         if self._wash is None:
@@ -1002,13 +1002,6 @@ class FarFieldResult(object):
             for i, strp in enumerate(sys.strps):
                 pnla = strp.pnls[0]
                 pnlb = strp.pnls[-1]
-                # dista = (pnla.edgpnts[3]-pnla.pnto).return_magnitude()
-                # distb = (pnlb.edgpnts[1]-pnla.pnto).return_magnitude()
-                # dist = (pnlb.pnto - pnla.pnto).return_magnitude()
-                # dist = dista+distb
-                # mua = self.res.mu[pnla.ind]
-                # mub = self.res.mu[pnlb.ind]
-                # self._wash[i, 0] = (mub-mua)/dist
                 pinda = pnla.ind
                 pindb = pnlb.ind
                 hindsa = sys.phind[pinda]
@@ -1020,7 +1013,7 @@ class FarFieldResult(object):
                 for hind in hindsb:
                     cnt += 1
                     self._wash[i, 0] += self.ffwsh[hind, 0]
-                self._wash[i, 0] = self._wash[i, 0]/cnt/2
+                self._wash[i, 0] = self._wash[i, 0]/cnt
         return self._wash
     @property
     def drag(self):
@@ -1029,7 +1022,7 @@ class FarFieldResult(object):
             num = len(sys.strps)
             self._drag = zeros((num, 1), dtype=float)
             for i, strp in enumerate(sys.strps):
-                self._drag[i, 0] = self.res.rho*self.wash_v2[i, 0]*self.circ[i, 0]*strp.width
+                self._drag[i, 0] = -self.res.rho*self.wash[i, 0]*self.circ[i, 0]*strp.width/2
                 # pnla = strp.pnls[0]
                 # pnlb = strp.pnls[-1]
                 # pinda = pnla.ind
