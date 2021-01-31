@@ -39,13 +39,15 @@ for i in range(2*xznum):
     for j in range(ynum-1):
         pid += 1
         gids = [gidmat[j+1, i], gidmat[j, i], gidmat[j, i+1], gidmat[j+1, i+1]]
-        panels[pid] = Panel(pid, gids)
+        pnlgrds = [grids[gidi] for gidi in gids]
+        panels[pid] = Panel(pid, pnlgrds)
 
-# Close Trailing Edge
-for j in range(ynum-1):
-    pid += 1
-    gids = [gidmat[j+1, -1], gidmat[j, -1], gidmat[j, 0], gidmat[j+1, 0]]
-    panels[pid] = Panel(pid, gids)
+# # Close Trailing Edge
+# for j in range(ynum-1):
+#     pid += 1
+#     gids = [gidmat[j+1, -1], gidmat[j, -1], gidmat[j, 0], gidmat[j+1, 0]]
+#     pnlgrds = [grids[gidi] for gidi in gids]
+#     panels[pid] = Panel(pid, pnlgrds)
 
 n = 2*xznum
 # Close Ends
@@ -55,7 +57,8 @@ for i in range(xznum):
         gids = [gidmat[0, i+1], gidmat[0, i], gidmat[0, n-i]]
     else:
         gids = [gidmat[0, i+1], gidmat[0, i], gidmat[0, n-i], gidmat[0, n-i-1]]
-    panels[pid] = Panel(pid, gids)
+    pnlgrds = [grids[gidi] for gidi in gids]
+    panels[pid] = Panel(pid, pnlgrds)
 
 for i in range(xznum):
     pid += 1
@@ -64,7 +67,8 @@ for i in range(xznum):
     else:
         gids = [gidmat[-1, i+1], gidmat[-1, i], gidmat[-1, n-i], gidmat[-1, n-i-1]]
     gids.reverse()
-    panels[pid] = Panel(pid, gids)
+    pnlgrds = [grids[gidi] for gidi in gids]
+    panels[pid] = Panel(pid, pnlgrds)
 
 #%% Create Panel System
 name = 'Test Simple Wing'

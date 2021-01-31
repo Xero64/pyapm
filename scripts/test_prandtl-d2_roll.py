@@ -28,7 +28,6 @@ display_markdown(pres2.stability_derivatives)
 mshfilepath = '../results/' + pres2.name + '.msh'
 panelresult_to_msh(pres2, mshfilepath)
 
-
 #%% Distribution Plots
 axd = pres1.plot_strip_drag_force_distribution(axis='y')
 _ = axd.set_ylabel('Drag Force [N/m]')

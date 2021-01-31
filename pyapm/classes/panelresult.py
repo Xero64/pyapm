@@ -1,7 +1,11 @@
-from math import cos, sin, radians
+from math import cos, sin, radians, pi
 from pygeom.geom3d import Vector, Coordinate
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from pygeom.matrix3d import elementwise_dot_product, elementwise_multiply, elementwise_cross_product
+from pygeom.matrix3d import vector_to_local
+from pygeom.geom2d import Vector2D
+from pygeom.matrix2d import MatrixVector2D
+from pygeom.matrix2d import elementwise_dot_product as elementwise_dot_product_2d
 from numpy.matlib import matrix, ones, zeros
 from numpy.matlib import sqrt, square, multiply, absolute
 from matplotlib.pyplot import figure
@@ -34,6 +38,9 @@ class PanelResult(object):
     _sig: matrix = None
     _mu: matrix = None
     _phi: matrix = None
+    _qloc: MatrixVector2D = None
+    _qs: matrix = None
+    _cp: matrix = None
     _nfres = None
     _strpres = None
     _ffres = None
@@ -180,10 +187,44 @@ class PanelResult(object):
         if self._phi is None:
             self._phi = self.unphi[:, 0]*self.vfs + self.unphi[:, 1]*self.ofs
         return self._phi
+    def calc_qloc(self, mu: matrix, vfs: Vector=None, ofs: Vector=None):
+        if vfs is None and ofs is None:
+            vfsg = zero_matrix_vector(self.arm.shape, dtype=float)
+        elif vfs is None:
+            vfsg = self.arm**ofs
+        elif ofs is None:
+            vfsg = zero_matrix_vector(self.arm.shape, dtype=float)
+            vfsg[:, 0] = vfs
+        else:
+            vfsg = vfs-ofs**self.arm
+        vl = zeros((self.sys.numpnl, 1), dtype=float)
+        vt = zeros((self.sys.numpnl, 1), dtype=float)
+        ql = zeros((self.sys.numpnl, 1), dtype=float)
+        qt = zeros((self.sys.numpnl, 1), dtype=float)
+        for pnl in self.sys.pnls.values():
+            vl[pnl.ind, 0] = pnl.crd.dirx*vfsg[pnl.ind, 0]
+            vt[pnl.ind, 0] = pnl.crd.diry*vfsg[pnl.ind, 0]
+            ql[pnl.ind, 0], qt[pnl.ind, 0] = pnl.diff_mu(mu)
+        return MatrixVector2D(vl + ql, vt + qt)
+    @property
+    def qloc(self):
+        if self._qloc is None:
+            self._qloc = self.calc_qloc(self.mu, vfs=self.vfs, ofs=self.ofs)
+        return self._qloc
+    @property
+    def qs(self):
+        if self._qs is None:
+            self._qs = self.qloc.return_magnitude()
+        return self._qs
+    @property
+    def cp(self):
+        if self._cp is None:
+            self._cp = 1.0 - square(self.qs)/self.speed**2
+        return self._cp
     @property
     def nfres(self):
         if self._nfres is None:
-            self._nfres = NearFieldResult(self)
+            self._nfres = NearFieldResult(self, self.cp)
         return self._nfres
     @property
     def strpres(self):
@@ -557,7 +598,8 @@ class PanelResult(object):
             table.add_column('Speed', '.3f', data=[self.speed])
             table.add_column('Dynamic Pressure', '.1f', data=[self.qfs])
             report.add_object(table)
-            table2.add_row(['Total', self.sys.sref, Ditot, Ytot, Ltot, self.nfres.CDi, self.nfres.CY, self.nfres.CL])
+            table2.add_row(['Total', self.sys.sref, Ditot, Ytot, Ltot,
+                            self.nfres.CDi, self.nfres.CY, self.nfres.CL])
             report.add_object(table2)
             return report
     def __str__(self):
@@ -641,171 +683,142 @@ def trig_angle(angle: float):
     return cosang, sinang
 
 class NearFieldResult(object):
-    res = None
-    sig: matrix = None
-    mu: matrix = None
-    _nfql = None
-    _nfqt = None
-    _nfcp = None
-    _nfprs = None
-    _nffrc = None
-    _nfmom = None
-    _nffrctot = None
-    _nfmomtot = None
-    _Cx = None
-    _Cy = None
-    _Cz = None
-    _Cmx = None
-    _Cmy = None
-    _Cmz = None
-    _CDi = None
-    _CY = None
-    _CL = None
-    _e = None
-    _Cl = None
-    _Cm = None
-    _Cn = None
-    def __init__(self, res: PanelResult, sig: matrix=None, mu: matrix=None):
+    res: PanelResult = None
+    nfcp: matrix = None
+    _nfprs: matrix = None
+    _nffrc: MatrixVector = None
+    _nfmom: MatrixVector = None
+    _nffrctot: Vector = None
+    _nfmomtot: Vector = None
+    _Cx: float = None
+    _Cy: float = None
+    _Cz: float = None
+    _Cmx: float = None
+    _Cmy: float = None
+    _Cmz: float = None
+    _CDi: float = None
+    _CY: float = None
+    _CL: float = None
+    _e: float = None
+    _Cl: float = None
+    _Cm: float = None
+    _Cn: float = None
+    def __init__(self, res: PanelResult, nfcp: matrix):
         self.res = res
-        if sig is None:
-            self.sig = self.res.sig
-        else:
-            self.sig = sig
-        if mu is None:
-            self.mu = self.res.mu
-        else:
-            self.mu = mu
+        self.nfcp = nfcp
     @property
-    def nfql(self):
-        if self._nfql is None:
-            self._nfql = zero_matrix_vector((self.res.sys.numpnl, 1), dtype=float)
-            for pnl in self.res.sys.pnls.values():
-                qx, qy = pnl.diff_mu(self.mu)
-                vfsl = self.res.vfsl[pnl.ind, 0]
-                self._nfql[pnl.ind, 0] = Vector(qx + vfsl.x, qy + vfsl.y, 0.0)
-        return self._nfql
-    @property
-    def nfqt(self):
-        if self._nfqt is None:
-            self._nfqt = self.nfql.return_magnitude()
-        return self._nfqt
-    @property
-    def nfcp(self):
-        if self._nfcp is None:
-            self._nfcp = 1.0 - square(self.nfqt)/self.res.speed**2
-        return self._nfcp
-    @property
-    def nfprs(self):
+    def nfprs(self) -> matrix:
         if self._nfprs is None:
             self._nfprs = self.res.qfs*self.nfcp
         return self._nfprs
     @property
-    def nffrc(self):
+    def nffrc(self) -> MatrixVector:
         if self._nffrc is None:
-            self._nffrc = -elementwise_multiply(self.res.sys.nrms, multiply(self.nfprs, self.res.sys.pnla))
+            nrms = self.res.sys.nrms
+            pnla = self.res.sys.pnla
+            self._nffrc = -elementwise_multiply(nrms, multiply(self.nfprs, pnla))
         return self._nffrc
     @property
-    def nfmom(self):
+    def nfmom(self) -> MatrixVector:
         if self._nfmom is None:
             self._nfmom = elementwise_cross_product(self.res.arm, self.nffrc)
         return self._nfmom
     @property
-    def nffrctot(self):
+    def nffrctot(self) -> Vector:
         if self._nffrctot is None:
             self._nffrctot = self.nffrc.sum()
         return self._nffrctot
     @property
-    def nfmomtot(self):
+    def nfmomtot(self) -> Vector:
         if self._nfmomtot is None:
             self._nfmomtot = self.nfmom.sum()
         return self._nfmomtot
     @property
-    def Cx(self):
+    def Cx(self) -> float:
         if self._Cx is None:
             self._Cx = self.nffrctot.x/self.res.qfs/self.res.sys.sref
             self._Cx = fix_zero(self._Cx)
         return self._Cx
     @property
-    def Cy(self):
+    def Cy(self) -> float:
         if self._Cy is None:
             self._Cy = self.nffrctot.y/self.res.qfs/self.res.sys.sref
             self._Cy = fix_zero(self._Cy)
         return self._Cy
     @property
-    def Cz(self):
+    def Cz(self) -> float:
         if self._Cz is None:
             self._Cz = self.nffrctot.z/self.res.qfs/self.res.sys.sref
             self._Cz = fix_zero(self._Cz)
         return self._Cz
     @property
-    def Cmx(self):
+    def Cmx(self) -> float:
         if self._Cmx is None:
             self._Cmx = self.nfmomtot.x/self.res.qfs/self.res.sys.sref/self.res.sys.bref
             self._Cmx = fix_zero(self._Cmx)
         return self._Cmx
     @property
-    def Cmy(self):
+    def Cmy(self) -> float:
         if self._Cmy is None:
             self._Cmy = self.nfmomtot.y/self.res.qfs/self.res.sys.sref/self.res.sys.cref
             self._Cmy = fix_zero(self._Cmy)
         return self._Cmy
     @property
-    def Cmz(self):
+    def Cmz(self) -> float:
         if self._Cmz is None:
             self._Cmz = self.nfmomtot.z/self.res.qfs/self.res.sys.sref/self.res.sys.bref
             self._Cmz = fix_zero(self._Cmz)
         return self._Cmz
     @property
-    def CDi(self):
+    def CDi(self) -> float:
         if self._CDi is None:
             Di = self.res.acs.dirx*self.nffrctot
             self._CDi = Di/self.res.qfs/self.res.sys.sref
             self._CDi = fix_zero(self._CDi)
         return self._CDi
     @property
-    def CY(self):
+    def CY(self) -> float:
         if self._CY is None:
             Y = self.res.acs.diry*self.nffrctot
             self._CY = Y/self.res.qfs/self.res.sys.sref
             self._CY = fix_zero(self._CY)
         return self._CY
     @property
-    def CL(self):
+    def CL(self) -> float:
         if self._CL is None:
             L = self.res.acs.dirz*self.nffrctot
             self._CL = L/self.res.qfs/self.res.sys.sref
             self._CL = fix_zero(self._CL)
         return self._CL
     @property
-    def Cl(self):
+    def Cl(self) -> float:
         if self._Cl is None:
             l = self.res.wcs.dirx*self.nfmomtot
             self._Cl = l/self.res.qfs/self.res.sys.sref/self.res.sys.bref
             self._Cl = fix_zero(self._Cl)
         return self._Cl
     @property
-    def Cm(self):
+    def Cm(self) -> float:
         if self._Cm is None:
             m = self.res.wcs.diry*self.nfmomtot
             self._Cm = m/self.res.qfs/self.res.sys.sref/self.res.sys.cref
             self._Cm = fix_zero(self._Cm)
         return self._Cm
     @property
-    def Cn(self):
+    def Cn(self) -> float:
         if self._Cn is None:
             n = self.res.wcs.dirz*self.nfmomtot
             self._Cn = n/self.res.qfs/self.res.sys.sref/self.res.sys.bref
             self._Cn = fix_zero(self._Cn)
         return self._Cn
     @property
-    def e(self):
+    def e(self) -> float:
         if self._e is None:
             if self.CDi <= 0.0:
                 self._e = float('nan')
             elif self.CL == 0.0 and self.CY == 0.0:
                 self._e = 0.0
             else:
-                from math import pi
                 self._e = (self.CL**2+self.CY**2)/pi/self.res.sys.ar/self.CDi
                 self._e = fix_zero(self._e)
         return self._e
@@ -860,13 +873,8 @@ class FarFieldResult(object):
     _ffmom = None
     _fffrctot = None
     _ffmomtot = None
-    # _mua = None
-    # _mub = None
     _circ = None
-    # _washa = None
-    # _washb = None
     _wash = None
-    # _wash_v2 = None
     _drag = None
     _side = None
     _lift = None
@@ -892,9 +900,6 @@ class FarFieldResult(object):
     def ffwsh(self):
         if self._ffwsh is None:
             self._ffwsh = self.res.sys.awh*self.ffmu
-            # self._ffwsh += self.res.sys.hsvnrms*self.res.vfs
-            # self._ffwsh += self.res.sys.awd*self.res.mu
-            # self._ffwsh += self.res.sys.aws*self.res.sig
         return self._ffwsh
     @property
     def fffrc(self):
@@ -919,26 +924,6 @@ class FarFieldResult(object):
         if self._ffmomtot is None:
             self._ffmomtot = self.ffmom.sum()
         return self._ffmomtot
-    # @property
-    # def mua(self):
-    #     if self._mua is None:
-    #         sys = self.res.sys
-    #         num = len(sys.strps)
-    #         self._mua = zeros((num, 1), dtype=float)
-    #         for i, strp in enumerate(sys.strps):
-    #             pnla = strp.pnls[0]
-    #             self._mua[i, 0] = self.res.mu[pnla.ind]
-    #     return self._mua
-    # @property
-    # def mub(self):
-    #     if self._mub is None:
-    #         sys = self.res.sys
-    #         num = len(sys.strps)
-    #         self._mub = zeros((num, 1), dtype=float)
-    #         for i, strp in enumerate(sys.strps):
-    #             pnlb = strp.pnls[-1]
-    #             self._mub[i, 0] = self.res.mu[pnlb.ind]
-    #     return self._mub
     @property
     def circ(self):
         if self._circ is None:
@@ -952,47 +937,6 @@ class FarFieldResult(object):
                 mub = self.res.mu[pnlb.ind]
                 self._circ[i, 0] = mua-mub
         return self._circ
-    # @property
-    # def washa(self):
-    #     if self._washa is None:
-    #         sys = self.res.sys
-    #         num = len(sys.strps)
-    #         self._washa = zeros((num, 1), dtype=float)
-    #         for i, strp in enumerate(sys.strps):
-    #             pnl = strp.pnls[0]
-    #             pind = pnl.ind
-    #             hinds = sys.phind[pind]
-    #             self._washa[i, 0] += self.ffwsh[hinds[0], 0]
-    #     return self._washa
-    # @property
-    # def washb(self):
-    #     if self._washb is None:
-    #         sys = self.res.sys
-    #         num = len(sys.strps)
-    #         self._washb = zeros((num, 1), dtype=float)
-    #         for i, strp in enumerate(sys.strps):
-    #             pnl = strp.pnls[-1]
-    #             pind = pnl.ind
-    #             hinds = sys.phind[pind]
-    #             self._washb[i, 0] = self.ffwsh[hinds[0], 0]
-    #     return self._washb
-    # @property
-    # def wash_v2(self):
-    #     if self._wash_v2 is None:
-    #         sys = self.res.sys
-    #         num = len(sys.strps)
-    #         index = []
-    #         for strp in sys.strps:
-    #             hinds = sys.phind[strp.pnls[0].ind]
-    #             index.append(hinds[0])
-    #         num = len(index)
-    #         awh = zeros((num, num), dtype=float)
-    #         for i, indi in enumerate(index):
-    #             for j, indj in enumerate(index):
-    #                 awh[i, j] = sys.awh[indi, indj]
-    #         # awh = self.res.sys.awh[index, index]
-    #         self._wash_v2 = awh*self.circ
-    #     return self._wash_v2
     @property
     def wash(self):
         if self._wash is None:
@@ -1023,16 +967,6 @@ class FarFieldResult(object):
             self._drag = zeros((num, 1), dtype=float)
             for i, strp in enumerate(sys.strps):
                 self._drag[i, 0] = -self.res.rho*self.wash[i, 0]*self.circ[i, 0]*strp.width/2
-                # pnla = strp.pnls[0]
-                # pnlb = strp.pnls[-1]
-                # pinda = pnla.ind
-                # pindb = pnlb.ind
-                # hindsa = sys.phind[pinda]
-                # hindsb = sys.phind[pindb]
-                # for hind in hindsa:
-                #     self._drag[i, 0] += self.fffrc[hind, 0].x
-                # for hind in hindsb:
-                #     self._drag[i, 0] += self.fffrc[hind, 0].x
         return self._drag
     @property
     def side(self):
@@ -1121,7 +1055,6 @@ class FarFieldResult(object):
                 else:
                     self._e = float('nan')
             else:
-                from math import pi
                 self._e = (self.CL**2+self.CY**2)/pi/self.res.sys.ar/self.CDi
                 self._e = fix_zero(self._e)
         return self._e
@@ -1147,53 +1080,62 @@ class StabilityResult(object):
     @property
     def u(self):
         if self._u is None:
-            uvw = Vector(1.0, 0.0, 0.0)
-            sigu = self.res.unsig[:, 0]*uvw
-            muu = self.res.unmu[:, 0]*uvw
-            self._u = NearFieldResult(self.res, sig=sigu, mu=muu)
+            vfsu = Vector(1.0, 0.0, 0.0)
+            muu = self.res.unmu[:, 0].x
+            qlocu = self.res.calc_qloc(muu, vfs=vfsu)
+            vdotu = elementwise_dot_product_2d(self.res.qloc, qlocu)
+            cpu = (-2.0/self.res.speed**2)*vdotu
+            self._u = NearFieldResult(self.res, cpu)
         return self._u
     @property
     def v(self):
         if self._v is None:
-            uvw = Vector(0.0, 1.0, 0.0)
-            sigv = self.res.unsig[:, 0]*uvw
-            muv = self.res.unmu[:, 0]*uvw
-            self._v = NearFieldResult(self.res, sig=sigv, mu=muv)
+            vfsv = Vector(0.0, 1.0, 0.0)
+            muv = self.res.unmu[:, 0].y
+            qlocv = self.res.calc_qloc(muv, vfs=vfsv)
+            vdotv = elementwise_dot_product_2d(self.res.qloc, qlocv)
+            cpv = (-2.0/self.res.speed**2)*vdotv
+            self._v = NearFieldResult(self.res, cpv)
         return self._v
     @property
     def w(self):
         if self._w is None:
-            uvw = Vector(0.0, 0.0, 1.0)
-            sigw = self.res.unsig[:, 0]*uvw
-            muw = self.res.unmu[:, 0]*uvw
-            self._w = NearFieldResult(self.res, sig=sigw, mu=muw)
+            vfsw = Vector(0.0, 0.0, 1.0)
+            muw = self.res.unmu[:, 0].z
+            qlocw = self.res.calc_qloc(muw, vfs=vfsw)
+            vdotw = elementwise_dot_product_2d(self.res.qloc, qlocw)
+            cpw = (-2.0/self.res.speed**2)*vdotw
+            self._w = NearFieldResult(self.res, cpw)
         return self._w
     @property
     def p(self):
         if self._p is None:
-            pqr = Vector(1.0, 0.0, 0.0)
-            ofs = self.res.wcs.vector_to_global(pqr)
-            sigp = self.res.unsig[:, 1]*ofs
-            mup = self.res.unmu[:, 1]*ofs
-            self._p = NearFieldResult(self.res, sig=sigp, mu=mup)
+            ofsp = self.res.wcs.vector_to_global(Vector(1.0, 0.0, 0.0))
+            mup = self.res.unmu[:, 1]*ofsp
+            qlocp = self.res.calc_qloc(mup, ofs=ofsp)
+            vdotp = elementwise_dot_product_2d(self.res.qloc, qlocp)
+            cpp = (-2.0/self.res.speed**2)*vdotp
+            self._p = NearFieldResult(self.res, cpp)
         return self._p
     @property
     def q(self):
         if self._q is None:
-            pqr = Vector(0.0, 1.0, 0.0)
-            ofs = self.res.wcs.vector_to_global(pqr)
-            sigq = self.res.unsig[:, 1]*ofs
-            muq = self.res.unmu[:, 1]*ofs
-            self._q = NearFieldResult(self.res, sig=sigq, mu=muq)
+            ofsq = self.res.wcs.vector_to_global(Vector(0.0, 1.0, 0.0))
+            muq = self.res.unmu[:, 1]*ofsq
+            qlocq = self.res.calc_qloc(muq, ofs=ofsq)
+            vdotq = elementwise_dot_product_2d(self.res.qloc, qlocq)
+            cpq = (-2.0/self.res.speed**2)*vdotq
+            self._q = NearFieldResult(self.res, cpq)
         return self._q
     @property
     def r(self):
         if self._r is None:
-            pqr = Vector(0.0, 0.0, 1.0)
-            ofs = self.res.wcs.vector_to_global(pqr)
-            sigr = self.res.unsig[:, 1]*ofs
-            mur = self.res.unmu[:, 1]*ofs
-            self._r = NearFieldResult(self.res, sig=sigr, mu=mur)
+            ofsr = self.res.wcs.vector_to_global(Vector(0.0, 0.0, 1.0))
+            mur = self.res.unmu[:, 1]*ofsr
+            qlocr = self.res.calc_qloc(mur, ofs=ofsr)
+            vdotr = elementwise_dot_product_2d(self.res.qloc, qlocr)
+            cpr = (-2.0/self.res.speed**2)*vdotr
+            self._r = NearFieldResult(self.res, cpr)
         return self._r
     @property
     def alpha(self):
@@ -1206,12 +1148,14 @@ class StabilityResult(object):
             rbo2V = self.res.rbo2V
             cosal, sinal = trig_angle(self.res.alpha)
             cosbt, sinbt = trig_angle(self.res.beta)
-            vfs = Vector(-V*cosbt*sinal, 0, V*cosal*cosbt)
-            ofs = Vector(2*V*(qco2V*sinal*sinbt/c - cosal*rbo2V/b - cosbt*pbo2V*sinal/b), 0.0,
-                         2*V*(cosal*cosbt*pbo2V/b - cosal*qco2V*sinbt/c - rbo2V*sinal/b))
-            sigalpha = self.res.unsig[:, 0]*vfs+self.res.unsig[:, 1]*ofs
-            mualpha = self.res.unmu[:, 0]*vfs+self.res.unmu[:, 1]*ofs
-            self._alpha = NearFieldResult(self.res, sig=sigalpha, mu=mualpha)
+            vfsalpha = Vector(-V*cosbt*sinal, 0, V*cosal*cosbt)
+            ofsalpha = Vector(2*V*(qco2V*sinal*sinbt/c - cosal*rbo2V/b - cosbt*pbo2V*sinal/b), 0.0,
+                              2*V*(cosal*cosbt*pbo2V/b - cosal*qco2V*sinbt/c - rbo2V*sinal/b))
+            mualpha = self.res.unmu[:, 0]*vfsalpha + self.res.unmu[:, 1]*ofsalpha
+            qlocalpha = self.res.calc_qloc(mualpha, vfs=vfsalpha, ofs=ofsalpha)
+            vdotalpha = elementwise_dot_product_2d(self.res.qloc, qlocalpha)
+            cpalpha = (-2.0/self.res.speed**2)*vdotalpha
+            self._alpha = NearFieldResult(self.res, cpalpha)
         return self._alpha
     @property
     def beta(self):
@@ -1223,64 +1167,78 @@ class StabilityResult(object):
             qco2V = self.res.qco2V
             cosal, sinal = trig_angle(self.res.alpha)
             cosbt, sinbt = trig_angle(self.res.beta)
-            vfs = Vector(-V*cosal*sinbt, -V*cosbt, -V*sinal*sinbt)
-            ofs = Vector(-2*V*cosal*(cosbt*qco2V/c + pbo2V*sinbt/b),
-                         2*V*(cosbt*pbo2V/b - qco2V*sinbt/c),
-                         -2*V*sinal*(cosbt*qco2V/c + pbo2V*sinbt/b))
-            sigbeta = self.res.unsig[:, 0]*vfs+self.res.unsig[:, 1]*ofs
-            mubeta = self.res.unmu[:, 0]*vfs+self.res.unmu[:, 1]*ofs
-            self._beta = NearFieldResult(self.res, sig=sigbeta, mu=mubeta)
+            vfsbeta = Vector(-V*cosal*sinbt, -V*cosbt, -V*sinal*sinbt)
+            ofsbeta = Vector(-2*V*cosal*(cosbt*qco2V/c + pbo2V*sinbt/b),
+                             2*V*(cosbt*pbo2V/b - qco2V*sinbt/c),
+                             -2*V*sinal*(cosbt*qco2V/c + pbo2V*sinbt/b))
+            mubeta = self.res.unmu[:, 0]*vfsbeta + self.res.unmu[:, 1]*ofsbeta
+            qlocbeta = self.res.calc_qloc(mubeta, vfs=vfsbeta, ofs=ofsbeta)
+            vdotbeta = elementwise_dot_product_2d(self.res.qloc, qlocbeta)
+            cpbeta = (-2.0/self.res.speed**2)*vdotbeta
+            self._beta = NearFieldResult(self.res, cpbeta)
         return self._beta
     @property
     def pbo2V(self):
         if self._pbo2V is None:
             pqr = Vector(2*self.res.speed/self.res.sys.bref, 0.0, 0.0)
-            ofs = self.res.wcs.vector_to_global(pqr)
-            sigpbo2V = self.res.unsig[:, 1]*ofs
-            mupbo2V = self.res.unmu[:, 1]*ofs
-            self._pbo2V = NearFieldResult(self.res, sig=sigpbo2V, mu=mupbo2V)
+            ofspbo2V = self.res.wcs.vector_to_global(pqr)
+            mupbo2V = self.res.unmu[:, 1]*ofspbo2V
+            qlocpbo2V = self.res.calc_qloc(mupbo2V, ofs=ofspbo2V)
+            vdotpbo2V = elementwise_dot_product_2d(self.res.qloc, qlocpbo2V)
+            cppbo2V = (-2.0/self.res.speed**2)*vdotpbo2V
+            self._pbo2V = NearFieldResult(self.res, cppbo2V)
         return self._pbo2V
     @property
     def qco2V(self):
         if self._qco2V is None:
             pqr = Vector(0.0, 2*self.res.speed/self.res.sys.cref, 0.0)
-            ofs = self.res.wcs.vector_to_global(pqr)
-            sigqco2V = self.res.unsig[:, 1]*ofs
-            muqco2V = self.res.unmu[:, 1]*ofs
-            self._qco2V = NearFieldResult(self.res, sig=sigqco2V, mu=muqco2V)
+            ofsqco2V = self.res.wcs.vector_to_global(pqr)
+            muqco2V = self.res.unmu[:, 1]*ofsqco2V
+            qlocqco2V = self.res.calc_qloc(muqco2V, ofs=ofsqco2V)
+            vdotqco2V = elementwise_dot_product_2d(self.res.qloc, qlocqco2V)
+            cpqco2V = (-2.0/self.res.speed**2)*vdotqco2V
+            self._qco2V = NearFieldResult(self.res, cpqco2V)
         return self._qco2V
     @property
     def rbo2V(self):
         if self._rbo2V is None:
             pqr = Vector(0.0, 0.0, 2*self.res.speed/self.res.sys.bref)
-            ofs = self.res.wcs.vector_to_global(pqr)
-            sigrbo2V = self.res.unsig[:, 1]*ofs
-            murbo2V = self.res.unmu[:, 1]*ofs
-            self._rbo2V = NearFieldResult(self.res, sig=sigrbo2V, mu=murbo2V)
+            ofsrbo2V = self.res.wcs.vector_to_global(pqr)
+            murbo2V = self.res.unmu[:, 1]*ofsrbo2V
+            qlocrbo2V = self.res.calc_qloc(murbo2V, ofs=ofsrbo2V)
+            vdotrbo2V = elementwise_dot_product_2d(self.res.qloc, qlocrbo2V)
+            cprbo2V = (-2.0/self.res.speed**2)*vdotrbo2V
+            self._rbo2V = NearFieldResult(self.res, cprbo2V)
         return self._rbo2V
     @property
     def pdbo2V(self):
         if self._pdbo2V is None:
-            ofs = Vector(2*self.res.speed/self.res.sys.bref, 0.0, 0.0)
-            sigpdbo2V = self.res.unsig[:, 1]*ofs
-            mupdbo2V = self.res.unmu[:, 1]*ofs
-            self._pbo2V = NearFieldResult(self.res, sig=sigpdbo2V, mu=mupdbo2V)
-        return self._pbo2V
+            ofspdbo2V = Vector(2*self.res.speed/self.res.sys.bref, 0.0, 0.0)
+            mupdbo2V = self.res.unmu[:, 1]*ofspdbo2V
+            qlocpdbo2V = self.res.calc_qloc(mupdbo2V, ofs=ofspdbo2V)
+            vdotpdbo2V = elementwise_dot_product_2d(self.res.qloc, qlocpdbo2V)
+            cppdbo2V = (-2.0/self.res.speed**2)*vdotpdbo2V
+            self._pdbo2V = NearFieldResult(self.res, cppdbo2V)
+        return self._pdbo2V
     @property
     def qdco2V(self):
         if self._qdco2V is None:
-            ofs = Vector(0.0, 2*self.res.speed/self.res.sys.cref, 0.0)
-            sigqdco2V = self.res.unsig[:, 1]*ofs
-            muqdco2V = self.res.unmu[:, 1]*ofs
-            self._qdco2V = NearFieldResult(self.res, sig=sigqdco2V, mu=muqdco2V)
+            ofsqdco2V = Vector(0.0, 2*self.res.speed/self.res.sys.cref, 0.0)
+            muqdco2V = self.res.unmu[:, 1]*ofsqdco2V
+            qlocqdco2V = self.res.calc_qloc(muqdco2V, ofs=ofsqdco2V)
+            vdotqdco2V = elementwise_dot_product_2d(self.res.qloc, qlocqdco2V)
+            cpqdco2V = (-2.0/self.res.speed**2)*vdotqdco2V
+            self._qdco2V = NearFieldResult(self.res, cpqdco2V)
         return self._qdco2V
     @property
     def rdbo2V(self):
         if self._rdbo2V is None:
-            ofs = Vector(0.0, 0.0, 2*self.res.speed/self.res.sys.bref)
-            sigrdbo2V = self.res.unsig[:, 1]*ofs
-            murdbo2V = self.res.unmu[:, 1]*ofs
-            self._rdbo2V = NearFieldResult(self.res, sig=sigrdbo2V, mu=murdbo2V)
+            ofsrdbo2V = Vector(0.0, 0.0, 2*self.res.speed/self.res.sys.bref)
+            murdbo2V = self.res.unmu[:, 1]*ofsrdbo2V
+            qlocrdbo2V = self.res.calc_qloc(murdbo2V, ofs=ofsrdbo2V)
+            vdotrdbo2V = elementwise_dot_product_2d(self.res.qloc, qlocrdbo2V)
+            cprdbo2V = (-2.0/self.res.speed**2)*vdotrdbo2V
+            self._rdbo2V = NearFieldResult(self.res, cprdbo2V)
         return self._rdbo2V
     def neutral_point(self):
         dCzdal = self.alpha.Cz

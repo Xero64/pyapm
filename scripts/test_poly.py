@@ -1,6 +1,6 @@
 #%% Import Dependencies
 from time import perf_counter
-# from math import pi, cos, sin
+from math import pi, cos, sin
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector
 from pyapm.classes.poly import Poly
@@ -10,26 +10,30 @@ from numpy.matlib import absolute
 
 #%% Create Poly
 
-# # Star
-# num = 10
-# thint = 2*pi/num
-# ro = 1.5
-# ri = 0.5
-# th = [thint/2 + i*thint for i in range(num)]
+# Star
+num = 10
+thint = 2*pi/num
+ro = 1.5
+ri = 0.5
+th = [thint/2 + i*thint for i in range(num)]
 
-# grds = [Vector(ro*cos(th[i]), ro*sin(th[i]), 0.0) if i % 2 == 0 else Vector(ri*cos(th[i]), ri*sin(th[i]), 0.0) for i in range(num) ]
+grds = []
+for i in range(num):
+    if i % 2 == 0:
+        grds.append(Vector(ro*cos(th[i]), ro*sin(th[i]), 0.0))
+    else:
+        grds.append(Vector(ri*cos(th[i]), ri*sin(th[i]), 0.0))
 
-# Quadrilateral
-grds = [
-    Vector(-1.0, -1.0, 0.0),
-    Vector(1.0, -1.0, 0.0),
-    Vector(1.0, 1.0, 0.0),
-    Vector(-1.0, 1.0, 0.0)
-]
+# # Quadrilateral
+# grds = [
+#     Vector(-1.0, -1.0, 0.0),
+#     Vector(1.0, -1.0, 0.0),
+#     Vector(1.0, 1.0, 0.0),
+#     Vector(-1.0, 1.0, 0.0)
+# ]
 
 #%% Print Bound Edge
-poly = Poly()
-poly.set_grids(grds)
+poly = Poly(grds)
 
 #%% Mesh Points
 xorg = 0.0

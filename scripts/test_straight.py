@@ -50,23 +50,3 @@ axw = lres.plot_trefftz_wash_distribution(ax=axw)
 #%% MSH File Output
 mshfilepath = '../results/' + psys.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)
-
-#%% Print Outs
-pnl = psys.pnls[2020]
-xg = [grd.x for grd in pnl.grds]
-zg = [grd.z for grd in pnl.grds]
-
-xe = [edgpnt.x for edgpnt in pnl.edgpnts]
-ze = [edgpnt.z for edgpnt in pnl.edgpnts]
-
-from matplotlib.pyplot import figure
-
-fig = figure(figsize=(12, 8))
-ax = fig.gca()
-ax.set_aspect('equal')
-ax.grid(True)
-ax.plot(xg, zg, label='Grid Points')
-ax.plot(xe, ze, label='Edge Points')
-_ = ax.legend()
-
-#%%

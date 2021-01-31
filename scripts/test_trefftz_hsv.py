@@ -1,9 +1,9 @@
 #%% Import Dependencies
+from time import perf_counter
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector
 from pyapm.classes.grid import Grid
 from pyapm.classes.horseshoe import HorseShoe
-from time import perf_counter
 from matplotlib.pyplot import figure
 
 #%% Create Horseshoe Vortex

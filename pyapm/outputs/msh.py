@@ -155,7 +155,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            val = pres.nfres.nfql.x[pnl.ind, 0]
+            val = pres.qloc.x[pnl.ind, 0]
             if pnl.sct is None:
                 if val < minval:
                     minval = val
@@ -185,7 +185,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            val = pres.nfres.nfql.y[pnl.ind, 0]
+            val = pres.qloc.y[pnl.ind, 0]
             if pnl.sct is None:
                 if val < minval:
                     minval = val
@@ -197,26 +197,6 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
         optstr += 'View[{:d}].CustomMin = {:};\n'.format(view, minval)
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
-        optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
-        optstr += 'View[{:d}].Visible = 0;\n'.format(view)
-        view += 1
-        # Panel Normal Velocity
-        mshfile.write('$ElementData\n')
-        mshfile.write('1\n')
-        mshfile.write('"Panel Normal Velocity"\n')
-        mshfile.write('1\n')
-        mshfile.write('0.0\n')
-        mshfile.write('3\n')
-        mshfile.write('0\n')
-        mshfile.write('1\n')
-        mshfile.write('{:d}\n'.format(lenpid))
-        frmstr = '{:d} {:}\n'
-        for pid in pidlst:
-            pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.nfres.nfql.z[pnl.ind, 0]))
-        mshfile.write('$EndElementData\n')
-        optstr += 'View[{:d}].Light = 0;\n'.format(view)
-        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
@@ -235,7 +215,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            val = pres.nfres.nfqt[pnl.ind, 0]
+            val = pres.qs[pnl.ind, 0]
             if pnl.sct is None:
                 if val < minval:
                     minval = val

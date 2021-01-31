@@ -28,6 +28,7 @@ share/python-wheels/
 MANIFEST
 
 # Folders
+validation/
 excel/
 notes/
 symbolic/
