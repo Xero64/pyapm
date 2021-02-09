@@ -47,20 +47,20 @@ for pid in sorted(psys.pnls):
 
 #%% Distribution Plots
 axd = pres.plot_strip_drag_force_distribution()
-_ = axd.set_ylabel('Drag Force [N/m]')
-_ = axd.set_xlabel('Span-Wise Coordinate - y [m]')
+_ = axd.set_ylabel('Drag Force (N/m)')
+_ = axd.set_xlabel('Span-Wise Coordinate - y (m)')
 _ = pres.plot_trefftz_drag_force_distribution(ax=axd)
 axs = pres.plot_strip_side_force_distribution()
-_ = axs.set_ylabel('Side Force [N/m]')
-_ = axs.set_xlabel('Span-Wise Coordinate - y [m]')
+_ = axs.set_ylabel('Side Force (N/m)')
+_ = axs.set_xlabel('Span-Wise Coordinate - y (m)')
 _ = pres.plot_trefftz_side_force_distribution(ax=axs)
 axl = pres.plot_strip_lift_force_distribution()
-_ = axl.set_ylabel('Lift Force [N/m]')
-_ = axl.set_xlabel('Span-Wise Coordinate - y [m]')
+_ = axl.set_ylabel('Lift Force (N/m)')
+_ = axl.set_xlabel('Span-Wise Coordinate - y (m)')
 _ = pres.plot_trefftz_lift_force_distribution(ax=axl)
 axw = pres.plot_trefftz_wash_distribution()
-_ = axw.set_ylabel('Wash [m/s]')
-_ = axw.set_xlabel('Span-Wise Coordinate - y [m]')
+_ = axw.set_ylabel('Wash (m/s)')
+_ = axw.set_xlabel('Span-Wise Coordinate - y (m)')
 
 # #%% Solve Panel Result
 # rho = 1.225

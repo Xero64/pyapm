@@ -16,8 +16,13 @@ def main(jsonfilepath: str='', mdfilepath: str=''):
 
     sysdct['source'] = jsonfilepath
 
+    filetype = None
     if 'type' in sysdct:
         filetype = sysdct['type']
+    elif 'panels' in sysdct and 'grids' in sysdct:
+        filetype = 'mesh'
+    elif 'surfaces' in sysdct:
+        filetype = 'geom'
 
     if filetype == 'geom':
         sys = panelsystem_from_geom(sysdct)

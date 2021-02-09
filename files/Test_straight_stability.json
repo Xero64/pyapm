@@ -7,7 +7,6 @@
     "xref": 0.125,
     "yref": 0.0,
     "zref": 0.0,
-    "type": "geom",
     "surfaces": [
         {
             "name": "Wing",

@@ -1,5 +1,5 @@
 {
-    "name": "Test Twist Sweep",
+    "name": "Test Outboard Dihedral",
     "mach": 0.0,
     "sref": 5.0,
     "cref": 0.5,
@@ -12,25 +12,35 @@
             "name": "Wing",
             "twist": 0.0,
             "mirror": true,
-            "cnum": 16,
+            "cnum": 20,
             "cspc": "cosine",
             "sections": [
                 {
                     "xpos": 0.0,
                     "ypos": 0.0,
                     "zpos": 0.0,
-                    "chord": 0.75,
+                    "chord": 0.5,
                     "twist": 0.0,
-                    "bnum": 50,
+                    "bnum": 30,
+                    "bspc": "semi-cosine",
+                    "airfoil": "NACA 2412"
+                },
+                {
+                    "xpos": 0.0,
+                    "ypos": 3.0,
+                    "zpos": 0.0,
+                    "chord": 0.5,
+                    "twist": 0.0,
+                    "bnum": 30,
                     "bspc": "full-cosine",
                     "airfoil": "NACA 2412"
                 },
                 {
-                    "xpos": 1.5,
+                    "xpos": 0.0,
                     "ypos": 5.0,
-                    "zpos": 0.0,
-                    "chord": 0.25,
-                    "twist": -2.0,
+                    "zpos": 1.0,
+                    "chord": 0.5,
+                    "twist": 0.0,
                     "airfoil": "NACA 2412"
                 }
             ]

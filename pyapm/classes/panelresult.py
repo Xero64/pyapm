@@ -244,7 +244,8 @@ class PanelResult(object):
             self._stres = StabilityResult(self)
         return self._stres
     def plot_strip_lift_force_distribution(self, ax=None, axis: str='b',
-                                           surfaces: list=None, normalise: bool=False):
+                                           surfaces: list=None, normalise: bool=False,
+                                           label: str=None):
         if self.sys.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
@@ -257,28 +258,36 @@ class PanelResult(object):
                 for srfc in self.sys.srfcs:
                     if srfc.name in surfaces:
                         srfcs.append(srfc)
+            onesrfc = len(srfcs) == 1
             for srfc in srfcs:
                 if normalise:
                     l = [self.strpres.lift[strp.ind, 0]/strp.area/self.qfs for strp in srfc.strps]
                 else:
                     l = [self.strpres.lift[strp.ind, 0]/strp.width for strp in srfc.strps]
-                label = self.name+' for '+srfc.name
+                if label is None:
+                    thislabel = self.name+' for '+srfc.name
+                else:
+                    if not onesrfc:
+                        thislabel = label+' for '+srfc.name
+                    else:
+                        thislabel = label
                 if axis == 'b':
                     b = srfc.strpb
                     if max(b) > min(b):
-                        ax.plot(b, l, label=label)
+                        ax.plot(b, l, label=thislabel)
                 elif axis == 'y':
                     y = srfc.strpy
                     if max(y) > min(y):
-                        ax.plot(y, l, label=label)
+                        ax.plot(y, l, label=thislabel)
                 elif axis == 'z':
                     z = srfc.strpz
                     if max(z) > min(z):
-                        ax.plot(l, z, label=label)
+                        ax.plot(l, z, label=thislabel)
             ax.legend()
         return ax
     def plot_strip_side_force_distribution(self, ax=None, axis: str='b',
-                                           surfaces: list=None, normalise: bool=False):
+                                           surfaces: list=None, normalise: bool=False,
+                                           label: str=None):
         if self.sys.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
@@ -291,28 +300,36 @@ class PanelResult(object):
                 for srfc in self.sys.srfcs:
                     if srfc.name in surfaces:
                         srfcs.append(srfc)
+            onesrfc = len(srfcs) == 1
             for srfc in srfcs:
                 if normalise:
                     f = [self.strpres.side[strp.ind, 0]/strp.area/self.qfs for strp in srfc.strps]
                 else:
                     f = [self.strpres.side[strp.ind, 0]/strp.width for strp in srfc.strps]
-                label = self.name+' for '+srfc.name
+                if label is None:
+                    thislabel = self.name+' for '+srfc.name
+                else:
+                    if not onesrfc:
+                        thislabel = label+' for '+srfc.name
+                    else:
+                        thislabel = label
                 if axis == 'b':
                     b = srfc.strpb
                     if max(b) > min(b):
-                        ax.plot(b, f, label=label)
+                        ax.plot(b, f, label=thislabel)
                 elif axis == 'y':
                     y = srfc.strpy
                     if max(y) > min(y):
-                        ax.plot(y, f, label=label)
+                        ax.plot(y, f, label=thislabel)
                 elif axis == 'z':
                     z = srfc.strpz
                     if max(z) > min(z):
-                        ax.plot(f, z, label=label)
+                        ax.plot(f, z, label=thislabel)
             ax.legend()
         return ax
     def plot_strip_drag_force_distribution(self, ax=None, axis: str='b',
-                                           surfaces: list=None, normalise: bool=False):
+                                           surfaces: list=None, normalise: bool=False,
+                                           label: str=None):
         if self.sys.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
@@ -325,28 +342,36 @@ class PanelResult(object):
                 for srfc in self.sys.srfcs:
                     if srfc.name in surfaces:
                         srfcs.append(srfc)
+            onesrfc = len(srfcs) == 1
             for srfc in srfcs:
                 if normalise:
                     d = [self.strpres.drag[strp.ind, 0]/strp.area/self.qfs for strp in srfc.strps]
                 else:
                     d = [self.strpres.drag[strp.ind, 0]/strp.width for strp in srfc.strps]
-                label = self.name + ' for ' + srfc.name
+                if label is None:
+                    thislabel = self.name+' for '+srfc.name
+                else:
+                    if not onesrfc:
+                        thislabel = label+' for '+srfc.name
+                    else:
+                        thislabel = label
                 if axis == 'b':
                     b = srfc.strpb
                     if max(b) > min(b):
-                        ax.plot(b, d, label=label)
+                        ax.plot(b, d, label=thislabel)
                 elif axis == 'y':
                     y = srfc.strpy
                     if max(y) > min(y):
-                        ax.plot(y, d, label=label)
+                        ax.plot(y, d, label=thislabel)
                 elif axis == 'z':
                     z = srfc.strpz
                     if max(z) > min(z):
-                        ax.plot(d, z, label=label)
+                        ax.plot(d, z, label=thislabel)
             ax.legend()
         return ax
     def plot_trefftz_lift_force_distribution(self, ax=None, axis: str='b',
-                                             surfaces: list=None, normalise: bool=False):
+                                             surfaces: list=None, normalise: bool=False,
+                                             label: str=None):
         if self.sys.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
@@ -359,28 +384,36 @@ class PanelResult(object):
                 for srfc in self.sys.srfcs:
                     if srfc.name in surfaces:
                         srfcs.append(srfc)
+            onesrfc = len(srfcs) == 1
             for srfc in srfcs:
                 if normalise:
                     l = [self.ffres.lift[strp.ind, 0]/strp.area/self.qfs for strp in srfc.strps]
                 else:
                     l = [self.ffres.lift[strp.ind, 0]/strp.width for strp in srfc.strps]
-                label = self.name+' for '+srfc.name
+                if label is None:
+                    thislabel = self.name+' for '+srfc.name
+                else:
+                    if not onesrfc:
+                        thislabel = label+' for '+srfc.name
+                    else:
+                        thislabel = label
                 if axis == 'b':
                     b = srfc.strpb
                     if max(b) > min(b):
-                        ax.plot(b, l, label=label)
+                        ax.plot(b, l, label=thislabel)
                 elif axis == 'y':
                     y = srfc.strpy
                     if max(y) > min(y):
-                        ax.plot(y, l, label=label)
+                        ax.plot(y, l, label=thislabel)
                 elif axis == 'z':
                     z = srfc.strpz
                     if max(z) > min(z):
-                        ax.plot(l, z, label=label)
+                        ax.plot(l, z, label=thislabel)
             ax.legend()
         return ax
     def plot_trefftz_side_force_distribution(self, ax=None, axis: str='b',
-                                             surfaces: list=None, normalise: bool=False):
+                                             surfaces: list=None, normalise: bool=False,
+                                             label: str=None):
         if self.sys.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
@@ -393,28 +426,36 @@ class PanelResult(object):
                 for srfc in self.sys.srfcs:
                     if srfc.name in surfaces:
                         srfcs.append(srfc)
+            onesrfc = len(srfcs) == 1
             for srfc in srfcs:
                 if normalise:
                     f = [self.ffres.side[strp.ind, 0]/strp.area/self.qfs for strp in srfc.strps]
                 else:
                     f = [self.ffres.side[strp.ind, 0]/strp.width for strp in srfc.strps]
-                label = self.name+' for '+srfc.name
+                if label is None:
+                    thislabel = self.name+' for '+srfc.name
+                else:
+                    if not onesrfc:
+                        thislabel = label+' for '+srfc.name
+                    else:
+                        thislabel = label
                 if axis == 'b':
                     b = srfc.strpb
                     if max(b) > min(b):
-                        ax.plot(b, f, label=label)
+                        ax.plot(b, f, label=thislabel)
                 elif axis == 'y':
                     y = srfc.strpy
                     if max(y) > min(y):
-                        ax.plot(y, f, label=label)
+                        ax.plot(y, f, label=thislabel)
                 elif axis == 'z':
                     z = srfc.strpz
                     if max(z) > min(z):
-                        ax.plot(f, z, label=label)
+                        ax.plot(f, z, label=thislabel)
             ax.legend()
         return ax
     def plot_trefftz_drag_force_distribution(self, ax=None, axis: str='b',
-                                             surfaces: list=None, normalise: bool=False):
+                                             surfaces: list=None, normalise: bool=False,
+                                             label: str=None):
         if self.sys.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
@@ -427,28 +468,35 @@ class PanelResult(object):
                 for srfc in self.sys.srfcs:
                     if srfc.name in surfaces:
                         srfcs.append(srfc)
+            onesrfc = len(srfcs) == 1
             for srfc in srfcs:
                 if normalise:
                     d = [self.ffres.drag[strp.ind, 0]/strp.area/self.qfs for strp in srfc.strps]
                 else:
                     d = [self.ffres.drag[strp.ind, 0]/strp.width for strp in srfc.strps]
-                label = self.name + ' for ' + srfc.name
+                if label is None:
+                    thislabel = self.name+' for '+srfc.name
+                else:
+                    if not onesrfc:
+                        thislabel = label+' for '+srfc.name
+                    else:
+                        thislabel = label
                 if axis == 'b':
                     b = srfc.strpb
                     if max(b) > min(b):
-                        ax.plot(b, d, label=label)
+                        ax.plot(b, d, label=thislabel)
                 elif axis == 'y':
                     y = srfc.strpy
                     if max(y) > min(y):
-                        ax.plot(y, d, label=label)
+                        ax.plot(y, d, label=thislabel)
                 elif axis == 'z':
                     z = srfc.strpz
                     if max(z) > min(z):
-                        ax.plot(d, z, label=label)
+                        ax.plot(d, z, label=thislabel)
             ax.legend()
         return ax
     def plot_trefftz_wash_distribution(self, ax=None, axis: str='b',
-                                       surfaces: list=None):
+                                       surfaces: list=None, label: str=None):
         if self.sys.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
@@ -461,68 +509,82 @@ class PanelResult(object):
                 for srfc in self.sys.srfcs:
                     if srfc.name in surfaces:
                         srfcs.append(srfc)
+            onesrfc = len(srfcs) == 1
             for srfc in srfcs:
                 w = [self.ffres.wash[strp.ind, 0] for strp in srfc.strps]
                 # wa = [self.ffres.washa[strp.ind, 0] for strp in srfc.strps]
                 # wb = [self.ffres.washb[strp.ind, 0] for strp in srfc.strps]
-                label = self.name + ' for ' + srfc.name
+                if label is None:
+                    thislabel = self.name+' for '+srfc.name
+                else:
+                    if not onesrfc:
+                        thislabel = label+' for '+srfc.name
+                    else:
+                        thislabel = label
                 if axis == 'b':
                     b = srfc.strpb
                     if max(b) > min(b):
-                        ax.plot(b, w, label=label)
-                        # ax.plot(b, wa, label=label)
-                        # ax.plot(b, wb, label=label)
+                        ax.plot(b, w, label=thislabel)
+                        # ax.plot(b, wa, label=thislabel)
+                        # ax.plot(b, wb, label=thislabel)
                 elif axis == 'y':
                     y = srfc.strpy
                     if max(y) > min(y):
-                        ax.plot(y, w, label=label)
-                        # ax.plot(y, wa, label=label)
-                        # ax.plot(y, wb, label=label)
+                        ax.plot(y, w, label=thislabel)
+                        # ax.plot(y, wa, label=thislabel)
+                        # ax.plot(y, wb, label=thislabel)
                 elif axis == 'z':
                     z = srfc.strpz
                     if max(z) > min(z):
-                        ax.plot(w, z, label=label)
-                        # ax.plot(wa, z, label=label)
-                        # ax.plot(wb, z, label=label)
+                        ax.plot(w, z, label=thislabel)
+                        # ax.plot(wa, z, label=thislabel)
+                        # ax.plot(wb, z, label=thislabel)
             ax.legend()
         return ax
     def plot_trefftz_circulation_distribution(self, ax=None, axis: str='b',
-                                              surfaces: list=None):
+                                              surfaces: list=None, label: str=None):
         if self.sys.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
             if surfaces is None:
-                srfcs = [srfc for srfc in self.sys.srfcs]
+                srfcs = self.sys.srfcs
             else:
                 srfcs = []
                 for srfc in self.sys.srfcs:
                     if srfc.name in surfaces:
                         srfcs.append(srfc)
+            onesrfc = len(srfcs) == 1
             for srfc in srfcs:
                 c = [self.ffres.circ[strp.ind, 0] for strp in srfc.strps]
                 # ma = [self.ffres.mua[strp.ind, 0] for strp in srfc.strps]
                 # mb = [self.ffres.mub[strp.ind, 0] for strp in srfc.strps]
-                label = self.name + ' for ' + srfc.name
+                if label is None:
+                    thislabel = self.name+' for '+srfc.name
+                else:
+                    if not onesrfc:
+                        thislabel = label+' for '+srfc.name
+                    else:
+                        thislabel = label
                 if axis == 'b':
                     b = srfc.strpb
                     if max(b) > min(b):
-                        ax.plot(b, c, label=label)
-                        # ax.plot(b, ma, label=label)
-                        # ax.plot(b, mb, label=label)
+                        ax.plot(b, c, label=thislabel)
+                        # ax.plot(b, ma, label=thislabel)
+                        # ax.plot(b, mb, label=thislabel)
                 elif axis == 'y':
                     y = srfc.strpy
                     if max(y) > min(y):
-                        ax.plot(y, c, label=label)
-                        # ax.plot(y, ma, label=label)
-                        # ax.plot(y, mb, label=label)
+                        ax.plot(y, c, label=thislabel)
+                        # ax.plot(y, ma, label=thislabel)
+                        # ax.plot(y, mb, label=thislabel)
                 elif axis == 'z':
                     z = srfc.strpz
                     if max(z) > min(z):
-                        ax.plot(c, z, label=label)
-                        # ax.plot(ma, z, label=label)
-                        # ax.plot(mb, z, label=label)
+                        ax.plot(c, z, label=thislabel)
+                        # ax.plot(ma, z, label=thislabel)
+                        # ax.plot(mb, z, label=thislabel)
             ax.legend()
         return ax
     def to_result(self, name: str=''):
@@ -1007,21 +1069,21 @@ class FarFieldResult(object):
     @property
     def CDi(self):
         if self._CDi is None:
-            Di = self.fffrctot.x
+            Di = self.drag.sum()
             self._CDi = Di/self.res.qfs/self.res.sys.sref
             self._CDi = fix_zero(self._CDi)
         return self._CDi
     @property
     def CY(self):
         if self._CY is None:
-            Y = self.fffrctot.y
+            Y = self.side.sum()
             self._CY = Y/self.res.qfs/self.res.sys.sref
             self._CY = fix_zero(self._CY)
         return self._CY
     @property
     def CL(self):
         if self._CL is None:
-            L = self.fffrctot.z
+            L = self.lift.sum()
             self._CL = L/self.res.qfs/self.res.sys.sref
             self._CL = fix_zero(self._CL)
         return self._CL

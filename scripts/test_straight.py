@@ -22,30 +22,24 @@ display_markdown(pres)
 lres = lsys.results['Test Alpha']
 display_markdown(lres)
 
-#%% Plot Strip Lift Distribution
+#%% Plot Lift Distribution
 axl = None
-axl = pres.plot_strip_lift_force_distribution(ax=axl)
-axl = lres.plot_strip_lift_force_distribution(ax=axl)
-
-#%% Plot Trefftz Lift Distribution
-axl = None
-axl = pres.plot_trefftz_lift_force_distribution(ax=axl)
-axl = lres.plot_trefftz_lift_force_distribution(ax=axl)
+axl = pres.plot_strip_lift_force_distribution(ax=axl, label='pyapm Strip')
+axl = lres.plot_strip_lift_force_distribution(ax=axl, label='pyvlm Strip')
+axl = pres.plot_trefftz_lift_force_distribution(ax=axl, label='pyapm Trefftz')
+axl = lres.plot_trefftz_lift_force_distribution(ax=axl, label='pyvlm Trefftz')
 
 #%% Plot Strip Drag Distribution
 axd = None
-axd = pres.plot_strip_drag_force_distribution(ax=axd)
-axd = lres.plot_strip_drag_force_distribution(ax=axd)
-
-#%% Plot Trefftz Drag Distribution
-axd = None
-axd = pres.plot_trefftz_drag_force_distribution(ax=axd)
-axd = lres.plot_trefftz_drag_force_distribution(ax=axd)
+axd = pres.plot_strip_drag_force_distribution(ax=axd, label='pyapm Strip')
+axd = lres.plot_strip_drag_force_distribution(ax=axd, label='pyvlm Strip')
+axd = pres.plot_trefftz_drag_force_distribution(ax=axd, label='pyapm Trefftz')
+axd = lres.plot_trefftz_drag_force_distribution(ax=axd, label='pyvlm Trefftz')
 
 #%% Plot Wash Distribution
 axw = None
-axw = pres.plot_trefftz_wash_distribution(ax=axw)
-axw = lres.plot_trefftz_wash_distribution(ax=axw)
+axw = pres.plot_trefftz_wash_distribution(ax=axw, label='pyapm Trefftz')
+axw = lres.plot_trefftz_wash_distribution(ax=axw, label='pyvlm Trefftz')
 
 #%% MSH File Output
 mshfilepath = '../results/' + psys.name + '.msh'
