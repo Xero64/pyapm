@@ -8,6 +8,7 @@ from .panelfunction import PanelFunction, panelfunction_from_json
 from .panelsheet import PanelSheet
 from .panelstrip import PanelStrip
 from .panelprofile import PanelProfile
+from ..tools.airfoil import airfoil_interpolation
 
 class PanelSurface(object):
     name: str = None
@@ -171,8 +172,26 @@ def linear_interpolate_none(x: list, y: list):
                     break
             xa, xb = x[a], x[b]
             ya, yb = y[a], y[b]
-            y[i] = (yb-ya)/(xb-xa)*(x[i]-xa)+ya
+            fac = (x[i]-xa)/(xb-xa)
+            y[i] = (yb-ya)*fac+ya
     return y
+
+def linear_interpolate_airfoil(x: list, af: list):
+    for i, afi in enumerate(af):
+        if afi is None:
+            for j in range(i, -1, -1):
+                if af[j] is not None:
+                    a = j
+                    break
+            for j in range(i, len(af)):
+                if af[j] is not None:
+                    b = j
+                    break
+            xa, xb = x[a], x[b]
+            afa, afb = af[a], af[b]
+            fac = (x[i]-xa)/(xb-xa)
+            af[i] = airfoil_interpolation(afa, afb, fac)
+    return af
 
 def panelsurface_from_json(surfdata: dict, display: bool=False):
     name = surfdata['name']
@@ -180,20 +199,25 @@ def panelsurface_from_json(surfdata: dict, display: bool=False):
         mirror = surfdata['mirror']
     else:
         mirror = False
+    if 'cnum' in surfdata:
+        cnum = surfdata['cnum']
     if display: print(f'Loading Surface: {name:s}')
     # Read Section Variables
     sects = []
     for sectdata in surfdata['sections']:
         sect = panelsection_from_json(sectdata)
         sects.append(sect)
+        if sect.airfoil is not None:
+            sect.airfoil.update(cnum)
     # Linear Interpolate Missing Variables
-    x, y, z, c, a = [], [], [], [], []
+    x, y, z, c, a, af = [], [], [], [], [], []
     for sect in sects:
         x.append(sect.point.x)
         y.append(sect.point.y)
         z.append(sect.point.z)
         c.append(sect.chord)
         a.append(sect.twist)
+        af.append(sect.airfoil)
     if None in y:
         if None is z:
             return ValueError
@@ -209,12 +233,14 @@ def panelsurface_from_json(surfdata: dict, display: bool=False):
     x = linear_interpolate_none(b, x)
     c = linear_interpolate_none(b, c)
     a = linear_interpolate_none(b, a)
+    af = linear_interpolate_airfoil(b, af)
     for i, sect in enumerate(sects):
         sect.point.x = x[i]
         sect.point.y = y[i]
         sect.point.z = z[i]
         sect.chord = c[i]
         sect.twist = a[i]
+        sect.airfoil = af[i]
     # Read in Function Data
     funcs = {}
     if 'functions' in surfdata:
@@ -245,7 +271,5 @@ def panelsurface_from_json(surfdata: dict, display: bool=False):
     if 'close' in surfdata:
         close = surfdata['close']
     surf = PanelSurface(name, point, twist, mirror, sects, funcs, close)
-    if 'cnum' in surfdata:
-        cnum = surfdata['cnum']
-        surf.set_chord_spacing(cnum)
+    surf.set_chord_spacing(cnum)
     return surf

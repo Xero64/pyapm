@@ -168,14 +168,17 @@ def panelsection_from_json(sectdata: dict) -> PanelSection:
     point = Vector(xpos, ypos, zpos)
     chord = sectdata['chord']
     airfoilstr = sectdata['airfoil']
-    if airfoilstr[-4:] == '.dat':
-        airfoil = airfoil_from_dat(airfoilstr)
-    elif airfoilstr[0:4].upper() == 'NACA':
-        code = airfoilstr[4:].strip()
-        if len(code) == 4:
-            airfoil = NACA4(code)
+    if airfoilstr is not None:
+        if airfoilstr[-4:] == '.dat':
+            airfoil = airfoil_from_dat(airfoilstr)
+        elif airfoilstr[0:4].upper() == 'NACA':
+            code = airfoilstr[4:].strip()
+            if len(code) == 4:
+                airfoil = NACA4(code)
+        else:
+            return ValueError(f'Airfoil identified by {airfoilstr:s} does not exist.')
     else:
-        return ValueError(f'Airfoil identified by {airfoilstr:s} does not exist.')
+        airfoil = None
     twist = 0.0
     if 'twist' in sectdata:
         twist = sectdata['twist']

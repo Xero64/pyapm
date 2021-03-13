@@ -761,13 +761,14 @@ def panelsystem_from_geom(sysdct: Dict[str, any]):
             for sectdata in surfdata['sections']:
                 if 'airfoil' in sectdata:
                     airfoil = sectdata['airfoil']
-                    if airfoil[-4:] == '.dat':
-                        airfoil = join(path, airfoil)
-                        if not exists(airfoil):
-                            print(f'Airfoil {airfoil} does not exist.')
-                            del sectdata['airfoil']
-                        else:
-                            sectdata['airfoil'] = airfoil
+                    if airfoil is not None:
+                        if airfoil[-4:] == '.dat':
+                            airfoil = join(path, airfoil)
+                            if not exists(airfoil):
+                                print(f'Airfoil {airfoil} does not exist.')
+                                del sectdata['airfoil']
+                            else:
+                                sectdata['airfoil'] = airfoil
 
     srfcs = []
     for surfdata in sysdct['surfaces']:

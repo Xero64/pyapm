@@ -102,7 +102,7 @@ class Airfoil(object):
                 if self.shift:
                     self._ysp = [yi-self.yle for yi in self.yin]
                 else:
-                    self._ysp = [yi for yi in self.yin]                
+                    self._ysp = [yi for yi in self.yin]
         return self._ysp
     @property
     def spline(self):
@@ -146,7 +146,7 @@ class Airfoil(object):
     def x(self):
         if self._x is None:
             self.interpolate_spline()
-        return self._x    
+        return self._x
     @property
     def y(self):
         if self._y is None:
@@ -204,4 +204,11 @@ def airfoil_from_dat(datfilepath: str):
                 if len(split) == 2:
                     x.append(float(split[0]))
                     y.append(float(split[1]))
+    return Airfoil(name, x, y)
+
+def airfoil_interpolation(airfoila, airfoilb, fac: float):
+    print(fac)
+    x = [xai*(1-fac) + xbi*fac for xai, xbi in zip(airfoila.x, airfoilb.x)]
+    y = [yai*(1-fac) + ybi*fac for yai, ybi in zip(airfoila.y, airfoilb.y)]
+    name = 'Interpolated from ' + airfoila.name + ' and ' + airfoilb.name
     return Airfoil(name, x, y)
