@@ -13,6 +13,7 @@ class PanelSheet(object):
     scta: PanelSection = None
     sctb: PanelSection = None
     fncs: Dict[str, PanelFunction] = None
+    _ruled: bool = None
     _noload: bool = None
     _nomesh: bool = None
     _nohsv: bool = None
@@ -37,6 +38,14 @@ class PanelSheet(object):
         if self._mirror is None:
             self._mirror = self.scta.mirror
         return self._mirror
+    @property
+    def ruled(self) -> bool:
+        if self._ruled is None:
+            if self.mirror:
+                self._ruled = self.sctb.ruled
+            else:
+                self._ruled = self.scta.ruled
+        return self._ruled
     @property
     def noload(self) -> bool:
         if self._noload is None:
@@ -128,6 +137,8 @@ class PanelSheet(object):
                 prf.bval = bd
                 prf.bpos = bpos
                 prf.nohsv = self.nohsv
+                if self.ruled:
+                    prf.set_ruled_twist()
                 self._prfs.append(prf)
         return self._prfs
     @property

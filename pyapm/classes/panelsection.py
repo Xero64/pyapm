@@ -21,6 +21,7 @@ class PanelSection(PanelProfile):
     shta: object = None
     shtb: object = None
     pnls: List[Panel] = None
+    ruled: bool = None
     noload: bool = None
     nomesh: bool = None
     _thkcor: float = None

@@ -233,9 +233,14 @@ def panelsurface_from_json(surfdata: dict, display: bool=False):
     twist = 0.0
     if 'twist' in surfdata:
         twist = surfdata['twist']
+    if 'ruled' in surfdata:
+        ruled = surfdata['ruled']
+    else:
+        ruled = False
     for sect in sects:
         sect.offset_position(xpos, ypos, zpos)
         sect.offset_twist(twist)
+        sect.ruled = ruled
     close = True
     if 'close' in surfdata:
         close = surfdata['close']
