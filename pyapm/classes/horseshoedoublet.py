@@ -3,6 +3,9 @@ from pygeom.geom3d import Vector
 from pygeom.matrix3d import MatrixVector, elementwise_divide, zero_matrix_vector
 from numpy.matlib import matrix, zeros, multiply, divide, arctan, ones, absolute, square
 from .dirichletpoly import phi_doublet_matrix, vel_doublet_matrix
+from numpy import seterr
+
+seterr(divide='ignore')
 
 tol = 1e-12
 piby2 = pi/2

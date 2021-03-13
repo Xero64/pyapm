@@ -325,6 +325,31 @@ class Panel(DirichletPoly):
             for ind, fac in zip(self.grdinds[i], self.grdfacs[i]):
                 grdres[i] += pnlres[ind, 0]*fac
         return grdres
+    def point_res(self, pnlres: matrix, pnt: Vector):
+        vecg = pnt - self.pnto
+        gres = self.grid_res(pnlres)
+        pres = pnlres[self.ind, 0]
+        for i in range(self.num):
+            dirx = self.dirxab[0, i]
+            diry = self.diryab[0, i]
+            dirz = self.dirzab[0, i]
+            vecl = Vector(vecg*dirx, vecg*diry, vecg*dirz)
+            ainv = self.baryinv[i]
+            bmat = matrix([[1.0], [vecl.x], [vecl.y]])
+            tmat = ainv*bmat
+            to, ta, tb = tmat[0, 0], tmat[1, 0], tmat[2, 0]
+            check = True
+            if to > 1.0 or to < 0.0:
+                check = False
+            if ta > 1.0 or ta < 0.0:
+                check = False
+            if tb > 1.0 or tb < 0.0:
+                check = False
+            if check:
+                ro, ra, rb = pres, gres[i-1], gres[i]
+                r = ro*to + ra*ta + rb*tb
+                break
+        return r
     def __repr__(self):
         return f'<pyapm.Panel {self.pid:d}>'
 

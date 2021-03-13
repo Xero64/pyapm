@@ -713,7 +713,7 @@ class PanelResult(object):
             table.add_column('Cl', cfrm, data=[self.nfres.Cl])
             table.add_column('Cm', cfrm, data=[self.nfres.Cm])
             table.add_column('Cn', cfrm, data=[self.nfres.Cn])
-            table.add_column('e', efrm, data=[self.nfres.e])
+            # table.add_column('e', efrm, data=[self.nfres.e])
             # if self.sys.cdo != 0.0:
             #     lod = self.nfres.CL/(self.pdres.CDo+self.nfres.CDi)
             #     table.add_column('L/D', '.5g', data=[lod])
@@ -1484,7 +1484,7 @@ def panelresult_from_dict(psys: object, resdata: dict):
         #     pres.ctrls[key] = resdata[key]
         elif key == 'rcg':
             rcgdata = resdata[key]
-            rcg = Point(rcgdata['x'], rcgdata['y'], rcgdata['z'])
+            rcg = Vector(rcgdata['x'], rcgdata['y'], rcgdata['z'])
             pres.set_cg(rcg)
     psys.results[name] = pres
     return pres
