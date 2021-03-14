@@ -999,11 +999,12 @@ class FarFieldResult(object):
             num = len(sys.strps)
             self._circ = zeros((num, 1), dtype=float)
             for i, strp in enumerate(sys.strps):
-                pnla = strp.pnls[0]
-                pnlb = strp.pnls[-1]
-                mua = self.res.mu[pnla.ind]
-                mub = self.res.mu[pnlb.ind]
-                self._circ[i, 0] = mua-mub
+                if not strp.nohsv:
+                    pnla = strp.pnls[0]
+                    pnlb = strp.pnls[-1]
+                    mua = self.res.mu[pnla.ind]
+                    mub = self.res.mu[pnlb.ind]
+                    self._circ[i, 0] = mua-mub
         return self._circ
     @property
     def wash(self):
@@ -1012,20 +1013,21 @@ class FarFieldResult(object):
             num = len(sys.strps)
             self._wash = zeros((num, 1), dtype=float)
             for i, strp in enumerate(sys.strps):
-                pnla = strp.pnls[0]
-                pnlb = strp.pnls[-1]
-                pinda = pnla.ind
-                pindb = pnlb.ind
-                hindsa = sys.phind[pinda]
-                hindsb = sys.phind[pindb]
-                cnt = 0
-                for hind in hindsa:
-                    cnt += 1
-                    self._wash[i, 0] -= self.ffwsh[hind, 0]
-                for hind in hindsb:
-                    cnt += 1
-                    self._wash[i, 0] += self.ffwsh[hind, 0]
-                self._wash[i, 0] = self._wash[i, 0]/cnt
+                if not strp.nohsv:
+                    pnla = strp.pnls[0]
+                    pnlb = strp.pnls[-1]
+                    pinda = pnla.ind
+                    pindb = pnlb.ind
+                    hindsa = sys.phind[pinda]
+                    hindsb = sys.phind[pindb]
+                    cnt = 0
+                    for hind in hindsa:
+                        cnt += 1
+                        self._wash[i, 0] -= self.ffwsh[hind, 0]
+                    for hind in hindsb:
+                        cnt += 1
+                        self._wash[i, 0] += self.ffwsh[hind, 0]
+                    self._wash[i, 0] = self._wash[i, 0]/cnt
         return self._wash
     @property
     def drag(self):
@@ -1043,16 +1045,17 @@ class FarFieldResult(object):
             num = len(sys.strps)
             self._side = zeros((num, 1), dtype=float)
             for i, strp in enumerate(sys.strps):
-                pnla = strp.pnls[0]
-                pnlb = strp.pnls[-1]
-                pinda = pnla.ind
-                pindb = pnlb.ind
-                hindsa = sys.phind[pinda]
-                hindsb = sys.phind[pindb]
-                for hind in hindsa:
-                    self._side[i, 0] += self.fffrc[hind, 0].y
-                for hind in hindsb:
-                    self._side[i, 0] += self.fffrc[hind, 0].y
+                if not strp.nohsv:
+                    pnla = strp.pnls[0]
+                    pnlb = strp.pnls[-1]
+                    pinda = pnla.ind
+                    pindb = pnlb.ind
+                    hindsa = sys.phind[pinda]
+                    hindsb = sys.phind[pindb]
+                    for hind in hindsa:
+                        self._side[i, 0] += self.fffrc[hind, 0].y
+                    for hind in hindsb:
+                        self._side[i, 0] += self.fffrc[hind, 0].y
         return self._side
     @property
     def lift(self):
@@ -1061,16 +1064,17 @@ class FarFieldResult(object):
             num = len(sys.strps)
             self._lift = zeros((num, 1), dtype=float)
             for i, strp in enumerate(sys.strps):
-                pnla = strp.pnls[0]
-                pnlb = strp.pnls[-1]
-                pinda = pnla.ind
-                pindb = pnlb.ind
-                hindsa = sys.phind[pinda]
-                hindsb = sys.phind[pindb]
-                for hind in hindsa:
-                    self._lift[i, 0] += self.fffrc[hind, 0].z
-                for hind in hindsb:
-                    self._lift[i, 0] += self.fffrc[hind, 0].z
+                if not strp.nohsv:
+                    pnla = strp.pnls[0]
+                    pnlb = strp.pnls[-1]
+                    pinda = pnla.ind
+                    pindb = pnlb.ind
+                    hindsa = sys.phind[pinda]
+                    hindsb = sys.phind[pindb]
+                    for hind in hindsa:
+                        self._lift[i, 0] += self.fffrc[hind, 0].z
+                    for hind in hindsb:
+                        self._lift[i, 0] += self.fffrc[hind, 0].z
         return self._lift
     @property
     def CDi(self):

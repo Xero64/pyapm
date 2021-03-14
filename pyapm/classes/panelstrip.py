@@ -24,6 +24,9 @@ class PanelStrip(object):
     @property
     def noload(self):
         return self.sht.noload
+    @property
+    def nohsv(self):
+        return self.sht.nohsv
     def mesh_panels(self, pid: int):
         num = len(self.prfa.grds)-1
         self.pnls = []
@@ -34,7 +37,6 @@ class PanelStrip(object):
             grd4 = self.prfb.grds[i]
             grds = [grd1, grd2, grd3, grd4]
             pnl = Panel(pid, grds)
-            pnl.noload = self.noload
             self.pnls.append(pnl)
             pid += 1
         return pid

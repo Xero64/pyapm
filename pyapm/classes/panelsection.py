@@ -1,10 +1,11 @@
 from math import cos, radians
-from typing import List
+from typing import List, Dict
 from numpy.matlib import absolute
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector
 from .panel import Panel
 from .panelprofile import PanelProfile
+from .panelcontrol import PanelControl, panelcontrol_from_dict
 from ..tools.airfoil import airfoil_from_dat
 from ..tools.naca4 import NACA4
 
@@ -24,6 +25,7 @@ class PanelSection(PanelProfile):
     ruled: bool = None
     noload: bool = None
     nomesh: bool = None
+    ctrls: Dict[str, PanelControl] = None
     _thkcor: float = None
     _scttyp: str = None
     def __init__(self, point: Vector, chord: float, twist: float, airfoil: object):
@@ -40,6 +42,7 @@ class PanelSection(PanelProfile):
         self.nohsv = False
         self.xoc = 0.0
         self.zoc = 0.0
+        self.ctrls = {}
     def mirror_section_in_y(self, ymir: float=0.0):
         point = Vector(self.point.x, ymir-self.point.y, self.point.z)
         chord = self.chord
@@ -66,6 +69,8 @@ class PanelSection(PanelProfile):
         self.point.z = self.point.z + zpos
     def offset_twist(self, twist: float):
         self.twist = self.twist+twist
+    def add_control(self, ctrl: PanelControl):
+        self.ctrls[ctrl.name] = ctrl
     @property
     def tilt(self):
         if self._tilt is None:
@@ -153,7 +158,6 @@ class PanelSection(PanelProfile):
                     if grd not in pnlgrds:
                         pnlgrds.append(grd)
                 pnl = Panel(pid, pnlgrds)
-                pnl.noload = noload
                 pnl.sct = self
                 self.pnls.append(pnl)
                 pid += 1
@@ -199,4 +203,8 @@ def panelsection_from_json(sectdata: dict) -> PanelSection:
         sect.nomesh = sectdata['nomesh']
     if 'nohsv' in sectdata:
         sect.nohsv = sectdata['nohsv']
+    if 'controls' in sectdata:
+        for name in sectdata['controls']:
+            ctrl = panelcontrol_from_dict(name, sectdata['controls'][name])
+            sect.add_control(ctrl)
     return sect

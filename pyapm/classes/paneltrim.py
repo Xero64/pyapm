@@ -192,6 +192,7 @@ class PanelTrim(PanelResult):
         Ccur = self.current_Cmat()
         Cdff = Ctgt-Ccur
         nrmC = norm(Cdff)
+        ctrls = {}
         if display:
             print(f'normC = {nrmC}')
         i = 0
@@ -212,7 +213,6 @@ class PanelTrim(PanelResult):
             else:
                 beta = degrees(Dcur[1, 0])
             if self.trmmom:
-                ctrls = {}
                 c = 0
                 for control in self.ctrls:
                     ctrls[control] = degrees(Dcur[2+c, 0])

@@ -5,6 +5,7 @@ from .panelsection import PanelSection
 from .panelstrip import PanelStrip
 from .panelprofile import PanelProfile
 from .panelfunction import PanelFunction
+from .panelcontrol import PanelControl
 from .grid import Grid
 from .panel import Panel
 from ..tools import equal_spacing, semi_cosine_spacing, full_cosine_spacing
@@ -27,6 +28,7 @@ class PanelSheet(object):
     _area: float = None
     grds: List[Grid] = None
     pnls: List[Panel] = None
+    ctrls: Dict[str, PanelControl] = None
     def __init__(self, scta: PanelSection, sctb: PanelSection):
         self.scta = scta
         self.scta.shtb = self
@@ -186,5 +188,34 @@ class PanelSheet(object):
                     pnl.sht = self
                     self.pnls.append(pnl)
         return pid
+    def inherit_controls(self):
+        self.ctrls = {}
+        if self.mirror:
+            for control in self.sect2.ctrls:
+                ctrl = self.sect2.ctrls[control]
+                newctrl = ctrl.duplicate(mirror=True)
+                self.ctrls[control] = newctrl
+        else:
+            for control in self.sect1.ctrls:
+                ctrl = self.sect1.ctrls[control]
+                newctrl = ctrl.duplicate(mirror=False)
+                self.ctrls[control] = newctrl
+        for control in self.ctrls:
+            ctrl = self.ctrls[control]
+            if ctrl.uhvec.return_magnitude() == 0.0:
+                pnt1 = self.sect1.pnt
+                crd1 = self.sect1.chord
+                pnta = pnt1+crd1*ihat*ctrl.xhinge
+                pnt2 = self.sect2.pnt
+                crd2 = self.sect2.chord
+                pntb = pnt2+crd2*ihat*ctrl.xhinge
+                hvec = pntb-pnta
+                ctrl.set_hinge_vector(hvec)
+    def set_control_panels(self):
+        for control in self.ctrls:
+            ctrl = self.ctrls[control]
+            for pnl in self.pnls:
+                if pnl.cspc[3] >= ctrl.xhinge: # Needs fixing
+                    ctrl.add_panel(pnl)
     def __repr__(self):
         return '<PanelSheet>'

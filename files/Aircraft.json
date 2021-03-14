@@ -13,6 +13,7 @@
             "name": "Wing",
             "twist": 0.0,
             "mirror": true,
+            "close": false,
             "cnum": 8,
             "cspc": "cosine",
             "xpos": 0.875,
@@ -28,7 +29,8 @@
                     "bnum": 6,
                     "bspc": "semi-cosine",
                     "airfoil": "NACA 2412",
-                    "noload": true
+                    "noload": true,
+                    "nohsv": true
                 },
                 {
                     "xpos": null,
@@ -82,6 +84,7 @@
         {
             "name": "Horizontal Tail",
             "mirror": true,
+            "close": false,
             "cnum": 8,
             "cspc": "cosine",
             "xpos": 2.3,
@@ -118,6 +121,7 @@
         },
         {
             "name": "Vertical Tail",
+            "close": false,
             "twist": 0.0,
             "cnum": 5,
             "cspc": "cosine",

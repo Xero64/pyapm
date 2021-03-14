@@ -32,9 +32,9 @@ axy = ptrm.plot_strip_side_force_distribution(ax=axy)
 axd = ptrm.plot_trefftz_drag_force_distribution()
 axd = ptrm.plot_strip_drag_force_distribution(ax=axd)
 
-#%% Trim CL to 0.8
-CLt = 0.8
-CYt = 0.0
+#%% Trim CL and CY
+CLt = 0.2
+CYt = 0.02
 
 ptrm2 = PanelTrim(f'CL = {CLt}, CY = {CYt}', psys)
 ptrm2.set_targets(CLt = CLt, CYt = CYt)
@@ -42,3 +42,6 @@ ptrm2.set_trim_loads(trmmom=False)
 ptrm2.trim()
 
 display_markdown(ptrm2)
+display_markdown(ptrm2.surface_loads)
+
+# %%

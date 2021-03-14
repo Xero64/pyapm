@@ -13,7 +13,6 @@ class Panel(DirichletPoly):
     pid: int = None
     gids: List[int] = None
     ind: int = None
-    noload: bool = None
     grp: object = None
     sht: object = None
     sct: object = None
@@ -34,18 +33,38 @@ class Panel(DirichletPoly):
     def __init__(self, pid: int, grds: List[Grid]):
         super().__init__(grds)
         self.pid = pid
-        self.noload = False
         for grd in self.grds:
             grd.pnls.append(self)
     def set_index(self, ind: int):
         self.ind = ind
+    @property
+    def noload(self):
+        noload = False
+        if self.sht is not None:
+            noload = self.sht.noload
+        if self.sct is not None:
+            noload = self.sct.noload
+        if self.grp is not None:
+            noload = self.grp.noload
+        return noload
+    @property
+    def nohsv(self):
+        nohsv = False
+        if self.sht is not None:
+            nohsv = self.sht.nohsv
+        if self.sct is not None:
+            nohsv = self.sct.nohsv
+        if self.grp is not None:
+            nohsv = self.grp.nohsv
+        return nohsv
     def set_horseshoes(self, diro: Vector):
         self._hsvs = []
-        for i in range(self.num):
-            grda = self.grds[i]
-            grdb = self.grds[i-1]
-            if grda.te and grdb.te:
-                self._hsvs.append(HorseshoeDoublet(grda, grdb, diro, self.ind))
+        if not self.nohsv:
+            for i in range(self.num):
+                grda = self.grds[i]
+                grdb = self.grds[i-1]
+                if grda.te and grdb.te:
+                    self._hsvs.append(HorseshoeDoublet(grda, grdb, diro, self.ind))
     def check_panel(self, pnl):
         if pnl.grp is not None and self.grp is not None:
             grpchk = pnl.grp == self.grp
@@ -90,12 +109,7 @@ class Panel(DirichletPoly):
     @property
     def hsvs(self):
         if self._hsvs is None:
-            self._hsvs = []
-            for i in range(self.num):
-                grda = self.grds[i]
-                grdb = self.grds[i-1]
-                if grda.te and grdb.te:
-                    self._hsvs.append(HorseshoeDoublet(grda, grdb, ihat, self.ind))
+            self.set_horseshoes(ihat)
         return self._hsvs
     @property
     def area(self):
