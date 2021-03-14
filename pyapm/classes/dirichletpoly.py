@@ -11,6 +11,7 @@ seterr(divide='ignore')
 
 tol = 1e-12
 piby2 = pi/2
+twoPi = 2*pi
 fourPi = 4*pi
 
 class DirichletPoly(object):
@@ -249,7 +250,7 @@ class DirichletPoly(object):
             # Vector B Doublet Velocity Potentials
             ms = divide(blcs.x, blcs.y)
             th -= arctan(ms)
-        th[absolute(th) < tol] = 0.0
+        th = th/twoPi
         return th, absz
 
 def phi_doublet_matrix(vecs: MatrixVector, sgnz: matrix):

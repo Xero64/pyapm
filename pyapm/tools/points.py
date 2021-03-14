@@ -4,7 +4,7 @@ from numpy.matlib import zeros, argmin, array, arange, logical_not, matrix
 from ..classes.panelsystem import PanelSystem
 from ..classes.panel import Panel
 
-def fetch_pids(pnts: MatrixVector, psys: PanelSystem, ztol: float=0.1):
+def fetch_pids(pnts: MatrixVector, psys: PanelSystem, ztol: float=0.1, thtol: float=0.1):
     shp = pnts.shape
     pnts = pnts.reshape((-1, 1))
     numpnt = pnts.shape[0]
@@ -15,7 +15,7 @@ def fetch_pids(pnts: MatrixVector, psys: PanelSystem, ztol: float=0.1):
     for pnl in psys.pnls.values():
         pidm[0, pnl.ind] = pnl.pid
         thm[:, pnl.ind], abszm[:, pnl.ind] = pnl.within_and_absz(pnts[:, 0])
-    abszm[thm == 0.0] = float('inf')
+    abszm[thm < thtol] = float('inf')
     minm = argmin(abszm, axis=1)
     minm = array(minm).flatten()
     pidm = array(pidm).flatten()
