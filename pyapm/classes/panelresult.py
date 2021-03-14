@@ -25,6 +25,7 @@ class PanelResult(object):
     pbo2V: float = None
     qco2V: float = None
     rbo2V: float = None
+    ctrls = None
     rcg: Vector = None
     _acs: Coordinate = None
     _wcs: Coordinate = None
@@ -60,6 +61,7 @@ class PanelResult(object):
         self.pbo2V = 0.0
         self.qco2V = 0.0
         self.rbo2V = 0.0
+        self.ctrls = {}
         self.rcg = self.sys.rref
     def reset(self):
         for attr in self.__dict__:
@@ -86,6 +88,10 @@ class PanelResult(object):
             self.qco2V = qco2V
         if rbo2V is not None:
             self.rbo2V = rbo2V
+        self.reset()
+    def set_controls(self, **kwargs):
+        for control in kwargs:
+            self.ctrls[control] = kwargs[control]
         self.reset()
     def set_cg(self, rcg: Vector):
         self.rcg = rcg

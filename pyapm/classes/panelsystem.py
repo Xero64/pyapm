@@ -13,7 +13,9 @@ from .grid import Grid
 from .horseshoe import HorseShoe
 from .panelsurface import panelsurface_from_json, PanelSurface
 from .panelresult import panelresult_from_dict
+from .paneltrim import paneltrim_from_dict
 from ..tools import betm_from_mach
+from ..tools.mass import masses_from_json
 
 class PanelSystem(object):
     name: str = None
@@ -23,8 +25,10 @@ class PanelSystem(object):
     cref: float = None
     sref: float = None
     rref: float = None
+    ctrls = None
     srfcs = None
     results = None
+    masses = None
     source: str = None
     _hsvs: List[HorseShoe] = None
     _numgrd: int = None
@@ -68,6 +72,7 @@ class PanelSystem(object):
         self.cref = cref
         self.sref = sref
         self.rref = rref
+        self.ctrls = {}
         self.results = {}
     def set_mesh(self, grds: Dict[int, Grid], pnls: Dict[int, Panel]):
         self.grds = grds
@@ -744,6 +749,17 @@ def panelsystem_from_mesh(sysdct: Dict[str, any]):
     psys = PanelSystem(name, bref, cref, sref, rref)
     psys.set_mesh(grds, pnls)
 
+    masses = {}
+    if 'masses' in sysdct:
+        if isinstance(sysdct['masses'], list):
+            masses = masses_from_data(sysdct['masses'])
+        elif isinstance(sysdct['masses'], str):
+            if sysdct['masses'][-5:] == '.json':
+                massfilename = sysdct['masses']
+                massfilepath = join(path, massfilename)
+            masses = masses_from_json(massfilepath)
+    psys.masses = masses
+
     if 'cases' in sysdct and sysdct:
         panelresults_from_dict(psys, sysdct['cases'])
 
@@ -786,6 +802,17 @@ def panelsystem_from_geom(sysdct: Dict[str, any]):
     psys = PanelSystem(name, bref, cref, sref, rref)
     psys.set_geom(srfcs)
 
+    masses = {}
+    if 'masses' in sysdct:
+        if isinstance(sysdct['masses'], list):
+            masses = masses_from_data(sysdct['masses'])
+        elif isinstance(sysdct['masses'], str):
+            if sysdct['masses'][-5:] == '.json':
+                massfilename = sysdct['masses']
+                massfilepath = join(path, massfilename)
+            masses = masses_from_json(massfilepath)
+    psys.masses = masses
+
     if 'cases' in sysdct and sysdct:
         panelresults_from_dict(psys, sysdct['cases'])
 
@@ -798,7 +825,7 @@ def panelresults_from_dict(psys: PanelSystem, cases: dict):
 
     for i in range(len(cases)):
         resdata = cases[i]
-        # if 'trim' in resdata:
-        #     latticetrim_from_json(lsys, resdata)
-        # else:
-        panelresult_from_dict(psys, resdata)
+        if 'trim' in resdata:
+            paneltrim_from_dict(psys, resdata)
+        else:
+            panelresult_from_dict(psys, resdata)

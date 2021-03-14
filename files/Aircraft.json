@@ -1,0 +1,169 @@
+{
+    "name": "Aircraft",
+    "mach": 0.0,
+    "sref": 1.358,
+    "cref": 0.31,
+    "bref": 4.5,
+    "xref": 1.175,
+    "yref": 0.0,
+    "zref": 0.0,
+    "masses": "Aircraft_Mass.json",
+    "surfaces": [
+        {
+            "name": "Wing",
+            "twist": 0.0,
+            "mirror": true,
+            "cnum": 8,
+            "cspc": "cosine",
+            "xpos": 0.875,
+            "ypos": 0.0,
+            "zpos": 0.0,
+            "sections": [
+                {
+                    "xpos": 0.0,
+                    "ypos": 0.0,
+                    "zpos": 0.0,
+                    "chord": 0.35,
+                    "twist": 0.0,
+                    "bnum": 6,
+                    "bspc": "semi-cosine",
+                    "airfoil": "NACA 2412",
+                    "noload": true
+                },
+                {
+                    "xpos": null,
+                    "ypos": 0.21,
+                    "zpos": null,
+                    "chord": 0.35,
+                    "twist": 0.0,
+                    "bnum": 10,
+                    "bspc": "semi-cosine",
+                    "airfoil": "NACA 2412"
+                },
+                {
+                    "xpos": null,
+                    "ypos": 0.8,
+                    "zpos": null,
+                    "chord": null,
+                    "twist": null,
+                    "bnum": 40,
+                    "bspc": "semi-cosine",
+                    "airfoil": "NACA 2412"
+                },
+                {
+                    "xpos": null,
+                    "ypos": 1.8,
+                    "zpos": null,
+                    "chord": null,
+                    "twist": null,
+                    "bnum": 30,
+                    "bspc": "cosine",
+                    "airfoil": "NACA 2412",
+                    "controls": {
+                        "aileron": {
+                            "xhinge": 0.8,
+                            "posgain": 1.0,
+                            "neggain": 0.8,
+                            "reverse": true,
+                            "hvec": {"x": 0.0, "y": 0.0, "z": 0.0}
+                        }
+                    }
+                },
+                {
+                    "xpos": 0.3,
+                    "ypos": 2.25,
+                    "zpos": 0.0,
+                    "chord": 0.2,
+                    "twist": -1.5,
+                    "airfoil": "NACA 2412"
+                }
+            ]
+        },
+        {
+            "name": "Horizontal Tail",
+            "mirror": true,
+            "cnum": 8,
+            "cspc": "cosine",
+            "xpos": 2.3,
+            "ypos": 0.0,
+            "zpos": 0.2,
+            "twist": -1.8,
+            "sections": [
+                {
+                    "xpos": 0.0,
+                    "ypos": 0.0,
+                    "zpos": 0.0,
+                    "chord": 0.22,
+                    "bnum": 25,
+                    "bspc": "semi-cosine",
+                    "airfoil": "NACA 0012",
+                    "controls": {
+                        "elevator": {
+                            "xhinge": 0.7,
+                            "posgain": 1.0,
+                            "neggain": 1.0,
+                            "reverse": false,
+                            "hvec": {"x": 0.0, "y": 0.0, "z": 0.0}
+                        }
+                    }
+                },
+                {
+                    "xpos": 0.1,
+                    "ypos": 0.7,
+                    "zpos": 0.0,
+                    "chord": 0.18,
+                    "airfoil": "NACA 0012"
+                }
+            ]
+        },
+        {
+            "name": "Vertical Tail",
+            "twist": 0.0,
+            "cnum": 5,
+            "cspc": "cosine",
+            "xpos": 2.3,
+            "ypos": 0.0,
+            "zpos": 0.22,
+            "sections": [
+                {
+                    "xpos": 0.0,
+                    "ypos": 0.0,
+                    "zpos": 0.0,
+                    "chord": 0.25,
+                    "twist": 0.0,
+                    "bnum": 30,
+                    "bspc": "cosine",
+                    "airfoil": "NACA 0012",
+                    "controls": {
+                        "rudder": {
+                            "xhinge": 0.7,
+                            "posgain": 1.0,
+                            "neggain": 1.0,
+                            "reverse": false,
+                            "hvec": {"x": 0.0, "y": 0.0, "z": 0.0}
+                        }
+                    }
+                },
+                {
+                    "xpos": 0.1,
+                    "ypos": 0.0,
+                    "zpos": 0.4,
+                    "chord": 0.15,
+                    "twist": 0.0,
+                    "airfoil": "NACA 0012"
+                }
+            ]
+        }
+    ],
+    "cases": [
+        {
+            "name": "Positive 1g Cruise",
+            "trim": "Looping Trim",
+            "density": 0.945,
+            "speed": 25.0,
+            "mass": 20.0,
+            "load factor": 1.0,
+            "trim lift": true
+        }
+    ]
+}
