@@ -207,7 +207,6 @@ def airfoil_from_dat(datfilepath: str):
     return Airfoil(name, x, y)
 
 def airfoil_interpolation(airfoila, airfoilb, fac: float):
-    print(fac)
     x = [xai*(1-fac) + xbi*fac for xai, xbi in zip(airfoila.x, airfoilb.x)]
     y = [yai*(1-fac) + ybi*fac for yai, ybi in zip(airfoila.y, airfoilb.y)]
     name = 'Interpolated from ' + airfoila.name + ' and ' + airfoilb.name

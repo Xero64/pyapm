@@ -343,6 +343,7 @@ class Panel(DirichletPoly):
         vecg = pnt - self.pnto
         gres = self.grid_res(pnlres)
         pres = pnlres[self.ind, 0]
+        r = 0.0
         for i in range(self.num):
             dirx = self.dirxab[0, i]
             diry = self.diryab[0, i]

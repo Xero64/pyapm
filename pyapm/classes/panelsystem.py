@@ -752,12 +752,12 @@ def panelsystem_from_mesh(sysdct: Dict[str, any]):
     masses = {}
     if 'masses' in sysdct:
         if isinstance(sysdct['masses'], list):
-            masses = masses_from_data(sysdct['masses'])
-        elif isinstance(sysdct['masses'], str):
-            if sysdct['masses'][-5:] == '.json':
-                massfilename = sysdct['masses']
-                massfilepath = join(path, massfilename)
-            masses = masses_from_json(massfilepath)
+            masses = masses_from_json(sysdct['masses'])
+        # elif isinstance(sysdct['masses'], str):
+        #     if sysdct['masses'][-5:] == '.json':
+        #         massfilename = sysdct['masses']
+        #         massfilepath = join(path, massfilename)
+        #     masses = masses_from_json(massfilepath)
     psys.masses = masses
 
     if 'cases' in sysdct and sysdct:
@@ -805,7 +805,7 @@ def panelsystem_from_geom(sysdct: Dict[str, any]):
     masses = {}
     if 'masses' in sysdct:
         if isinstance(sysdct['masses'], list):
-            masses = masses_from_data(sysdct['masses'])
+            masses = masses_from_json(sysdct['masses'])
         elif isinstance(sysdct['masses'], str):
             if sysdct['masses'][-5:] == '.json':
                 massfilename = sysdct['masses']

@@ -1,8 +1,6 @@
-from typing import List
 from pygeom.matrix3d import MatrixVector
 from numpy.matlib import zeros, argmin, array, arange, logical_not, matrix
 from ..classes.panelsystem import PanelSystem
-from ..classes.panel import Panel
 
 def fetch_pids(pnts: MatrixVector, psys: PanelSystem, ztol: float=0.1, thtol: float=0.1):
     shp = pnts.shape
@@ -30,7 +28,7 @@ def fetch_pids(pnts: MatrixVector, psys: PanelSystem, ztol: float=0.1, thtol: fl
     chkz = chkz.reshape(shp)
     return pids, chkz
 
-def point_results(pnts: MatrixVector, psys: PanelSystem, pids: array, chkz: array, pnlres: matrix, ztol: float=1e-8):
+def point_results(pnts: MatrixVector, psys: PanelSystem, pids: array, chkz: array, pnlres: matrix):
     res = zeros(pnts.shape, dtype=float)
     for i in range(pnts.shape[0]):
         for j in range(pnts.shape[1]):
