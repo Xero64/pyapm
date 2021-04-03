@@ -1036,7 +1036,8 @@ class FarFieldResult(object):
             num = len(sys.strps)
             self._drag = zeros((num, 1), dtype=float)
             for i, strp in enumerate(sys.strps):
-                self._drag[i, 0] = -self.res.rho*self.wash[i, 0]*self.circ[i, 0]*strp.width/2
+                if not strp.noload:
+                    self._drag[i, 0] = -self.res.rho*self.wash[i, 0]*self.circ[i, 0]*strp.width/2
         return self._drag
     @property
     def side(self):
@@ -1045,17 +1046,18 @@ class FarFieldResult(object):
             num = len(sys.strps)
             self._side = zeros((num, 1), dtype=float)
             for i, strp in enumerate(sys.strps):
-                if not strp.nohsv:
-                    pnla = strp.pnls[0]
-                    pnlb = strp.pnls[-1]
-                    pinda = pnla.ind
-                    pindb = pnlb.ind
-                    hindsa = sys.phind[pinda]
-                    hindsb = sys.phind[pindb]
-                    for hind in hindsa:
-                        self._side[i, 0] += self.fffrc[hind, 0].y
-                    for hind in hindsb:
-                        self._side[i, 0] += self.fffrc[hind, 0].y
+                if not strp.noload:
+                    if not strp.nohsv:
+                        pnla = strp.pnls[0]
+                        pnlb = strp.pnls[-1]
+                        pinda = pnla.ind
+                        pindb = pnlb.ind
+                        hindsa = sys.phind[pinda]
+                        hindsb = sys.phind[pindb]
+                        for hind in hindsa:
+                            self._side[i, 0] += self.fffrc[hind, 0].y
+                        for hind in hindsb:
+                            self._side[i, 0] += self.fffrc[hind, 0].y
         return self._side
     @property
     def lift(self):
@@ -1064,17 +1066,18 @@ class FarFieldResult(object):
             num = len(sys.strps)
             self._lift = zeros((num, 1), dtype=float)
             for i, strp in enumerate(sys.strps):
-                if not strp.nohsv:
-                    pnla = strp.pnls[0]
-                    pnlb = strp.pnls[-1]
-                    pinda = pnla.ind
-                    pindb = pnlb.ind
-                    hindsa = sys.phind[pinda]
-                    hindsb = sys.phind[pindb]
-                    for hind in hindsa:
-                        self._lift[i, 0] += self.fffrc[hind, 0].z
-                    for hind in hindsb:
-                        self._lift[i, 0] += self.fffrc[hind, 0].z
+                if not strp.noload:
+                    if not strp.nohsv:
+                        pnla = strp.pnls[0]
+                        pnlb = strp.pnls[-1]
+                        pinda = pnla.ind
+                        pindb = pnlb.ind
+                        hindsa = sys.phind[pinda]
+                        hindsb = sys.phind[pindb]
+                        for hind in hindsa:
+                            self._lift[i, 0] += self.fffrc[hind, 0].z
+                        for hind in hindsb:
+                            self._lift[i, 0] += self.fffrc[hind, 0].z
         return self._lift
     @property
     def CDi(self):
