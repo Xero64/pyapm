@@ -1,7 +1,8 @@
 from math import sqrt, acos, pi
 from typing import List
-from numpy.matlib import matrix
+from numpy.matlib import matrix, absolute, full, minimum, logical_not, ones
 from pygeom.geom3d import Vector, Coordinate, ihat, khat
+from pygeom.matrix3d import MatrixVector
 from .grid import Grid
 from .dirichletpoly import DirichletPoly
 from .horseshoedoublet import HorseshoeDoublet
@@ -339,7 +340,28 @@ class Panel(DirichletPoly):
             for ind, fac in zip(self.grdinds[i], self.grdfacs[i]):
                 grdres[i] += pnlres[ind, 0]*fac
         return grdres
-    def point_res(self, pnlres: matrix, pnt: Vector):
+    def within_and_absz_ttol(self, pnts: MatrixVector, ttol: float=0.1):
+        shp = pnts.shape
+        pnts = pnts.reshape((-1, 1))
+        rgcs = pnts-self.pnto
+        wint = full(pnts.shape, False)
+        absz = full(pnts.shape, float('inf'))
+        for i in range(self.num):
+            dirx = self.dirxab[0, i]
+            diry = self.diryab[0, i]
+            dirz = self.dirzab[0, i]
+            xy1 = ones((pnts.shape[0], 3), dtype=float)
+            xy1[:, 1] = rgcs*dirx
+            xy1[:, 2] = rgcs*diry
+            t123 = xy1*self.baryinv[i].transpose()
+            mint = t123.min(axis=1)
+            chk = mint > -ttol
+            wint[chk] = True
+            abszi = absolute(rgcs*dirz)
+            abszi[logical_not(chk)] = float('inf')
+            absz = minimum(absz, abszi)
+        return wint, absz
+    def point_res(self, pnlres: matrix, pnt: Vector, ttol: float=0.1):
         vecg = pnt - self.pnto
         gres = self.grid_res(pnlres)
         pres = pnlres[self.ind, 0]
@@ -353,14 +375,8 @@ class Panel(DirichletPoly):
             bmat = matrix([[1.0], [vecl.x], [vecl.y]])
             tmat = ainv*bmat
             to, ta, tb = tmat[0, 0], tmat[1, 0], tmat[2, 0]
-            check = True
-            if to > 1.0 or to < 0.0:
-                check = False
-            if ta > 1.0 or ta < 0.0:
-                check = False
-            if tb > 1.0 or tb < 0.0:
-                check = False
-            if check:
+            mint = min(to, ta, tb)
+            if mint > -ttol:
                 ro, ra, rb = pres, gres[i-1], gres[i]
                 r = ro*to + ra*ta + rb*tb
                 break

@@ -3,7 +3,8 @@ from typing import List
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector, elementwise_multiply
 from pygeom.matrix3d import elementwise_cross_product, elementwise_dot_product
-from numpy.matlib import matrix, zeros, ones, divide, arctan, multiply, logical_and, absolute, log
+from numpy.matlib import matrix, zeros, ones, divide, arctan, multiply, arctan2
+from numpy.matlib import logical_and, absolute, log, full, minimum, argmin, logical_not
 from numpy.linalg import inv
 from numpy import seterr
 
@@ -105,7 +106,7 @@ class DirichletPoly(object):
     @property
     def dirzab(self):
         if self._dirzab is None:
-           self._dirzab = self.vecaxb.to_unit()
+            self._dirzab = self.vecaxb.to_unit()
         return self._dirzab
     @property
     def baryinv(self):
@@ -213,45 +214,6 @@ class DirichletPoly(object):
         phi = self.influence_coefficients(pnts, incvel=False,
                                           betx=betx, bety=bety, betz=betz)
         return phi[0], phi[1]
-    def within_and_absz(self, pnts: MatrixVector):
-        # vecab = self.edge_vector(self.grdr)
-        # vecaxb = self.edge_cross(self.grdr)
-        # dirxab = vecab.to_unit()
-        # dirzab = vecaxb.to_unit()
-        # diryab = elementwise_cross_product(dirzab, dirxab)
-        nrm = self.nrm
-        rgcs = pnts-self.pnto
-        locz = rgcs*nrm
-        absz = absolute(locz)
-        vecgcs = []
-        for i in range(self.num):
-            vecgcs.append(pnts-self.grds[i])
-        th = zeros(pnts.shape, dtype=float)
-        for i in range(self.num):
-            # Local Coordinate System
-            dirx = self.dirxab[0, i]
-            diry = self.diryab[0, i]
-            dirz = self.dirzab[0, i]
-            # Vector A in Local Coordinate System
-            veca = vecgcs[i-1]
-            alcs = MatrixVector(veca*dirx, veca*diry, veca*dirz)
-            alcs.x[absolute(alcs.x) < tol] = 0.0
-            alcs.y[absolute(alcs.y) < tol] = 0.0
-            alcs.z[absolute(alcs.z) < tol] = 0.0
-            # Vector A Doublet Velocity Potentials
-            ms = divide(alcs.x, alcs.y)
-            th += arctan(ms)
-            # Vector B in Local Coordinate System
-            vecb = vecgcs[i]
-            blcs = MatrixVector(vecb*dirx, vecb*diry, vecb*dirz)
-            blcs.x[absolute(blcs.x) < tol] = 0.0
-            blcs.y[absolute(blcs.y) < tol] = 0.0
-            blcs.z[absolute(blcs.z) < tol] = 0.0
-            # Vector B Doublet Velocity Potentials
-            ms = divide(blcs.x, blcs.y)
-            th -= arctan(ms)
-        th = th/twoPi
-        return th, absz
 
 def phi_doublet_matrix(vecs: MatrixVector, sgnz: matrix):
     mags = vecs.return_magnitude()
