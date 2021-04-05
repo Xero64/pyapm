@@ -2,7 +2,6 @@
 from IPython.display import display_markdown
 from pyapm import panelsystem_from_json
 from pyapm.outputs.msh import panelresult_to_msh
-from pyapm.classes import PanelTrim
 
 #%% Import Geometry
 jsonfilepath = '../files/Aircraft.json'
@@ -19,29 +18,37 @@ for case in psys.results:
 #%% Mesh File Output
 ptrm = psys.results['Positive 1g Cruise']
 panelresult_to_msh(ptrm, '../results/Aircraft.msh')
+display_markdown(ptrm)
+
+#%% Deflect Elevator
+pres = ptrm.to_result('Positive 1g Cruise + Controls 25 deg')
+pres.set_controls(elevator=25.0, aileron=25.0, rudder=25.0)
+panelresult_to_msh(pres, '../results/Aircraft_Trim.msh')
+display_markdown(pres)
 
 #%% Plot Lift Distribution
 axl = ptrm.plot_trefftz_lift_force_distribution()
 axl = ptrm.plot_strip_lift_force_distribution(ax=axl)
+axl = pres.plot_trefftz_lift_force_distribution(ax=axl)
+axl = pres.plot_strip_lift_force_distribution(ax=axl)
 
 #%% Plot Y Force Distribution
 axy = ptrm.plot_trefftz_side_force_distribution()
 axy = ptrm.plot_strip_side_force_distribution(ax=axy)
+axy = pres.plot_trefftz_side_force_distribution(ax=axy)
+axy = pres.plot_strip_side_force_distribution(ax=axy)
 
 #%% Plot Drag Distribution
 axd = ptrm.plot_trefftz_drag_force_distribution()
 axd = ptrm.plot_strip_drag_force_distribution(ax=axd)
+axd = pres.plot_trefftz_drag_force_distribution(ax=axd)
+axd = pres.plot_strip_drag_force_distribution(ax=axd)
 
-#%% Trim CL and CY
-CLt = 0.2
-CYt = 0.02
+#%% Display Derivatives
+display_markdown(ptrm.stability_derivatives)
+display_markdown(ptrm.control_derivatives)
 
-ptrm2 = PanelTrim(f'CL = {CLt}, CY = {CYt}', psys)
-ptrm2.set_targets(CLt = CLt, CYt = CYt)
-ptrm2.set_trim_loads(trmmom=False)
-ptrm2.trim()
+#%% Display All Results
 
-display_markdown(ptrm2)
-display_markdown(ptrm2.surface_loads)
-
-# %%
+for case in psys.results:
+    display_markdown(psys.results[case])

@@ -57,6 +57,7 @@ class PanelSection(PanelProfile):
         sect.zoc = self.zoc
         sect.bval = self.bval
         sect.bpos = -self.bpos
+        sect.ctrls = self.ctrls
         if self.tilt is not None:
             sect.set_tilt(-self._tilt)
         return sect
@@ -110,7 +111,7 @@ class PanelSection(PanelProfile):
                 if not self.shta.nomesh:
                     self._scttyp = 'endtip'
         return self._scttyp
-    def get_profile(self):
+    def get_profile(self, offset: bool=True):
         num = self.cnum*2+1
         profile = zero_matrix_vector((1, num), dtype=float)
         for i in range(self.cnum+1):
@@ -120,8 +121,9 @@ class PanelSection(PanelProfile):
             profile[0, n] = Vector(self.airfoil.xu[j], 0.0, self.airfoil.yu[j])
         profile.z[absolute(profile.z) < tol] = 0.0
         profile.z = profile.z*self.thkcor
-        offset = Vector(self.xoc, 0.0, self.zoc)
-        profile = profile-offset
+        if offset:
+            offvec = Vector(self.xoc, 0.0, self.zoc)
+            profile = profile-offvec
         return profile
     def mesh_panels(self, pid: int):
         mesh = False

@@ -38,6 +38,8 @@ class Panel(DirichletPoly):
             grd.pnls.append(self)
     def set_index(self, ind: int):
         self.ind = ind
+    def dndl(self, gain: float, hvec: Vector):
+        return gain*(hvec**self.nrm)
     @property
     def noload(self):
         noload = False

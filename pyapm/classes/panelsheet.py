@@ -1,6 +1,7 @@
 from math import degrees, atan2
 from typing import List, Dict
 from numpy.matlib import matrix
+from pygeom.geom3d import Vector
 from .panelsection import PanelSection
 from .panelstrip import PanelStrip
 from .panelprofile import PanelProfile
@@ -28,7 +29,7 @@ class PanelSheet(object):
     _area: float = None
     grds: List[Grid] = None
     pnls: List[Panel] = None
-    ctrls: Dict[str, PanelControl] = None
+    _ctrls: Dict[str, PanelControl] = None
     def __init__(self, scta: PanelSection, sctb: PanelSection):
         self.scta = scta
         self.scta.shtb = self
@@ -72,6 +73,32 @@ class PanelSheet(object):
             else:
                 self._nohsv = self.scta.nohsv
         return self._nohsv
+    @property
+    def ctrls(self):
+        if self._ctrls is None:
+            self._ctrls = {}
+            scta = self.scta
+            sctb = self.sctb
+            if self.mirror:
+                for control in sctb.ctrls:
+                    ctrl = sctb.ctrls[control]
+                    newctrl = ctrl.duplicate(mirror=True)
+                    self._ctrls[control] = newctrl
+            else:
+                for control in scta.ctrls:
+                    ctrl = scta.ctrls[control]
+                    newctrl = ctrl.duplicate(mirror=False)
+                    self._ctrls[control] = newctrl
+            for control in self.ctrls:
+                ctrl = self._ctrls[control]
+                if ctrl.uhvec.return_magnitude() == 0.0:
+                    pntal = Vector((ctrl.xhinge-scta.xoc)*scta.chord, 0.0, -scta.zoc*scta.chord)
+                    pnta = scta.point+scta.crdsys.vector_to_global(pntal)
+                    pntbl = Vector((ctrl.xhinge-sctb.xoc)*sctb.chord, 0.0, -sctb.zoc*sctb.chord)
+                    pntb = sctb.point+sctb.crdsys.vector_to_global(pntbl)
+                    hvec = pntb-pnta
+                    ctrl.set_hinge_vector(hvec)
+        return self._ctrls
     @property
     def bnum(self) -> int:
         if self._bnum is None:
@@ -214,8 +241,22 @@ class PanelSheet(object):
     def set_control_panels(self):
         for control in self.ctrls:
             ctrl = self.ctrls[control]
-            for pnl in self.pnls:
-                if pnl.cspc[3] >= ctrl.xhinge: # Needs fixing
-                    ctrl.add_panel(pnl)
+            if self.mirror:
+                sct = self.sctb
+            else:
+                sct = self.scta
+            prf = sct.get_profile(offset=False)
+            beg = None
+            end = 0
+            for i in range(prf.x.shape[1]):
+                if prf.x[0, i] < ctrl.xhinge and beg is None:
+                    beg = i - 1
+                    end = None
+                if prf.x[0, i] > ctrl.xhinge and end is None:
+                    end = i
+            for strp in self.strps:
+                for i, pnl in enumerate(strp.pnls):
+                    if i < beg or i >= end:
+                        ctrl.add_panel(pnl)
     def __repr__(self):
         return '<PanelSheet>'

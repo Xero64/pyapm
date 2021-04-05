@@ -46,6 +46,8 @@ class PanelResult(object):
     _strpres = None
     _ffres = None
     _stres = None
+    _ctresp = None
+    _ctresn = None
     _vfsg: MatrixVector = None
     _vfsl: MatrixVector = None
     def __init__(self, name: str, sys: object):
@@ -62,6 +64,8 @@ class PanelResult(object):
         self.qco2V = 0.0
         self.rbo2V = 0.0
         self.ctrls = {}
+        for control in self.sys.ctrls:
+            self.ctrls[control] = 0.0
         self.rcg = self.sys.rref
     def reset(self):
         for attr in self.__dict__:
@@ -181,17 +185,59 @@ class PanelResult(object):
     @property
     def sig(self):
         if self._sig is None:
-            self._sig = self.unsig[:, 0]*self.vfs + self.unsig[:, 1]*self.ofs
+            self._sig = self.unsig[:, 0]*self.vfs
+            self._sig += self.unsig[:, 1]*self.ofs
+            for control in self.ctrls:
+                if control in self.sys.ctrls:
+                    ctrl = self.ctrls[control]
+                    ctrlrad = radians(ctrl)
+                    index = self.sys.ctrls[control]
+                    if ctrl >= 0.0:
+                        indv = index[0]
+                        indo = index[1]
+                    else:
+                        indv = index[2]
+                        indo = index[3]
+                    self._sig += ctrlrad*(self.unsig[:, indv]*self.vfs)
+                    self._sig += ctrlrad*(self.unsig[:, indo]*self.ofs)
         return self._sig
     @property
     def mu(self):
         if self._mu is None:
-            self._mu = self.unmu[:, 0]*self.vfs + self.unmu[:, 1]*self.ofs
+            self._mu = self.unmu[:, 0]*self.vfs
+            self._mu += self.unmu[:, 1]*self.ofs
+            for control in self.ctrls:
+                if control in self.sys.ctrls:
+                    ctrl = self.ctrls[control]
+                    ctrlrad = radians(ctrl)
+                    index = self.sys.ctrls[control]
+                    if ctrl >= 0.0:
+                        indv = index[0]
+                        indo = index[1]
+                    else:
+                        indv = index[2]
+                        indo = index[3]
+                    self._mu += ctrlrad*(self.unmu[:, indv]*self.vfs)
+                    self._mu += ctrlrad*(self.unmu[:, indo]*self.ofs)
         return self._mu
     @property
     def phi(self):
         if self._phi is None:
-            self._phi = self.unphi[:, 0]*self.vfs + self.unphi[:, 1]*self.ofs
+            self._phi = self.unphi[:, 0]*self.vfs
+            self._phi = self.unphi[:, 1]*self.ofs
+            for control in self.ctrls:
+                if control in self.sys.ctrls:
+                    ctrl = self.ctrls[control]
+                    ctrlrad = radians(ctrl)
+                    index = self.sys.ctrls[control]
+                    if ctrl >= 0.0:
+                        indv = index[0]
+                        indo = index[1]
+                    else:
+                        indv = index[2]
+                        indo = index[3]
+                    self._phi += ctrlrad*(self.unphi[:, indv]*self.vfs)
+                    self._phi += ctrlrad*(self.unphi[:, indo]*self.ofs)
         return self._phi
     def calc_qloc(self, mu: matrix, vfs: Vector=None, ofs: Vector=None):
         if vfs is None and ofs is None:
@@ -249,6 +295,36 @@ class PanelResult(object):
         if self._stres is None:
             self._stres = StabilityResult(self)
         return self._stres
+    def gctrlp_single(self, control: str):
+        indv = self.sys.ctrls[control][0]
+        indo = self.sys.ctrls[control][1]
+        mu = self.unmu[:, indv]*self.vfs + self.unmu[:, indo]*self.ofs
+        qloc = self.calc_qloc(mu, vfs=self.vfs, ofs=self.ofs)
+        vdot = elementwise_dot_product_2d(self.qloc, qloc)
+        return (-2.0/self.speed**2)*vdot
+    def gctrln_single(self, control: str):
+        indv = self.sys.ctrls[control][2]
+        indo = self.sys.ctrls[control][3]
+        mu = self.unmu[:, indv]*self.vfs + self.unmu[:, indo]*self.ofs
+        qloc = self.calc_qloc(mu, vfs=self.vfs, ofs=self.ofs)
+        vdot = elementwise_dot_product_2d(self.qloc, qloc)
+        return (-2.0/self.speed**2)*vdot
+    @property
+    def ctresp(self):
+        if self._ctresp is None:
+            self._ctresp = {}
+            for control in self.sys.ctrls:
+                cp = self.gctrlp_single(control)
+                self._ctresp[control] = NearFieldResult(self, cp)
+        return self._ctresp
+    @property
+    def ctresn(self):
+        if self._ctresn is None:
+            self._ctresn = {}
+            for control in self.sys.ctrls:
+                cp = self.gctrln_single(control)
+                self._ctresn[control] = NearFieldResult(self, cp)
+        return self._ctresn
     def plot_strip_lift_force_distribution(self, ax=None, axis: str='b',
                                            surfaces: list=None, normalise: bool=False,
                                            label: str=None):
@@ -600,7 +676,7 @@ class PanelResult(object):
         res.set_density(rho=self.rho)
         res.set_state(speed=self.speed, alpha=self.alpha, beta=self.beta,
                       pbo2V=self.pbo2V, qco2V=self.qco2V, rbo2V=self.rbo2V)
-        # res.set_controls(**self.ctrls)
+        res.set_controls(**self.ctrls)
         res.set_cg(self.rcg)
         return res
     @property
@@ -609,6 +685,30 @@ class PanelResult(object):
     @property
     def stability_derivatives_body(self):
         return self.stres.stability_derivatives_body
+    @property
+    def control_derivatives(self):
+        from . import sfrm
+        report = MDReport()
+        heading = MDHeading('Control Derivatives', 2)
+        report.add_object(heading)
+        for control in self.ctrls:
+            letter = control[0]
+            heading = MDHeading(f'{control.capitalize()} Derivatives', 3)
+            report.add_object(heading)
+            table = MDTable()
+            table.add_column(f'CLd{letter:s}', sfrm)
+            table.add_column(f'CYd{letter:s}', sfrm)
+            table.add_column(f'Cld{letter:s}', sfrm)
+            table.add_column(f'Cmd{letter:s}', sfrm)
+            table.add_column(f'Cnd{letter:s}', sfrm)
+            if self.ctrls[control] >= 0.0:
+                ctresp = self.ctresp[control]
+                table.add_row([ctresp.CL, ctresp.CY, ctresp.Cl, ctresp.Cm, ctresp.Cn])
+            if self.ctrls[control] <= 0.0:
+                ctresp = self.ctresp[control]
+                table.add_row([ctresp.CL, ctresp.CY, ctresp.Cl, ctresp.Cm, ctresp.Cn])
+            report.add_object(table)
+        return report
     @property
     def surface_loads(self):
         if self.sys.srfcs is not None:
@@ -690,13 +790,13 @@ class PanelResult(object):
         table.add_column('ycg', '.5f', data=[self.rcg.y])
         table.add_column('zcg', '.5f', data=[self.rcg.z])
         outstr += table._repr_markdown_()
-        # if len(self.ctrls) > 0:
-        #     table = MDTable()
-        #     for control in self.ctrls:
-        #         ctrl = self.ctrls[control]
-        #         control = control.capitalize()
-        #         table.add_column(f'{control} (deg)', cfrm, data=[ctrl])
-        #     outstr += table._repr_markdown_()
+        if len(self.ctrls) > 0:
+            table = MDTable()
+            for control in self.ctrls:
+                ctrl = self.ctrls[control]
+                control = control.capitalize()
+                table.add_column(f'{control} (deg)', cfrm, data=[ctrl])
+            outstr += str(table)
         # if self.sys.cdo != 0.0:
         #     table = MDTable()
         #     table.add_column('CDo', dfrm, data=[self.pdres.CDo])
@@ -719,7 +819,6 @@ class PanelResult(object):
             table.add_column('Cl', cfrm, data=[self.nfres.Cl])
             table.add_column('Cm', cfrm, data=[self.nfres.Cm])
             table.add_column('Cn', cfrm, data=[self.nfres.Cn])
-            # table.add_column('e', efrm, data=[self.nfres.e])
             # if self.sys.cdo != 0.0:
             #     lod = self.nfres.CL/(self.pdres.CDo+self.nfres.CDi)
             #     table.add_column('L/D', '.5g', data=[lod])
@@ -729,9 +828,6 @@ class PanelResult(object):
             table.add_column('CDi_ff', dfrm, data=[self.ffres.CDi])
             table.add_column('CY_ff', cfrm, data=[self.ffres.CY])
             table.add_column('CL_ff', cfrm, data=[self.ffres.CL])
-            # table.add_column('Cl_ff', cfrm, data=[self.trres.Cl])
-            # table.add_column('Cm_ff', cfrm, data=[self.trres.Cm])
-            # table.add_column('Cn_ff', cfrm, data=[self.trres.Cn])
             table.add_column('e', efrm, data=[self.ffres.e])
             # if self.sys.cdo != 0.0:
             #     lod_ff = self.ffres.CL/(self.pdres.CDo+self.ffres.CDi)
@@ -1493,8 +1589,8 @@ def panelresult_from_dict(psys: object, resdata: dict):
         elif key ==  'rbo2V':
             rbo2V = resdata['rbo2V']
             pres.set_state(rbo2V=rbo2V)
-        # elif key in pres.ctrls:
-        #     pres.ctrls[key] = resdata[key]
+        elif key in pres.ctrls:
+            pres.ctrls[key] = resdata[key]
         elif key == 'rcg':
             rcgdata = resdata[key]
             rcg = Vector(rcgdata['x'], rcgdata['y'], rcgdata['z'])

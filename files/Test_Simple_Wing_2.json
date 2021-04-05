@@ -24,7 +24,16 @@
                     "bspc": "semi-cosine",
                     "airfoil": "NACA 0012",
                     "xoc": 0.25,
-                    "zoc": 0.0
+                    "zoc": 0.0,
+                    "controls": {
+                        "flap": {
+                            "xhinge": 0.7,
+                            "posgain": 1.0,
+                            "neggain": 1.0,
+                            "reverse": false,
+                            "hvec": {"x": 0.0, "y": 0.0, "z": 0.0}
+                        }
+                    }
                 },
                 {
                     "xpos": 0.0,

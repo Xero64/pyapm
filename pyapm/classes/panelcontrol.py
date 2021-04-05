@@ -28,7 +28,7 @@ class PanelControl(object):
             uhvec = Vector(self.uhvec.x, -self.uhvec.y, self.uhvec.z)
         else:
             uhvec = Vector(self.uhvec.x, self.uhvec.y, self.uhvec.z)
-        ctrl = LatticeControl(self.name, posgain, neggain, self.xhinge)
+        ctrl = PanelControl(self.name, posgain, neggain, self.xhinge)
         ctrl.reverse = False
         ctrl.set_hinge_vector(uhvec)
         return ctrl

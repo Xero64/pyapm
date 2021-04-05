@@ -1,5 +1,5 @@
 from json import load
-from typing import Dict, List
+from typing import Dict, List, Tuple
 from time import perf_counter
 from os.path import dirname, join, exists
 from numpy.matlib import zeros, matrix
@@ -25,15 +25,16 @@ class PanelSystem(object):
     cref: float = None
     sref: float = None
     rref: float = None
-    ctrls = None
-    srfcs = None
-    results = None
+    ctrls: Dict[str, Tuple[int]] = None
+    srfcs: List[object] = None
+    results: List[object] = None
     masses = None
     source: str = None
     _hsvs: List[HorseShoe] = None
     _numgrd: int = None
     _numpnl: int = None
     _numhsv: int = None
+    _numctrl: int = None
     _pnts: MatrixVector = None
     _pnla: matrix = None
     _nrms: MatrixVector = None
@@ -137,6 +138,11 @@ class PanelSystem(object):
         if self._numhsv is None:
             self._numhsv = len(self.hsvs)
         return self._numhsv
+    @property
+    def numctrl(self):
+        if self._numctrl is None:
+            self._numctrl = len(self.ctrls)
+        return self._numctrl
     @property
     def pnts(self):
         if self._pnts is None:
@@ -376,9 +382,24 @@ class PanelSystem(object):
         if self._unsig is None:
             self._unsig = {}
         if mach not in self._unsig:
-            unsig = zero_matrix_vector((self.numpnl, 2), dtype=float)
+            unsig = zero_matrix_vector((self.numpnl, 2+4*self.numctrl), dtype=float)
             unsig[:, 0] = -self.nrms
             unsig[:, 1] = elementwise_cross_product(self.rrel, self.nrms)
+            if self.srfcs is not None:
+                for srfc in self.srfcs:
+                    for sht in srfc.shts:
+                        for control in sht.ctrls:
+                            ctrl = sht.ctrls[control]
+                            ctup = self.ctrls[control]
+                            for pnl in ctrl.pnls:
+                                ind = pnl.ind
+                                rrel = self.rrel[ind, 0]
+                                dndlp = pnl.dndl(ctrl.posgain, ctrl.uhvec)
+                                unsig[ind, ctup[0]] = -dndlp
+                                unsig[ind, ctup[1]] = -rrel**dndlp
+                                dndln = pnl.dndl(ctrl.neggain, ctrl.uhvec)
+                                unsig[ind, ctup[2]] = -dndln
+                                unsig[ind, ctup[3]] = -rrel**dndln
             self._unsig[mach] = unsig
         return self._unsig[mach]
     def unmu(self, mach: float=0.0):
@@ -641,6 +662,13 @@ class PanelSystem(object):
                     self.grds[grd.gid] = grd
                 for pnl in surface.pnls:
                     self.pnls[pnl.pid] = pnl
+            ind = 2
+            for srfc in self.srfcs:
+                for sht in srfc.shts:
+                    for control in sht.ctrls:
+                        if control not in self.ctrls:
+                            self.ctrls[control] = (ind, ind+1, ind+2, ind+3)
+                            ind += 4
     def __repr__(self):
         return '<PanelSystem: {:s}>'.format(self.name)
     def __str__(self):
@@ -667,6 +695,10 @@ class PanelSystem(object):
             table.add_column('# Horseshoe Vortices', 'd', data=[self.numhsv])
         else:
             table.add_column('# Horseshoe Vortices', 'd', data=[0])
+        if self.ctrls is not None:
+            table.add_column('# Controls', 'd', data=[self.numctrl])
+        else:
+            table.add_column('# Controls', 'd', data=[0])
         if len(table.columns) > 0:
             outstr += table._repr_markdown_()
         return outstr

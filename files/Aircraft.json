@@ -36,8 +36,8 @@
                     "xpos": null,
                     "ypos": 0.21,
                     "zpos": null,
-                    "chord": 0.35,
-                    "twist": 0.0,
+                    "chord": null,
+                    "twist": null,
                     "bnum": 10,
                     "bspc": "semi-cosine",
                     "airfoil": "NACA 2412"
@@ -166,8 +166,46 @@
             "density": 0.945,
             "speed": 25.0,
             "mass": 20.0,
-            "load factor": 1.0,
-            "trim lift": true
+            "load factor": 1.0
+        },
+        {
+            "name": "Positive 5g Dive",
+            "trim": "Looping Trim",
+            "density": 0.945,
+            "speed": 50.0,
+            "mass": "Nominal CG",
+            "load factor": 5.0
+        },
+        {
+            "name": "Negative 3g Dive",
+            "trim": "Looping Trim",
+            "density": 0.945,
+            "speed": 50.0,
+            "mass": "Nominal CG",
+            "load factor": -3.0
+        },
+        {
+            "name": "60deg Banked Turn Dive",
+            "trim": "Turning Trim",
+            "density": 0.945,
+            "speed": 50.0,
+            "mass": "Forward CG",
+            "bank twist": 60.0
+        },
+        {
+            "name": "Positive 1g Cruise + 15deg Side Slip",
+            "inherit": "Positive 1g Cruise",
+            "beta": 15.0
+        },
+        {
+            "name": "Positive 1g Cruise + 15deg Elevator",
+            "inherit": "Positive 1g Cruise",
+            "elevator": 15.0
+        },
+        {
+            "name": "Positive 1g Cruise - 15deg Elevator",
+            "inherit": "Positive 1g Cruise",
+            "elevator": -15.0
         }
     ]
 }

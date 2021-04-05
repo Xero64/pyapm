@@ -137,6 +137,7 @@ class PanelSurface(object):
             for pnl in sht.pnls:
                 pnl.srfc = self
                 self.pnls.append(pnl)
+            sht.set_control_panels()
         if self.close:
             for sct in self.scts:
                 pid = sct.mesh_panels(pid)

@@ -132,14 +132,13 @@ class PanelTrim(PanelResult):
             H[2, 1] = self.stres.beta.Cl
             H[3, 1] = self.stres.beta.Cm
             H[4, 1] = self.stres.beta.Cn
-            ctgam = {}
             c = 0
             for control in self.ctrls:
                 if self.ctrls[control] < 0.0:
-                    ctgam = self.gctrln_single(control)
+                    ctcp = self.gctrln_single(control)
                 else:
-                    ctgam = self.gctrlp_single(control)
-                ctres = GammaResult(self, ctgam)
+                    ctcp = self.gctrlp_single(control)
+                ctres = NearFieldResult(self, ctcp)
                 H[0, 2+c] = ctres.CL
                 H[1, 2+c] = ctres.CY
                 H[2, 2+c] = ctres.Cl
