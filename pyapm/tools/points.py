@@ -29,7 +29,7 @@ def fetch_pids_ttol(pnts: MatrixVector, psys: PanelSystem, ztol: float=0.01, tto
     return pids, chkz
 
 def point_results(pnts: MatrixVector, psys: PanelSystem, pids: array, chkz: array,
-                  pnlres: matrix, ttol: float=1e-3):
+                  pnlres: matrix, ttol: float=0.1):
     res = zeros(pnts.shape, dtype=float)
     for i in range(pnts.shape[0]):
         for j in range(pnts.shape[1]):
