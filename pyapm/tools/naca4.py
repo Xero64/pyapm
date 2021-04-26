@@ -41,6 +41,9 @@ class NACA4(object):
             if attr[0] == '_':
                 self.__dict__[attr] = None
     @property
+    def name(self):
+        return 'NACA ' + self.code
+    @property
     def mt(self):
         if self._mt is None:
             self._mt = float(self.code[2])/10+float(self.code[3])/100

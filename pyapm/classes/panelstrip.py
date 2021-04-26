@@ -1,5 +1,6 @@
 from math import sqrt
 from typing import List
+from pygeom.geom3d import Vector
 from .panel import Panel
 from .panelprofile import PanelProfile
 
@@ -9,8 +10,7 @@ class PanelStrip(object):
     sht: object = None
     pnls: List[Panel] = None
     ind: int = None
-    _ypos: float = None
-    _zpos: float = None
+    _point: Vector = None
     _bpos: float = None
     _chord: float = None
     _twist: float = None
@@ -41,15 +41,19 @@ class PanelStrip(object):
             pid += 1
         return pid
     @property
+    def point(self):
+        if self._point is None:
+            self._point = (self.prfa.point + self.prfb.point)/2
+        return self._point
+    @property
+    def xpos(self):
+        return self.point.x
+    @property
     def ypos(self):
-        if self._ypos is None:
-            self._ypos = (self.prfa.point.y + self.prfb.point.y)/2
-        return self._ypos
+        return self.point.y
     @property
     def zpos(self):
-        if self._zpos is None:
-            self._zpos = (self.prfa.point.z + self.prfb.point.z)/2
-        return self._zpos
+        return self.point.z
     @property
     def bpos(self):
         if self._bpos is None:

@@ -990,6 +990,7 @@ class NearFieldResult(object):
 class StripResult(object):
     nfres = None
     _stfrc = None
+    _stmom = None
     _lift = None
     _side = None
     _drag = None
@@ -1007,6 +1008,19 @@ class StripResult(object):
                     j = pnl.ind
                     self._stfrc[i, 0] += self.nfres.nffrc[j, 0]
         return self._stfrc
+    @property
+    def stmom(self):
+        if self._stmom is None:
+            sys = self.nfres.res.sys
+            num = len(sys.strps)
+            self._stmom = zero_matrix_vector((num, 1), dtype=float)
+            for strp in sys.strps:
+                i = strp.ind
+                for pnl in strp.pnls:
+                    j = pnl.ind
+                    rref = pnl.pnto - strp.point
+                    self._stmom[i, 0] += rref**self.nfres.nffrc[j, 0]
+        return self._stmom
     @property
     def drag(self):
         if self._drag is None:

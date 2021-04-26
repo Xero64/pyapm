@@ -1,0 +1,220 @@
+from py2md.classes import MDTable
+from pygeom.geom3d import Vector
+from pygeom.matrix3d import zero_matrix_vector, MatrixVector
+from matplotlib.pyplot import figure
+from . import PanelResult
+
+class SurfaceLoad(object):
+    pres: PanelResult = None
+    strc: object = None
+    # nffrc = None
+    # rffrc = None
+    # rfmom = None
+    # cgfrc = None
+    # cgmom = None
+    sf: float = None
+    ptfrc: MatrixVector = None
+    ptmom: MatrixVector = None
+    # rref: Vector = None
+    # frca = None
+    # frcb = None
+    frctot: Vector = None
+    momtot: Vector = None
+    frcmin: Vector = None
+    mommin: Vector = None
+    frcmax: Vector = None
+    mommax: Vector = None
+    def __init__(self, pres: PanelResult, strc: object, sf: float=1.0):
+        self.pres = pres
+        self.strc = strc
+        self.sf = sf
+        self.update()
+    @property
+    def rref(self):
+        return self.strc.rref
+    def update(self):
+        strpres = self.pres.strpres
+        self.frctot = Vector(0.0, 0.0, 0.0)
+        self.momtot = Vector(0.0, 0.0, 0.0)
+        for i, strp in enumerate(self.strc.strps):
+            ind = strp.ind
+            rrel = strp.point - self.rref
+            self.frctot += strpres.stfrc[ind, 0]
+            self.momtot += strpres.stmom[ind, 0] + rrel**strpres.stfrc[ind, 0]
+        self.rfrc, self.rmom = self.strc.rbdy.return_reactions(self.frctot, self.momtot)
+        self.ptfrc = zero_matrix_vector(self.strc.pnts.shape, dtype=float)
+        self.ptmom = zero_matrix_vector(self.strc.pnts.shape, dtype=float)
+        ptfrcb = Vector(0.0, 0.0, 0.0)
+        ptmomb = Vector(0.0, 0.0, 0.0)
+        for i, strp in enumerate(self.strc.strps):
+            ind = strp.ind
+            inda = 2*i
+            indb = inda + 1
+            ptfrca = ptfrcb
+            ptmoma = ptmomb
+            if inda in self.strc.pntinds:
+                ptfrca -= self.rfrc[self.strc.pntinds[inda]]
+                ptmoma -= self.rmom[self.strc.pntinds[inda]]
+            ptfrcb = ptfrca - strpres.stfrc[ind, 0]
+            ptmomb = ptmoma - strpres.stmom[ind, 0]
+            rrel = strp.point - self.strc.pnts[indb, 0]
+            ptmomb -= rrel**strpres.stfrc[ind, 0]
+            rrel = self.strc.pnts[indb, 0]-self.strc.pnts[inda, 0]
+            ptmomb -= rrel**ptfrca
+            self.ptfrc[inda, 0] = ptfrca
+            self.ptfrc[indb, 0] = ptfrcb
+            self.ptmom[inda, 0] = ptmoma
+            self.ptmom[indb, 0] = ptmomb
+        fx = self.ptfrc.x.transpose().tolist()[0]
+        fy = self.ptfrc.y.transpose().tolist()[0]
+        fz = self.ptfrc.z.transpose().tolist()[0]
+        mx = self.ptmom.x.transpose().tolist()[0]
+        my = self.ptmom.y.transpose().tolist()[0]
+        mz = self.ptmom.z.transpose().tolist()[0]
+        self.frcmin = Vector(min(fx), min(fy), min(fz))
+        self.frcmax = Vector(max(fx), max(fy), max(fz))
+        self.mommin = Vector(min(mx), min(my), min(mz))
+        self.mommax = Vector(max(mx), max(my), max(mz))
+    def plot_forces(self, ax=None):
+        if ax is None:
+            fig = figure(figsize=(12, 8))
+            ax = fig.gca()
+            ax.grid(True)
+        fx = self.ptfrc.x.transpose().tolist()[0]
+        fy = self.ptfrc.y.transpose().tolist()[0]
+        fz = self.ptfrc.z.transpose().tolist()[0]
+        if self.strc.axis == 'y':
+            yp = self.strc.ypos
+            ax.plot(yp, fx, label='Vx')
+            ax.plot(yp, fy, label='Fy')
+            ax.plot(yp, fz, label='Vz')
+        elif self.strc.axis == 'z':
+            zp = self.strc.zpos
+            ax.plot(fx, zp, label='Vx')
+            ax.plot(fy, zp, label='Vy')
+            ax.plot(fz, zp, label='Fz')
+        ax.legend()
+        return ax
+    def plot_moments(self, ax=None):
+        if ax is None:
+            fig = figure(figsize=(12, 8))
+            ax = fig.gca()
+            ax.grid(True)
+        mx = self.ptmom.x.transpose().tolist()[0]
+        my = self.ptmom.y.transpose().tolist()[0]
+        mz = self.ptmom.z.transpose().tolist()[0]
+        if self.strc.axis == 'y':
+            yp = self.strc.ypos
+            ax.plot(yp, mx, label='Mx')
+            ax.plot(yp, my, label='Ty')
+            ax.plot(yp, mz, label='Mz')
+        elif self.strc.axis == 'z':
+            zp = self.strc.zpos
+            ax.plot(mx, zp, label='Mx')
+            ax.plot(my, zp, label='My')
+            ax.plot(mz, zp, label='Tz')
+        ax.legend()
+        return ax
+    @property
+    def point_loads_table(self, file=None):
+        table = MDTable()
+        table.add_column('#', 'd')
+        table.add_column('x', '.3f')
+        table.add_column('y', '.3f')
+        table.add_column('z', '.3f')
+        if self.strc.axis == 'y':
+            table.add_column('Vx', '.1f')
+            table.add_column('Fy', '.1f')
+            table.add_column('Vz', '.1f')
+            table.add_column('Mx', '.0f')
+            table.add_column('Ty', '.0f')
+            table.add_column('Mz', '.0f')
+        elif self.strc.axis == 'z':
+            table.add_column('Vx', '.1f')
+            table.add_column('Vy', '.1f')
+            table.add_column('Fz', '.1f')
+            table.add_column('Mx', '.0f')
+            table.add_column('My', '.0f')
+            table.add_column('Tz', '.0f')
+        for i, pnt in enumerate(self.strc.pnts):
+            frc = self.ptfrc[i]
+            mom = self.ptmom[i]
+            x, y, z = pnt.x, pnt.y, pnt.z
+            Vx, Fy, Vz = frc.x, frc.y, frc.z
+            Mx, Ty, Mz = mom.x, mom.y, mom.z
+            table.add_row([i, x, y, z, Vx, Fy, Vz, Mx, Ty, Mz])
+        return table
+    def __str__(self):
+        outstr = f'# {self.pres.name} Design Loads for ' + self.strc.srfc.name+'\n'
+        table = MDTable()
+        table.add_column('Reference', 's')
+        table.add_column('x', '.3f')
+        table.add_column('y', '.3f')
+        table.add_column('z', '.3f')
+        table.add_column('Fx', '.1f')
+        table.add_column('Fy', '.1f')
+        table.add_column('Fz', '.1f')
+        table.add_column('Mx', '.1f')
+        table.add_column('My', '.1f')
+        table.add_column('Mz', '.1f')
+        x = self.rref.x
+        y = self.rref.y
+        z = self.rref.z
+        Fx = self.frctot.x
+        Fy = self.frctot.y
+        Fz = self.frctot.z
+        Mx = self.momtot.x
+        My = self.momtot.y
+        Mz = self.momtot.z
+        table.add_row(['Total', x, y, z, Fx, Fy, Fz, Mx, My, Mz])
+        outstr += str(table)
+        table = MDTable()
+        table.add_column('Reaction', 'd')
+        table.add_column('x', '.3f')
+        table.add_column('y', '.3f')
+        table.add_column('z', '.3f')
+        table.add_column('Fx', '.1f')
+        table.add_column('Fy', '.1f')
+        table.add_column('Fz', '.1f')
+        table.add_column('Mx', '.1f')
+        table.add_column('My', '.1f')
+        table.add_column('Mz', '.1f')
+        for i, rpnt in enumerate(self.strc.rpnts):
+            rfrc = self.rfrc[i]
+            rmom = self.rmom[i]
+            table.add_row([i+1, rpnt.x, rpnt.y, rpnt.z, rfrc.x, rfrc.y, rfrc.z, rmom.x, rmom.y, rmom.z])
+        outstr += str(table)
+        table = MDTable()
+        table.add_column('Value', 's')
+        if self.strc.axis == 'y':
+            table.add_column('Vx', '.1f')
+            table.add_column('Fy', '.1f')
+            table.add_column('Vz', '.1f')
+            table.add_column('Mx', '.1f')
+            table.add_column('Ty', '.1f')
+            table.add_column('Mz', '.1f')
+        elif self.strc.axis == 'z':
+            table.add_column('Vx', '.1f')
+            table.add_column('Vy', '.1f')
+            table.add_column('Fz', '.1f')
+            table.add_column('Mx', '.1f')
+            table.add_column('My', '.1f')
+            table.add_column('Tz', '.1f')
+        Vx = self.frcmin.x
+        Fy = self.frcmin.y
+        Vz = self.frcmin.z
+        Mx = self.mommin.x
+        Ty = self.mommin.y
+        Mz = self.mommin.z
+        table.add_row(['Min', Vx, Fy, Vz, Mx, Ty, Mz])
+        Vx = self.frcmax.x
+        Fy = self.frcmax.y
+        Vz = self.frcmax.z
+        Mx = self.mommax.x
+        Ty = self.mommax.y
+        Mz = self.mommax.z
+        table.add_row(['Max', Vx, Fy, Vz, Mx, Ty, Mz])
+        outstr += str(table)
+        return outstr
+    def _repr_markdown_(self):
+        return self.__str__()
