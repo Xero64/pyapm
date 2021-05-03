@@ -177,13 +177,13 @@ class NACA4(object):
         if self._th is None:
             self._th = [thi-pi for thi in reversed(self.thl)] + self.thu[1:]
         return self._th
-    def plot_airfoil(self, ax=None):
+    def plot(self, ax=None):
         if ax is None:
             fig = figure(figsize=(12, 8))
             ax = fig.gca()
             ax.grid(True)
             ax.set_aspect('equal')
-        ax.plot(self.x, self.y, label=f'NACA {self.code:s}')
+        ax.plot(self.x, self.y, label=f'{self.name:s}')
         return ax
     def __repr__(self):
-        return f'<NACA {self.code:s}>'
+        return f'<{self.name:s}>'

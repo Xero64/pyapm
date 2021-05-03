@@ -1,5 +1,6 @@
 from matplotlib.pyplot import figure
 from pygeom.geom2d import CubicSpline2D, Point2D
+from . import read_dat
 from .spacing import full_cosine_spacing, equal_spacing
 from typing import List
 
@@ -192,18 +193,7 @@ class Airfoil(object):
         return ax
 
 def airfoil_from_dat(datfilepath: str):
-    x = []
-    y = []
-    with open(datfilepath, 'rt') as file:
-        for i, line in enumerate(file):
-            line = line.rstrip('\n')
-            if i == 0:
-                name = line.strip()
-            else:
-                split = line.split()
-                if len(split) == 2:
-                    x.append(float(split[0]))
-                    y.append(float(split[1]))
+    name, x, y = read_dat(datfilepath)
     return Airfoil(name, x, y)
 
 def airfoil_interpolation(airfoila, airfoilb, fac: float):
