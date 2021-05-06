@@ -183,7 +183,7 @@ class Airfoil(object):
         if self._yc is None:
             self._yc = [(yli+yui)/2 for yli, yui in zip(self.yl, self.yu)]
         return self._yc
-    def plot_airfoil(self, ax=None):
+    def plot(self, ax=None):
         if ax is None:
             fig = figure(figsize=(12, 8))
             ax = fig.gca()

@@ -32,7 +32,6 @@ class PanelProfile(object):
         pntle = shp[0, indle]
         pntte = (shp[0, 0]+shp[0, -1])/2
         dirx = (pntte-pntle).to_unit()
-        # print(dirx)
         self.twist = -degrees(acos(dirx.x))
     @property
     def tilt(self):
@@ -53,9 +52,9 @@ class PanelProfile(object):
             dirz = dirx**diry
             self._crdsys = Coordinate(self.point, dirx, diry, dirz)
         return self._crdsys
-    def get_profile(self):
-        prfa = self.scta.get_profile()
-        prfb = self.sctb.get_profile()
+    def get_profile(self, offset: bool=True):
+        prfa = self.scta.get_profile(offset=offset)
+        prfb = self.sctb.get_profile(offset=offset)
         profiledir = prfb - prfa
         return prfa + self.bval*profiledir
     def get_shape(self):

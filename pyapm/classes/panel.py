@@ -362,6 +362,8 @@ class Panel(DirichletPoly):
             abszi = absolute(rgcs*dirz)
             abszi[logical_not(chk)] = float('inf')
             absz = minimum(absz, abszi)
+        wint = wint.reshape(shp)
+        absz = absz.reshape(shp)
         return wint, absz
     def point_res(self, pnlres: matrix, pnt: Vector, ttol: float=0.1):
         vecg = pnt - self.pnto

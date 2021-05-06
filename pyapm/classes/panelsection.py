@@ -52,7 +52,9 @@ class PanelSection(PanelProfile):
         sect.mirror = True
         sect.bnum = self.bnum
         sect.bspc = self.bspc
+        sect.nomesh = self.nomesh
         sect.noload = self.noload
+        sect.nohsv = self.nohsv
         sect.xoc = self.xoc
         sect.zoc = self.zoc
         sect.bval = self.bval
@@ -95,21 +97,25 @@ class PanelSection(PanelProfile):
     @property
     def scttyp(self):
         if self._scttyp is None:
-            if self.shta is not None and self.shtb is not None:
+            if self.shta is None:
+                if self.shtb.nomesh:
+                    self._scttyp = 'notip'
+                else:
+                    self._scttyp = 'begtip'
+            elif self.shtb is None:
+                if self.shta.nomesh:
+                    self._scttyp = 'notip'
+                else:
+                    self._scttyp = 'endtip'
+            else:
                 if self.shta.nomesh and self.shtb.nomesh:
                     self._scttyp = 'notip'
-            if self.shta is None:
-                if not self.shtb.nomesh:
+                elif self.shta.nomesh:
                     self._scttyp = 'begtip'
-            elif self.shta.nomesh:
-                if not self.shtb.nomesh:
-                    self._scttyp = 'begtip'
-            if self.shtb is None:
-                if not self.shta.nomesh:
+                elif self.shtb.nomesh:
                     self._scttyp = 'endtip'
-            elif self.shtb.nomesh:
-                if not self.shta.nomesh:
-                    self._scttyp = 'endtip'
+                else:
+                    self._scttyp = 'notip'
         return self._scttyp
     def get_profile(self, offset: bool=True):
         num = self.cnum*2+1
@@ -135,12 +141,12 @@ class PanelSection(PanelProfile):
             mesh = True
         self.pnls = []
         if mesh:
-            if self.shta is None:
-                noload = self.shtb.noload
-            elif self.shtb is None:
-                noload = self.shta.noload
-            else:
-                noload = False
+            # if self.shta is None:
+            #     noload = self.shtb.noload
+            # elif self.shtb is None:
+            #     noload = self.shta.noload
+            # else:
+            #     noload = False
             numgrd = len(self.grds)
             n = numgrd-1
             numpnl = int(n/2)
@@ -201,10 +207,13 @@ def panelsection_from_json(sectdata: dict) -> PanelSection:
         sect.zoc = sectdata['zoc']
     if 'noload' in sectdata:
         sect.noload = sectdata['noload']
-    if 'nomesh' in sectdata:
-        sect.nomesh = sectdata['nomesh']
     if 'nohsv' in sectdata:
         sect.nohsv = sectdata['nohsv']
+    if 'nomesh' in sectdata:
+        sect.nomesh = sectdata['nomesh']
+        if sect.nomesh:
+            sect.noload = True
+            # sect.nohsv = True
     if 'controls' in sectdata:
         for name in sectdata['controls']:
             ctrl = panelcontrol_from_dict(name, sectdata['controls'][name])

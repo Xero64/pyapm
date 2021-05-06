@@ -1,7 +1,7 @@
 from math import degrees, atan2
 from typing import List, Dict
 from numpy.matlib import matrix
-from pygeom.geom3d import Vector
+from pygeom.geom3d import Vector, ihat
 from .panelsection import PanelSection
 from .panelstrip import PanelStrip
 from .panelprofile import PanelProfile
@@ -136,51 +136,53 @@ class PanelSheet(object):
     def prfs(self):
         if self._prfs is None:
             self._prfs = []
-            bmin = min(self.scta.bval, self.sctb.bval)
-            bmax = max(self.scta.bval, self.sctb.bval)
-            brng = bmax-bmin
-            pointdir = self.sctb.point-self.scta.point
-            for bd in self.bdst[1:-1]:
-                if self.mirror:
-                    bint = bmax-bd*brng
-                else:
-                    bint = bmin+bd*brng
-                point = self.scta.point + bd*pointdir
-                if 'chord' in self.fncs:
-                    chord = self.fncs['chord'].interpolate(bint)
-                else:
-                    chord = self.scta.chord*(1.0-bd)+self.sctb.chord*bd
-                if 'twist' in self.fncs:
-                    twist = self.fncs['twist'].interpolate(bint)
-                else:
-                    twist = self.scta.twist*(1.0-bd)+self.sctb.twist*bd
-                if 'tilt' in self.fncs:
-                    tilt = self.fncs['tilt'].interpolate(bint)
-                else:
-                    tilt = self.scta.tilt*(1.0-bd)+self.sctb.tilt*bd
-                bpos = self.scta.bpos*(1.0-bd)+self.sctb.bpos*bd
-                prf = PanelProfile(point, chord, twist)
-                prf.set_tilt(tilt)
-                prf.scta = self.scta
-                prf.sctb = self.sctb
-                prf.bval = bd
-                prf.bpos = bpos
-                prf.nohsv = self.nohsv
-                if self.ruled:
-                    prf.set_ruled_twist()
-                self._prfs.append(prf)
+            if not self.nomesh:
+                bmin = min(self.scta.bval, self.sctb.bval)
+                bmax = max(self.scta.bval, self.sctb.bval)
+                brng = bmax-bmin
+                pointdir = self.sctb.point-self.scta.point
+                for bd in self.bdst[1:-1]:
+                    if self.mirror:
+                        bint = bmax-bd*brng
+                    else:
+                        bint = bmin+bd*brng
+                    point = self.scta.point + bd*pointdir
+                    if 'chord' in self.fncs:
+                        chord = self.fncs['chord'].interpolate(bint)
+                    else:
+                        chord = self.scta.chord*(1.0-bd)+self.sctb.chord*bd
+                    if 'twist' in self.fncs:
+                        twist = self.fncs['twist'].interpolate(bint)
+                    else:
+                        twist = self.scta.twist*(1.0-bd)+self.sctb.twist*bd
+                    if 'tilt' in self.fncs:
+                        tilt = self.fncs['tilt'].interpolate(bint)
+                    else:
+                        tilt = self.scta.tilt*(1.0-bd)+self.sctb.tilt*bd
+                    bpos = self.scta.bpos*(1.0-bd)+self.sctb.bpos*bd
+                    prf = PanelProfile(point, chord, twist)
+                    prf.set_tilt(tilt)
+                    prf.scta = self.scta
+                    prf.sctb = self.sctb
+                    prf.bval = bd
+                    prf.bpos = bpos
+                    prf.nohsv = self.nohsv
+                    if self.ruled:
+                        prf.set_ruled_twist()
+                    self._prfs.append(prf)
         return self._prfs
     @property
     def strps(self):
         if self._strps is None:
             self._strps = []
-            if len(self.prfs) == 0:
-                self._strps.append(PanelStrip(self.scta, self.sctb, self))
-            else:
-                self._strps.append(PanelStrip(self.scta, self.prfs[0], self))
-                for i in range(len(self.prfs)-1):
-                    self._strps.append(PanelStrip(self.prfs[i], self.prfs[i+1], self))
-                self._strps.append(PanelStrip(self.prfs[-1], self.sctb, self))
+            if not self.nomesh:
+                if len(self.prfs) == 0:
+                    self._strps.append(PanelStrip(self.scta, self.sctb, self))
+                else:
+                    self._strps.append(PanelStrip(self.scta, self.prfs[0], self))
+                    for i in range(len(self.prfs)-1):
+                        self._strps.append(PanelStrip(self.prfs[i], self.prfs[i+1], self))
+                    self._strps.append(PanelStrip(self.prfs[-1], self.sctb, self))
         return self._strps
     @property
     def tilt(self):
@@ -218,23 +220,23 @@ class PanelSheet(object):
     def inherit_controls(self):
         self.ctrls = {}
         if self.mirror:
-            for control in self.sect2.ctrls:
-                ctrl = self.sect2.ctrls[control]
+            for control in self.sctb.ctrls:
+                ctrl = self.sctb.ctrls[control]
                 newctrl = ctrl.duplicate(mirror=True)
                 self.ctrls[control] = newctrl
         else:
-            for control in self.sect1.ctrls:
-                ctrl = self.sect1.ctrls[control]
+            for control in self.scta.ctrls:
+                ctrl = self.scta.ctrls[control]
                 newctrl = ctrl.duplicate(mirror=False)
                 self.ctrls[control] = newctrl
         for control in self.ctrls:
             ctrl = self.ctrls[control]
             if ctrl.uhvec.return_magnitude() == 0.0:
-                pnt1 = self.sect1.pnt
-                crd1 = self.sect1.chord
+                pnt1 = self.scta.pnt
+                crd1 = self.scta.chord
                 pnta = pnt1+crd1*ihat*ctrl.xhinge
-                pnt2 = self.sect2.pnt
-                crd2 = self.sect2.chord
+                pnt2 = self.sctb.pnt
+                crd2 = self.sctb.chord
                 pntb = pnt2+crd2*ihat*ctrl.xhinge
                 hvec = pntb-pnta
                 ctrl.set_hinge_vector(hvec)

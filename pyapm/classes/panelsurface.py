@@ -145,12 +145,6 @@ class PanelSurface(object):
                     pnl.srfc = self
                     self.pnls.append(pnl)
         return pid
-    # def mesh_tip_panels(self, pid: int):
-    #     scta = self.scts[0]
-    #     pid = scta.mesh_panels(pid, reverse=True)
-    #     sctb = self.scts[-1]
-    #     pid = sctb.mesh_panels(pid, reverse=False)
-    #     return pid
     @property
     def pinds(self):
         pinds = []
@@ -161,6 +155,7 @@ class PanelSurface(object):
         return f'<PanelSurface: {self.name:s}>'
 
 def linear_interpolate_none(x: list, y: list):
+    newy = []
     for i, yi in enumerate(y):
         if yi is None:
             for j in range(i, -1, -1):
@@ -174,10 +169,12 @@ def linear_interpolate_none(x: list, y: list):
             xa, xb = x[a], x[b]
             ya, yb = y[a], y[b]
             fac = (x[i]-xa)/(xb-xa)
-            y[i] = (yb-ya)*fac+ya
-    return y
+            yi = (yb-ya)*fac+ya
+        newy.append(yi)
+    return newy
 
 def linear_interpolate_airfoil(x: list, af: list):
+    newaf = []
     for i, afi in enumerate(af):
         if afi is None:
             for j in range(i, -1, -1):
@@ -191,8 +188,9 @@ def linear_interpolate_airfoil(x: list, af: list):
             xa, xb = x[a], x[b]
             afa, afb = af[a], af[b]
             fac = (x[i]-xa)/(xb-xa)
-            af[i] = airfoil_interpolation(afa, afb, fac)
-    return af
+            afi = airfoil_interpolation(afa, afb, fac)
+        newaf.append(afi)
+    return newaf
 
 def panelsurface_from_json(surfdata: dict, display: bool=False):
     name = surfdata['name']
@@ -219,12 +217,11 @@ def panelsurface_from_json(surfdata: dict, display: bool=False):
         c.append(sect.chord)
         a.append(sect.twist)
         af.append(sect.airfoil)
-    if None in y:
-        if None is z:
-            return ValueError
-        else:
-            y = linear_interpolate_none(z, y)
-    else:
+    if None in y and None in z:
+        return ValueError('Need at least ypos or zpos specified in sections.')
+    elif None in y:
+        y = linear_interpolate_none(z, y)
+    elif None in z:
         z = linear_interpolate_none(y, z)
     lensects = len(sects)
     b = [0.0]
