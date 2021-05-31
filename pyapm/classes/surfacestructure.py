@@ -1,7 +1,7 @@
 from typing import List, Dict
 from py2md.classes import MDTable
 from pygeom.geom3d import Vector
-from pygeom.matrix3d import zero_matrix_vector
+from pygeom.matrix3d import zero_matrix_vector, MatrixVector
 from .panelsurface import PanelSurface
 from .panelresult import PanelResult
 from .surfaceload import SurfaceLoad
@@ -16,7 +16,7 @@ class SurfaceStructure(object):
     rpnts: List[Vector] = None
     ks: List[Vector] = None
     gs: List[Vector] = None
-    _pnts: List[Vector] = None
+    _pnts: MatrixVector = None
     _ypos: List[float] = None
     _zpos: List[float] = None
     _rbdy: RigidBody = None

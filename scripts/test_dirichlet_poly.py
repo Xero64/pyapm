@@ -28,8 +28,7 @@ from numpy.matlib import absolute
 grds = [
     Vector(-1.0, -1.0, 0.0),
     Vector(1.0, -1.0, 0.0),
-    Vector(1.0, 1.0, 0.0),
-    Vector(-1.0, 1.0, 0.0)
+    Vector(0.0, 1.0, 0.0)
 ]
 
 #%% Create Poly
@@ -41,7 +40,7 @@ dpnl = DirichletPoly(grds)
 #%% Mesh Points
 xorg = 0.0
 yorg = 0.0
-zorg = -0.05
+zorg = 0.0
 numx = 201
 numy = 201
 xamp = 2.0
@@ -94,7 +93,8 @@ figd = figure(figsize = (12, 10))
 axd = figd.gca()
 axd.set_aspect('equal')
 axd.set_title('3D Doublet Panel Velocity Potential - Dirichlet Panel')
-cfd = axd.contourf(pnts.x, pnts.y, phid, levels = cfp.levels)
+# cfd = axd.contourf(pnts.x, pnts.y, phid, levels = cfp.levels)
+cfd = axd.contourf(pnts.x, pnts.y, phid, levels = 20)
 cbd = figd.colorbar(cfd)
 
 #%% Doublet Velocity in X
@@ -199,7 +199,8 @@ figd = figure(figsize = (12, 10))
 axd = figd.gca()
 axd.set_aspect('equal')
 axd.set_title('3D Source Panel Velocity in Z - Dirichlet Panel')
-cfd = axd.contourf(pnts.x, pnts.y, vels.z, levels = cfp.levels)
+# cfd = axd.contourf(pnts.x, pnts.y, vels.z, levels = cfp.levels)
+cfd = axd.contourf(pnts.x, pnts.y, vels.z, levels = 20)
 cbd = figd.colorbar(cfd)
 
 #%% Mesh Points

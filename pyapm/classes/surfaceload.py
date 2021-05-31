@@ -7,17 +7,9 @@ from . import PanelResult
 class SurfaceLoad(object):
     pres: PanelResult = None
     strc: object = None
-    # nffrc = None
-    # rffrc = None
-    # rfmom = None
-    # cgfrc = None
-    # cgmom = None
     sf: float = None
     ptfrc: MatrixVector = None
     ptmom: MatrixVector = None
-    # rref: Vector = None
-    # frca = None
-    # frcb = None
     frctot: Vector = None
     momtot: Vector = None
     frcmin: Vector = None
@@ -85,14 +77,14 @@ class SurfaceLoad(object):
         fz = self.ptfrc.z.transpose().tolist()[0]
         if self.strc.axis == 'y':
             yp = self.strc.ypos
-            ax.plot(yp, fx, label='Vx')
-            ax.plot(yp, fy, label='Fy')
-            ax.plot(yp, fz, label='Vz')
+            ax.plot(yp, fx, label=f'{self.pres.name:s} Vx')
+            ax.plot(yp, fy, label=f'{self.pres.name:s} Fy')
+            ax.plot(yp, fz, label=f'{self.pres.name:s} Vz')
         elif self.strc.axis == 'z':
             zp = self.strc.zpos
-            ax.plot(fx, zp, label='Vx')
-            ax.plot(fy, zp, label='Vy')
-            ax.plot(fz, zp, label='Fz')
+            ax.plot(fx, zp, label=f'{self.pres.name:s} Vx')
+            ax.plot(fy, zp, label=f'{self.pres.name:s} Vy')
+            ax.plot(fz, zp, label=f'{self.pres.name:s} Fz')
         ax.legend()
         return ax
     def plot_moments(self, ax=None):
@@ -105,14 +97,14 @@ class SurfaceLoad(object):
         mz = self.ptmom.z.transpose().tolist()[0]
         if self.strc.axis == 'y':
             yp = self.strc.ypos
-            ax.plot(yp, mx, label='Mx')
-            ax.plot(yp, my, label='Ty')
-            ax.plot(yp, mz, label='Mz')
+            ax.plot(yp, mx, label=f'{self.pres.name:s} Mx')
+            ax.plot(yp, my, label=f'{self.pres.name:s} Ty')
+            ax.plot(yp, mz, label=f'{self.pres.name:s} Mz')
         elif self.strc.axis == 'z':
             zp = self.strc.zpos
-            ax.plot(mx, zp, label='Mx')
-            ax.plot(my, zp, label='My')
-            ax.plot(mz, zp, label='Tz')
+            ax.plot(mx, zp, label=f'{self.pres.name:s} Mx')
+            ax.plot(my, zp, label=f'{self.pres.name:s} My')
+            ax.plot(mz, zp, label=f'{self.pres.name:s} Tz')
         ax.legend()
         return ax
     @property
@@ -136,9 +128,10 @@ class SurfaceLoad(object):
             table.add_column('Mx', '.0f')
             table.add_column('My', '.0f')
             table.add_column('Tz', '.0f')
-        for i, pnt in enumerate(self.strc.pnts):
-            frc = self.ptfrc[i]
-            mom = self.ptmom[i]
+        for i in range(self.strc.pnts.shape[0]):
+            frc = self.ptfrc[i, 0]
+            mom = self.ptmom[i, 0]
+            pnt = self.strc.pnts[i, 0]
             x, y, z = pnt.x, pnt.y, pnt.z
             Vx, Fy, Vz = frc.x, frc.y, frc.z
             Mx, Ty, Mz = mom.x, mom.y, mom.z
