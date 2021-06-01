@@ -1,7 +1,7 @@
 from pygeom.geom3d import Vector
 from .mass import Mass, MassCollection
 
-class LoopingTrim(object):
+class LoopingTrim():
     name = None
     sys = None
     gravacc = None
@@ -103,27 +103,27 @@ class LoopingTrim(object):
         table.add_column('Speed', '.3f', data=[self.speed])
         table.add_column('Density', '.3f', data=[self.density])
         table.add_column('Dyn. Press.', '.3f', data=[self.dynpres])
-        outstr += table._repr_markdown_()
+        outstr += str(table)
         table = MDTable()
         table.add_column('Mass', '.3f', data=[self.mass.mass])
         table.add_column('Grav. Acc.', '.5f', data=[self.gravacc])
         table.add_column('Weight', '.3f', data=[self.weight])
-        outstr += table._repr_markdown_()
+        outstr += str(table)
         table = MDTable()
         table.add_column('Load Factor', '.3f', data=[self.loadfac])
         table.add_column('Lift', '.3f', data=[self.lift])
         table.add_column('CL', '.5f', data=[self.CL])
-        outstr += table._repr_markdown_()
+        outstr += str(table)
         table = MDTable()
         table.add_column('Acceleration', '.3f', data=[self.acc])
         table.add_column('Radius', '.3f', data=[self.rad])
         table.add_column('Pitch Rate', '.5f', data=[self.prate])
-        outstr += table._repr_markdown_()
+        outstr += str(table)
         return outstr
     def _repr_markdown_(self):
         return self.__str__()
 
-class TurningTrim(object):
+class TurningTrim():
     name = None
     sys = None
     gravacc = None
@@ -252,29 +252,29 @@ class TurningTrim(object):
         table.add_column('Speed', '.3f', data=[self.speed])
         table.add_column('Density', '.3f', data=[self.density])
         table.add_column('Dyn. Press.', '.3f', data=[self.dynpres])
-        outstr += table._repr_markdown_()
+        outstr += str(table)
         table = MDTable()
         table.add_column('Mass', '.3f', data=[self.mass.mass])
         table.add_column('Grav. Acc.', '.5f', data=[self.gravacc])
         table.add_column('Weight', '.3f', data=[self.weight])
-        outstr += table._repr_markdown_()
+        outstr += str(table)
         table = MDTable()
         table.add_column('Bank Angle (deg)', '.1f', data=[self.bankang])
         table.add_column('Load Factor', '.3f', data=[self.loadfac])
         table.add_column('Lift', '.3f', data=[self.lift])
         table.add_column('CL', '.5f', data=[self.CL])
-        outstr += table._repr_markdown_()
+        outstr += str(table)
         table = MDTable()
         table.add_column('Acceleration', '.3f', data=[self.acc])
         table.add_column('Turn Radius', '.3f', data=[self.rad])
         table.add_column('Pitch Rate', '.5f', data=[self.prate])
         table.add_column('Roll Rate', '.5f', data=[self.rrate])
-        outstr += table._repr_markdown_()
+        outstr += str(table)
         return outstr
     def _repr_markdown_(self):
         return self.__str__()
 
-class LevelTrim(object):
+class LevelTrim():
     name = None
     sys = None
     gravacc = None
@@ -351,16 +351,119 @@ class LevelTrim(object):
         table.add_column('Speed', '.3f', data=[self.speed])
         table.add_column('Density', '.3f', data=[self.density])
         table.add_column('Dyn. Press.', '.3f', data=[self.dynpres])
-        outstr += table._repr_markdown_()
+        outstr += str(table)
         table = MDTable()
         table.add_column('Mass', '.3f', data=[self.mass.mass])
         table.add_column('Grav. Acc.', '.5f', data=[self.gravacc])
         table.add_column('Weight', '.3f', data=[self.weight])
-        outstr += table._repr_markdown_()
+        outstr += str(table)
         table = MDTable()
         table.add_column('Lift', '.3f', data=[self.lift])
         table.add_column('CL', '.5f', data=[self.CL])
-        outstr += table._repr_markdown_()
+        outstr += str(table)
+        return outstr
+    def _repr_markdown_(self):
+        return self.__str__()
+
+class LoadTrim():
+    name: str = None
+    sys: object = None
+    speed: float = None
+    density: float = None
+    L: float = None
+    Y: float = None
+    l: float = None
+    m: float = None
+    n: float = None
+    _dynpres: float = None
+    _CL: float = None
+    _CY: float = None
+    _Cl: float = None
+    _Cm: float = None
+    _Cn: float = None
+    def __init__(self, name: str, sys: object):
+        self.name = name
+        self.sys = sys
+    def reset(self):
+        for attr in self.__dict__:
+            if attr[0] == '_':
+                self.__dict__[attr] = None
+    def set_speed_and_density(self, speed: float, density: float):
+        self.speed = speed
+        self.density = density
+        self.reset()
+    def set_loads(self, L: float=None, Y: float=None,
+                  l: float=None, m: float=None, n: float=None):
+        self.L = L
+        self.Y = Y
+        self.l = l
+        self.m = m
+        self.n = n
+    def create_trim_result(self):
+        from ..classes import PanelTrim
+        ltrm = PanelTrim(self.name, self.sys)
+        ltrm.set_density(rho=self.density)
+        ltrm.set_state(speed=self.speed)
+        ltrm.set_targets(CLt=self.CL, CYt=self.CY,
+                         Clt=self.Cl, Cmt=self.Cm, Cnt=self.Cn)
+        return ltrm
+    @property
+    def dynpres(self):
+        if self._dynpres is None:
+            self._dynpres = self.density*self.speed**2/2
+        return self._dynpres
+    @property
+    def CL(self):
+        if self._CL is None:
+            if self.L is not None:
+                self._CL = self.L/self.dynpres/self.sys.sref
+        return self._CL
+    @property
+    def CY(self):
+        if self._CY is None:
+            if self.Y is not None:
+                self._CY = self.Y/self.dynpres/self.sys.sref
+        return self._CY
+    @property
+    def Cl(self):
+        if self._Cl is None:
+            if self.l is not None:
+                self._Cl = self.l/self.dynpres/self.sys.sref/self.sys.bref
+        return self._Cl
+    @property
+    def Cm(self):
+        if self._Cm is None:
+            if self.m is not None:
+                self._Cm = self.m/self.dynpres/self.sys.sref/self.sys.cref
+        return self._Cm
+    @property
+    def Cn(self):
+        if self._Cn is None:
+            if self.n is not None:
+                self._Cn = self.n/self.dynpres/self.sys.sref/self.sys.bref
+        return self._Cn
+    def __str__(self):
+        from py2md.classes import MDTable
+        outstr = '# Load Trim State '+self.name+' for '+self.sys.name+'\n'
+        table = MDTable()
+        table.add_column('Speed', '.3f', data=[self.speed])
+        table.add_column('Density', '.3f', data=[self.density])
+        table.add_column('Dyn. Press.', '.3f', data=[self.dynpres])
+        outstr += str(table)
+        table = MDTable()
+        table.add_column('L', '.3f', data=[self.L])
+        table.add_column('Y', '.3f', data=[self.Y])
+        table.add_column('l', '.3f', data=[self.l])
+        table.add_column('m', '.3f', data=[self.m])
+        table.add_column('n', '.3f', data=[self.n])
+        outstr += str(table)
+        table = MDTable()
+        table.add_column('CL', '.5f', data=[self.CL])
+        table.add_column('CY', '.5f', data=[self.CY])
+        table.add_column('Cl', '.5f', data=[self.Cl])
+        table.add_column('Cm', '.5f', data=[self.Cm])
+        table.add_column('Cn', '.5f', data=[self.Cn])
+        outstr += str(table)
         return outstr
     def _repr_markdown_(self):
         return self.__str__()

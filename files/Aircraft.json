@@ -190,7 +190,7 @@
             "density": 0.945,
             "speed": 50.0,
             "mass": "Forward CG",
-            "bank twist": 60.0
+            "bank angle": 60.0
         },
         {
             "name": "Positive 1g Cruise + 15deg Side Slip",

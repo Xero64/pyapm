@@ -47,8 +47,3 @@ axd = pres.plot_strip_drag_force_distribution(ax=axd)
 #%% Display Derivatives
 display_markdown(ptrm.stability_derivatives)
 display_markdown(ptrm.control_derivatives)
-
-#%% Display All Results
-
-for case in psys.results:
-    display_markdown(psys.results[case])

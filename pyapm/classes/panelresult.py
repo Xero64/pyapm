@@ -1,22 +1,20 @@
 from math import cos, sin, radians, pi
+from typing import Dict
 from pygeom.geom3d import Vector, Coordinate
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
-from pygeom.matrix3d import elementwise_dot_product, elementwise_multiply, elementwise_cross_product
-from pygeom.matrix3d import vector_to_local
-from pygeom.geom2d import Vector2D
+from pygeom.matrix3d import elementwise_multiply, elementwise_cross_product
 from pygeom.matrix2d import MatrixVector2D
 from pygeom.matrix2d import elementwise_dot_product as elementwise_dot_product_2d
-from numpy.matlib import matrix, ones, zeros
-from numpy.matlib import sqrt, square, multiply, absolute
+from numpy.matlib import matrix,  zeros
+from numpy import square, multiply
 from matplotlib.pyplot import figure
 from py2md.classes import MDTable, MDReport, MDHeading
-from ..tools import betm_from_mach
 
 tol = 1e-12
 
 class PanelResult(object):
     name: str = None
-    sys = None
+    sys: object = None
     rho: float = None
     mach: float = None
     speed: float = None
@@ -25,7 +23,7 @@ class PanelResult(object):
     pbo2V: float = None
     qco2V: float = None
     rbo2V: float = None
-    ctrls = None
+    ctrls: Dict[str, float] = None
     rcg: Vector = None
     _acs: Coordinate = None
     _wcs: Coordinate = None
@@ -846,7 +844,7 @@ def trig_angle(angle: float):
     sinang = sin(angrad)
     return cosang, sinang
 
-class NearFieldResult(object):
+class NearFieldResult():
     res: PanelResult = None
     nfcp: matrix = None
     _nfprs: matrix = None
