@@ -10,7 +10,7 @@ from pygeom.matrix3d import zero_matrix_vector, MatrixVector
 from pygeom.matrix3d import solve_matrix_vector, elementwise_dot_product, elementwise_cross_product
 from .panel import Panel
 from .grid import Grid
-from .horseshoe import HorseShoe
+from .horseshoedoublet import HorseshoeDoublet
 from .panelsurface import panelsurface_from_json, PanelSurface
 from .panelresult import panelresult_from_dict
 from .paneltrim import paneltrim_from_dict
@@ -30,7 +30,7 @@ class PanelSystem(object):
     results: List[object] = None
     masses = None
     source: str = None
-    _hsvs: List[HorseShoe] = None
+    _hsvs: List[HorseshoeDoublet] = None
     _numgrd: int = None
     _numpnl: int = None
     _numhsv: int = None
