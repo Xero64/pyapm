@@ -19,7 +19,7 @@ psys = panelsystem_from_json(jsonfilepath)
 pres = psys.results['Test Case']
 
 #%% Set Horseshoe Direction
-psys.set_horseshoes(pres.vfs.to_unit())
+psys.set_trailing_doublets(pres.vfs.to_unit())
 
 #%% Assemble and Solve
 psys.assemble_panels()

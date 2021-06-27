@@ -1,4 +1,4 @@
-from ..classes import PanelSystem
+from ..classes.panelsystem import PanelSystem
 
 def panelsystem_to_md(psys: PanelSystem, mdfilepath: str, outputs: dict):
     with open(mdfilepath, 'wt') as mdfile:

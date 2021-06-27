@@ -3,7 +3,7 @@ from typing import List, Dict
 from numpy.matlib import absolute
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector
-from .panel import Panel
+from .trianglepanel import TrianglePanel
 from .panelprofile import PanelProfile
 from .panelcontrol import PanelControl, panelcontrol_from_dict
 from ..tools.airfoil import airfoil_from_dat
@@ -21,7 +21,7 @@ class PanelSection(PanelProfile):
     zoc: float = None
     shta: object = None
     shtb: object = None
-    pnls: List[Panel] = None
+    pnls: List[TrianglePanel] = None
     ruled: bool = None
     noload: bool = None
     nomesh: bool = None
@@ -141,34 +141,49 @@ class PanelSection(PanelProfile):
             mesh = True
         self.pnls = []
         if mesh:
-            # if self.shta is None:
-            #     noload = self.shtb.noload
-            # elif self.shtb is None:
-            #     noload = self.shta.noload
-            # else:
-            #     noload = False
             numgrd = len(self.grds)
             n = numgrd-1
             numpnl = int(n/2)
             for i in range(numpnl):
+                grd1 = self.grds[i]
+                grd2 = self.grds[i+1]
+                grd3 = self.grds[n-i-1]
+                grd4 = self.grds[n-i]
                 grds = []
-                grds.append(self.grds[i])
-                grds.append(self.grds[i+1])
-                grds.append(self.grds[n-i-1])
-                grds.append(self.grds[n-i])
+                if grd1 not in grds:
+                    grds.append(grd1)
+                if grd2 not in grds:
+                    grds.append(grd2)
+                if grd3 not in grds:
+                    grds.append(grd3)
+                if grd4 not in grds:
+                    grds.append(grd4)
                 dist = (grds[0]-grds[-1]).return_magnitude()
                 if dist < tol:
                     grds = grds[:-1]
                 if reverse:
                     grds.reverse()
-                pnlgrds = []
-                for grd in grds:
-                    if grd not in pnlgrds:
-                        pnlgrds.append(grd)
-                pnl = Panel(pid, pnlgrds)
-                pnl.sct = self
-                self.pnls.append(pnl)
-                pid += 1
+                if len(grds) == 3:
+                    grd1 = grds[0]
+                    grd2 = grds[1]
+                    grd3 = grds[2]
+                    pnl1 = TrianglePanel(pid, grd1, grd2, grd3)
+                    pnl1.sct = self
+                    self.pnls.append(pnl1)
+                    pid += 1
+                elif len(grds) == 4:
+                    grd1 = grds[0]
+                    grd2 = grds[1]
+                    grd3 = grds[2]
+                    grd4 = grds[3]
+                    pnl1 = TrianglePanel(pid, grd1, grd2, grd3)
+                    pnl1.sct = self
+                    self.pnls.append(pnl1)
+                    pid += 1
+                    pnl2 = TrianglePanel(pid, grd3, grd4, grd1)
+                    pnl2.sct = self
+                    self.pnls.append(pnl2)
+                    pid += 1
         return pid
     def __repr__(self):
         return f'<pyapm.PanelSection at {self.point:}>'

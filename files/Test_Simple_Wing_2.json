@@ -11,7 +11,7 @@
         {
             "name": "Wing",
             "twist": 0.0,
-            "cnum": 10,
+            "cnum": 20,
             "close": true,
             "mirror": true,
             "sections": [
@@ -20,7 +20,7 @@
                     "ypos": 0.0,
                     "zpos": 0.0,
                     "chord": 1.0,
-                    "bnum": 1,
+                    "bnum": 20,
                     "bspc": "semi-cosine",
                     "airfoil": "NACA 0012",
                     "xoc": 0.25,
@@ -50,7 +50,7 @@
     "cases": [
         {
             "name": "Test Case",
-            "alpha": 5.0,
+            "alpha": 0.0,
             "speed": 50.0,
             "density": 1.225
         }

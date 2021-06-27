@@ -144,9 +144,9 @@ class PanelResult(object):
     def arm(self):
         if self._arm is None:
             if self.rcg is None:
-                self._arm = self.sys.rrel
+                self._arm = self.sys.pnlrrel
             else:
-                self._arm = self.sys.pnts-self.rcg
+                self._arm = self.sys.pnlpnts-self.rcg
         return self._arm
     @property
     def vfsg(self):
@@ -252,8 +252,8 @@ class PanelResult(object):
         ql = zeros((self.sys.numpnl, 1), dtype=float)
         qt = zeros((self.sys.numpnl, 1), dtype=float)
         for pnl in self.sys.pnls.values():
-            vl[pnl.ind, 0] = pnl.crd.dirx*vfsg[pnl.ind, 0]
-            vt[pnl.ind, 0] = pnl.crd.diry*vfsg[pnl.ind, 0]
+            vl[pnl.ind, 0] = pnl.dirx*vfsg[pnl.ind, 0]
+            vt[pnl.ind, 0] = pnl.diry*vfsg[pnl.ind, 0]
             ql[pnl.ind, 0], qt[pnl.ind, 0] = pnl.diff_mu(mu)
         return MatrixVector2D(vl + ql, vt + qt)
     @property
@@ -284,9 +284,9 @@ class PanelResult(object):
         return self._strpres
     @property
     def ffres(self):
-        if self._ffres is None:
-            if self.sys.srfcs is not None:
-                self._ffres = FarFieldResult(self)
+        # if self._ffres is None:
+        #     if self.sys.srfcs is not None:
+        #         self._ffres = FarFieldResult(self)
         return self._ffres
     @property
     def stres(self):
@@ -876,8 +876,8 @@ class NearFieldResult():
     @property
     def nffrc(self) -> MatrixVector:
         if self._nffrc is None:
-            nrms = self.res.sys.nrms
-            pnla = self.res.sys.pnla
+            nrms = self.res.sys.pnlnrms
+            pnla = self.res.sys.pnlarea
             self._nffrc = -elementwise_multiply(nrms, multiply(self.nfprs, pnla))
         return self._nffrc
     @property

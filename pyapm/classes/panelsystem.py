@@ -8,9 +8,9 @@ from py2md.classes import MDTable
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector, MatrixVector
 from pygeom.matrix3d import solve_matrix_vector, elementwise_dot_product, elementwise_cross_product
-from .panel import Panel
-from .grid import Grid
-from .horseshoedoublet import HorseshoeDoublet
+from .grid import Grid, GridNormal
+from .trianglepanel import TrianglePanel
+from .trailingdoubletpanel import TrailingDoubletPanel
 from .panelsurface import panelsurface_from_json, PanelSurface
 from .panelresult import panelresult_from_dict
 from .paneltrim import paneltrim_from_dict
@@ -20,7 +20,7 @@ from ..tools.mass import masses_from_json
 class PanelSystem(object):
     name: str = None
     grds: Dict[int, Grid] = None
-    pnls: Dict[int, Panel] = None
+    pnls: Dict[int, TrianglePanel] = None
     bref: float = None
     cref: float = None
     sref: float = None
@@ -30,13 +30,19 @@ class PanelSystem(object):
     results: List[object] = None
     masses = None
     source: str = None
-    _hsvs: List[HorseshoeDoublet] = None
+    _tdps: List[TrailingDoubletPanel] = None
     _numgrd: int = None
     _numpnl: int = None
-    _numhsv: int = None
+    _numnrm: int = None
+    _numtdp: int = None
     _numctrl: int = None
     _pnts: MatrixVector = None
-    _pnla: matrix = None
+    _pnlarea: matrix = None
+    _pnlweta: matrix = None
+    _pnlpnts: MatrixVector = None
+    _pnlrrel: MatrixVector = None
+    _pnlnrms: MatrixVector = None
+    _grdnrms: List[GridNormal] = None
     _nrms: MatrixVector = None
     _rrel: MatrixVector = None
     _apd: Dict[float, matrix] = None
@@ -55,8 +61,8 @@ class PanelSystem(object):
     _unmu: Dict[float, MatrixVector] = None
     _unphi: Dict[float, MatrixVector] = None
     _unnvg: Dict[float, MatrixVector] = None
-    _hsvpnts: MatrixVector = None
-    _hsvnrms: MatrixVector = None
+    _tdppnts: MatrixVector = None
+    _tdpnrms: MatrixVector = None
     _awd: matrix = None
     _aws: matrix = None
     _awh: matrix = None
@@ -65,6 +71,7 @@ class PanelSystem(object):
     _alh: matrix = None
     _ar: float = None
     _area: float = None
+    _wetarea: float = None
     _strps: List[object] = None
     _phind: Dict[int, List[int]] = None
     def __init__(self, name: str, bref: float, cref: float, sref: float, rref: Vector):
@@ -75,10 +82,10 @@ class PanelSystem(object):
         self.rref = rref
         self.ctrls = {}
         self.results = {}
-    def set_mesh(self, grds: Dict[int, Grid], pnls: Dict[int, Panel]):
-        self.grds = grds
-        self.pnls = pnls
-        self.update()
+    # def set_mesh(self, grds: Dict[int, Grid], pnls: Dict[int, TrianglePanel]):
+    #     self.grds = grds
+    #     self.pnls = pnls
+    #     self.update()
     def set_geom(self, srfcs: List[PanelSurface]=None):
         self.srfcs = srfcs
         self.mesh()
@@ -92,18 +99,17 @@ class PanelSystem(object):
         for attr in self.__dict__:
             if attr[0] == '_':
                 self.__dict__[attr] = None
-    def set_horseshoes(self, diro: Vector):
+    def mesh_trailing_doublet_panels(self, diro: Vector):
+        pid = 0
         for pnl in self.pnls.values():
-            pnl.set_horseshoes(diro)
-        self._hsvs = None
-        self._numhsv = None
+            pid = pnl.mesh_trailing_doublet_panels(pid, diro)
+        self._tdps = None
+        self._numtdp = None
         self._aph = None
         self._avh = None
         self._apm = None
         self._avm = None
         self._anm = None
-        self._hsvpnts = None
-        self._hsvnrms = None
         self._awd = None
         self._aws = None
         self._awh = None
@@ -134,10 +140,15 @@ class PanelSystem(object):
             self._numpnl = len(self.pnls)
         return self._numpnl
     @property
-    def numhsv(self):
-        if self._numhsv is None:
-            self._numhsv = len(self.hsvs)
-        return self._numhsv
+    def numnrm(self):
+        if self._numnrm is None:
+            self._numnrm = len(self.grdnrms)
+        return self._numnrm
+    @property
+    def numtdp(self):
+        if self._numtdp is None:
+            self._numtdp = len(self.tdps)
+        return self._numtdp
     @property
     def numctrl(self):
         if self._numctrl is None:
@@ -146,42 +157,88 @@ class PanelSystem(object):
     @property
     def pnts(self):
         if self._pnts is None:
-            self._pnts = zero_matrix_vector((self.numpnl, 1), dtype=float)
-            for pnl in self.pnls.values():
-                self._pnts[pnl.ind, 0] = pnl.pnto
+            self._pnts = zero_matrix_vector((self.numgrd, 1), dtype=float)
+            for grd in self.grds.values():
+                self._pnts[grd.ind, 0] = grd
         return self._pnts
+    @property
+    def pnlpnts(self):
+        if self._pnlpnts is None:
+            self._pnlpnts = zero_matrix_vector((self.numpnl, 1), dtype=float)
+            for pnl in self.pnls.values():
+                self._pnlpnts[pnl.ind, 0] = pnl.pnto
+        return self._pnlpnts
+    @property
+    def pnlrrel(self):
+        if self._pnlrrel is None:
+            self._pnlrrel = zero_matrix_vector((self.numpnl, 1), dtype=float)
+            for pnl in self.pnls.values():
+                self._pnlrrel[pnl.ind, 0] = pnl.pnto-self.rref
+        return self._pnlrrel
+    @property
+    def pnlnrms(self):
+        if self._pnlnrms is None:
+            self._pnlnrms = zero_matrix_vector((self.numpnl, 1), dtype=float)
+            for pnl in self.pnls.values():
+                self._pnlnrms[pnl.ind, 0] = pnl.dirz
+        return self._pnlnrms
     @property
     def rrel(self):
         if self._rrel is None:
-            self._rrel = self.pnts-self.rref
+            shp = (len(self.grdnrms), 1)
+            self._rrel = zero_matrix_vector(shp, dtype=float)
+            for grdnrm in self.grdnrms:
+                self._rrel[grdnrm.ind, 0] = grdnrm.grd-self.rref
         return self._rrel
+    @property
+    def grdnrms(self):
+        if self._grdnrms is None:
+            self._grdnrms = []
+            for pnl in self.pnls.values():
+                if pnl.nrma not in self._grdnrms:
+                    self._grdnrms.append(pnl.nrma)
+                if pnl.nrmb not in self._grdnrms:
+                    self._grdnrms.append(pnl.nrmb)
+                if pnl.nrmc not in self._grdnrms:
+                    self._grdnrms.append(pnl.nrmc)
+            for ind, grdnrm in enumerate(self._grdnrms):
+                grdnrm.set_index(ind)
+        return self._grdnrms
     @property
     def nrms(self):
         if self._nrms is None:
-            self._nrms = zero_matrix_vector((self.numpnl, 1), dtype=float)
-            for pnl in self.pnls.values():
-                self._nrms[pnl.ind, 0] = pnl.nrm
+            shp = (len(self.grdnrms), 1)
+            self._nrms = zero_matrix_vector(shp, dtype=float)
+            for grdnrm in self.grdnrms:
+                self._nrms[grdnrm.ind, 0] = grdnrm
         return self._nrms
     @property
-    def pnla(self):
-        if self._pnla is None:
-            self._pnla = zeros((self.numpnl, 1), dtype=float)
+    def pnlarea(self):
+        if self._pnlarea is None:
+            self._pnlarea = zeros((self.numpnl, 1), dtype=float)
             for pnl in self.pnls.values():
-                self._pnla[pnl.ind, 0] = pnl.area
-        return self._pnla
+                self._pnlarea[pnl.ind, 0] = pnl.area
+        return self._pnlarea
     @property
-    def hsvs(self):
-        if self._hsvs is None:
-            self._hsvs = []
+    def pnlweta(self):
+        if self._pnlweta is None:
+            self._pnlweta = zeros((self.numpnl, 1), dtype=float)
             for pnl in self.pnls.values():
-                self._hsvs = self._hsvs + pnl.hsvs
-        return self._hsvs
+                self._pnlweta[pnl.ind, 0] = pnl.wetarea
+        return self._pnlweta
+    @property
+    def tdps(self):
+        if self._tdps is None:
+            self._tdps = []
+            for pnl in self.pnls.values():
+                self._tdps = self._tdps + pnl.tdps
+        return self._tdps
     @property
     def phind(self):
         if self._phind is None:
             self._phind = {}
-            for i, hsv in enumerate(self.hsvs):
-                pind = hsv.ind
+            for i, tdp in enumerate(self.tdps):
+                pind = tdp.ind
                 if pind in self._phind:
                     self._phind[pind].append(i)
                 else:
@@ -205,24 +262,24 @@ class PanelSystem(object):
         if mach not in self._apd:
             self.assemble_panels(False, mach=mach)
         return self._apd[mach]
-    def avd(self, mach: float=0.0):
-        if self._avd is None:
-            self._avd = {}
-        if mach not in self._avd:
-            self.assemble_panels_full(False, mach=mach)
-        return self._avd[mach]
+    # def avd(self, mach: float=0.0):
+    #     if self._avd is None:
+    #         self._avd = {}
+    #     if mach not in self._avd:
+    #         self.assemble_panels_full(False, mach=mach)
+    #     return self._avd[mach]
     def aps(self, mach: float=0.0):
         if self._aps is None:
             self._aps = {}
         if mach not in self._aps:
             self.assemble_panels(False, mach=mach)
         return self._aps[mach]
-    def avs(self, mach: float=0.0):
-        if self._avs is None:
-            self._avs = {}
-        if mach not in self._avs:
-            self.assemble_panels_full(False, mach=mach)
-        return self._avs[mach]
+    # def avs(self, mach: float=0.0):
+    #     if self._avs is None:
+    #         self._avs = {}
+    #     if mach not in self._avs:
+    #         self.assemble_panels_full(False, mach=mach)
+    #     return self._avs[mach]
     def aph(self, mach: float=0.0):
         if self._aph is None:
             self._aph = {}
@@ -241,9 +298,12 @@ class PanelSystem(object):
         if mach not in self._apm:
             apm = self.apd(mach).copy()
             aph = self.aph(mach)
-            for i, hsv in enumerate(self.hsvs):
-                ind = hsv.ind
-                apm[:, ind] = apm[:, ind] + aph[:, i]
+            for i, tdp in enumerate(self.tdps):
+                ia = 2*i
+                ib = ia+1
+                inda, indb = tdp.indd
+                apm[:, inda] += aph[:, ia]
+                apm[:, indb] += aph[:, ib]
             self._apm[mach] = apm
         return self._apm[mach]
     def avm(self, mach: float=0.0):
@@ -252,8 +312,8 @@ class PanelSystem(object):
         if self._avm is None:
             avm = self.avd(mach).copy()
             avh = self.avh(mach)
-            for i, hsv in enumerate(self.hsvs):
-                ind = hsv.ind
+            for i, tdp in enumerate(self.tdps):
+                ind = tdp.ind
                 avm[:, ind] = avm[:, ind] + avh[:, i]
             self._avm[mach] = avm
         return self._avm[mach]
@@ -272,19 +332,19 @@ class PanelSystem(object):
             self._anm[mach] = elementwise_dot_product(nrms, self.avm(mach))
         return self._anm[mach]
     @property
-    def hsvpnts(self):
-        if self._hsvpnts is None:
-            self._hsvpnts = zero_matrix_vector((self.numhsv, 1), dtype=float)
-            for i, hsv in enumerate(self.hsvs):
-                self._hsvpnts[i, 0] = hsv.pnto
-        return self._hsvpnts
+    def tdppnts(self):
+        if self._tdppnts is None:
+            self._tdppnts = zero_matrix_vector((self.numtdp, 1), dtype=float)
+            for i, tdp in enumerate(self.tdps):
+                self._tdppnts[i, 0] = tdp.pnto
+        return self._tdppnts
     @property
-    def hsvnrms(self):
-        if self._hsvnrms is None:
-            self._hsvnrms = zero_matrix_vector((self.numhsv, 1), dtype=float)
-            for i, hsv in enumerate(self.hsvs):
-                self._hsvnrms[i, 0] = hsv.nrm
-        return self._hsvnrms
+    def tdpnrms(self):
+        if self._tdpnrms is None:
+            self._tdpnrms = zero_matrix_vector((self.numtdp, 1), dtype=float)
+            for i, tdp in enumerate(self.tdps):
+                self._tdpnrms[i, 0] = tdp.nrm
+        return self._tdpnrms
     @property
     def strps(self):
         if self._strps is None:
@@ -297,51 +357,6 @@ class PanelSystem(object):
                         self._strps.append(strp)
                         ind += 1
         return self._strps
-    def assemble_panels_wash(self, time: bool=True):
-        if time:
-            start = perf_counter()
-        shp = (self.numhsv, self.numpnl)
-        self._awd = zeros(shp, dtype=float)
-        self._aws = zeros(shp, dtype=float)
-        for pnl in self.pnls.values():
-            ind = pnl.ind
-            _, _, avd, avs = pnl.influence_coefficients(self.hsvpnts)
-            self._awd[:, ind] = elementwise_dot_product(avd, self.hsvnrms)
-            self._aws[:, ind] = elementwise_dot_product(avs, self.hsvnrms)
-        if time:
-            finish = perf_counter()
-            elapsed = finish - start
-            print(f'Wash matrix assembly time is {elapsed:.3f} seconds.')
-    def assemble_horseshoes_wash(self, time: bool=True):
-        if time:
-            start = perf_counter()
-        shp = (self.numhsv, self.numhsv)
-        self._awh = zeros(shp, dtype=float)
-        for i, hsv in enumerate(self.hsvs):
-            avh = hsv.trefftz_plane_velocities(self.hsvpnts)
-            self._awh[:, i] = elementwise_dot_product(avh, self.hsvnrms)
-        if time:
-            finish = perf_counter()
-            elapsed = finish - start
-            print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
-    # def assemble_horseshoes_wash_v2(self, time: bool=True):
-    #     if time:
-    #         start = perf_counter()
-    #     shp = (self.numhsv, self.numhsv)
-    #     self._awh = zeros(shp, dtype=float)
-    #     for i, hsvi in enumerate(self.hsvs):
-    #         for j, hsvj in enumerate(self.hsvs):
-    #             avh = hsvj.trefftz_velocity(hsvi.pnto)
-    #             # self._awh[i, j] = avh*hsvi.nrm
-    #             if hsvi.nrm.z < 0:
-    #                 nrm = Vector(0.0, 0.0, -1.0)
-    #             else:
-    #                 nrm = Vector(0.0, 0.0, 1.0)
-    #             self._awh[i, j] = avh*nrm
-    #     if time:
-    #         finish = perf_counter()
-    #         elapsed = finish - start
-    #         print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
     @property
     def awh(self):
         if self._awh is None:
@@ -361,28 +376,28 @@ class PanelSystem(object):
     def adh(self):
         if self._adh is None:
             self._adh = zeros(self.awh.shape, dtype=float)
-            for i, hsv in enumerate(self.hsvs):
-                self._adh[:, i] = -self._awh[:, i]*hsv.width
+            for i, tdp in enumerate(self.tdps):
+                self._adh[:, i] = -self._awh[:, i]*tdp.width
         return self._adh
     @property
     def ash(self):
         if self._ash is None:
-            self._ash = zeros((self.numhsv, 1), dtype=float)
-            for i, hsv in enumerate(self.hsvs):
-                self._ash[i, 0] = -hsv.vecab.z
+            self._ash = zeros((self.numtdp, 1), dtype=float)
+            for i, tdp in enumerate(self.tdps):
+                self._ash[i, 0] = -tdp.vecab.z
         return self._ash
     @property
     def alh(self):
         if self._alh is None:
-            self._alh = zeros((self.numhsv, 1), dtype=float)
-            for i, hsv in enumerate(self.hsvs):
-                self._alh[i, 0] = hsv.vecab.y
+            self._alh = zeros((self.numtdp, 1), dtype=float)
+            for i, tdp in enumerate(self.tdps):
+                self._alh[i, 0] = tdp.vecab.y
         return self._alh
     def unsig(self, mach: float=0.0):
         if self._unsig is None:
             self._unsig = {}
         if mach not in self._unsig:
-            unsig = zero_matrix_vector((self.numpnl, 2+4*self.numctrl), dtype=float)
+            unsig = zero_matrix_vector((self.numnrm, 2+4*self.numctrl), dtype=float)
             unsig[:, 0] = -self.nrms
             unsig[:, 1] = elementwise_cross_product(self.rrel, self.nrms)
             if self.srfcs is not None:
@@ -392,14 +407,24 @@ class PanelSystem(object):
                             ctrl = sht.ctrls[control]
                             ctup = self.ctrls[control]
                             for pnl in ctrl.pnls:
-                                ind = pnl.ind
-                                rrel = self.rrel[ind, 0]
-                                dndlp = pnl.dndl(ctrl.posgain, ctrl.uhvec)
-                                unsig[ind, ctup[0]] = -dndlp
-                                unsig[ind, ctup[1]] = -rrel**dndlp
-                                dndln = pnl.dndl(ctrl.neggain, ctrl.uhvec)
-                                unsig[ind, ctup[2]] = -dndln
-                                unsig[ind, ctup[3]] = -rrel**dndln
+                                inda, indb, indc = pnl.inds
+                                rrela = self.rrel[inda, 0]
+                                rrelb = self.rrel[indb, 0]
+                                rrelc = self.rrel[indc, 0]
+                                dndlpa, dndlpb, dndlpc = pnl.dndl(ctrl.posgain, ctrl.uhvec)
+                                unsig[inda, ctup[0]] = -dndlpa
+                                unsig[inda, ctup[1]] = -rrela**dndlpa
+                                unsig[indb, ctup[0]] = -dndlpb
+                                unsig[indb, ctup[1]] = -rrelb**dndlpb
+                                unsig[indc, ctup[0]] = -dndlpc
+                                unsig[indc, ctup[1]] = -rrelc**dndlpc
+                                dndlna, dndlnb, dndlnc = pnl.dndl(ctrl.neggain, ctrl.uhvec)
+                                unsig[inda, ctup[2]] = -dndlna
+                                unsig[inda, ctup[3]] = -rrela**dndlna
+                                unsig[indb, ctup[2]] = -dndlnb
+                                unsig[indb, ctup[3]] = -rrela**dndlnb
+                                unsig[indc, ctup[2]] = -dndlnc
+                                unsig[indc, ctup[3]] = -rrela**dndlnc
             self._unsig[mach] = unsig
         return self._unsig[mach]
     def unmu(self, mach: float=0.0):
@@ -417,13 +442,21 @@ class PanelSystem(object):
     def assemble_panels(self, time: bool=True, mach=0.0):
         if time:
             start = perf_counter()
-        shp = (self.numpnl, self.numpnl)
+        shp = (self.numgrd, self.numgrd)
         apd = zeros(shp, dtype=float)
+        shp = (self.numgrd, self.numnrm)
         aps = zeros(shp, dtype=float)
         betm = betm_from_mach(mach)
         for pnl in self.pnls.values():
-            ind = pnl.ind
-            apd[:, ind], aps[:, ind] = pnl.velocity_potentials(self.pnts, betx=betm)
+            indda, inddb, inddc = pnl.indd
+            indsa, indsb, indsc = pnl.inds
+            phidabc, phisabc = pnl.linear_phi(self.pnts, betx=betm)
+            apd[:, indda] += phidabc[0]
+            apd[:, inddb] += phidabc[1]
+            apd[:, inddc] += phidabc[2]
+            aps[:, indsa] += phisabc[0]
+            aps[:, indsb] += phisabc[1]
+            aps[:, indsc] += phisabc[2]
         if self._apd is None:
             self._apd = {}
         self._apd[mach] = apd
@@ -434,68 +467,25 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'Panel assembly time is {elapsed:.3f} seconds.')
-    def assemble_panels_full(self, time: bool=True, mach: float=0.0):
+    def assemble_trailing_panels(self, time: bool=True, mach: float=0.0):
         if time:
             start = perf_counter()
-        shp = (self.numpnl, self.numpnl)
-        apd = zeros(shp, dtype=float)
-        aps = zeros(shp, dtype=float)
-        avd = zero_matrix_vector(shp, dtype=float)
-        avs = zero_matrix_vector(shp, dtype=float)
-        betm = betm_from_mach(mach)
-        for pnl in self.pnls.values():
-            ind = pnl.ind
-            apd[:, ind], aps[:, ind], avd[:, ind], avs[:, ind] = pnl.influence_coefficients(self.pnts, betx=betm)
-        if self._apd is None:
-            self._apd = {}
-        self._apd[mach] = apd
-        if self._aps is None:
-            self._aps = {}
-        self._aps[mach] = aps
-        if self._avd is None:
-            self._avd = {}
-        self._avd[mach] = avd
-        if self._avs is None:
-            self._avs = {}
-        self._avs[mach] = avs
-        if time:
-            finish = perf_counter()
-            elapsed = finish - start
-            print(f'Full panel assembly time is {elapsed:.3f} seconds.')
-    def assemble_horseshoes(self, time: bool=True, mach: float=0.0):
-        if time:
-            start = perf_counter()
-        shp = (self.numpnl, self.numhsv)
+        shp = (self.numgrd, 2*self.numtdp)
         aph = zeros(shp, dtype=float)
         betm = betm_from_mach(mach)
-        for i, hsv in enumerate(self.hsvs):
-            aph[:, i] = hsv.doublet_velocity_potentials(self.pnts, betx=betm)
+        for i, tdp in enumerate(self.tdps):
+            ia = 2*i
+            ib = ia+1
+            phida, phidb = tdp.linear_doublet_phi(self.pnts, betx=betm)
+            aph[:, ia] = phida
+            aph[:, ib] = phidb
         if self._aph is None:
             self._aph = {}
         self._aph[mach] = aph
         if time:
             finish = perf_counter()
             elapsed = finish - start
-            print(f'Horse shoe assembly time is {elapsed:.3f} seconds.')
-    def assemble_horseshoes_full(self, time: bool=True, mach: float=0.0):
-        if time:
-            start = perf_counter()
-        shp = (self.numpnl, self.numpnl)
-        aph = zeros(shp, dtype=float)
-        avh = zero_matrix_vector(shp, dtype=float)
-        betm = betm_from_mach(mach)
-        for i, hsv in enumerate(self.hsvs):
-            aph[:, i], avh[:, i] = hsv.doublet_influence_coefficients(self.pnts, betx=betm)
-        if self._aph is None:
-            self._aph = {}
-        self._aph[mach] = aph
-        if self._avh is None:
-            self._avh = {}
-        self._avh[mach] = avh
-        if time:
-            finish = perf_counter()
-            elapsed = finish - start
-            print(f'Full horse shoe assembly time is {elapsed:.3f} seconds.')
+            print(f'Trailing doublet assembly time is {elapsed:.3f} seconds.')
     def solve_system(self, time: bool=True, mach: float=0.0):
         if time:
             start = perf_counter()
@@ -691,8 +681,8 @@ class PanelSystem(object):
             table.add_column('# Panels', 'd', data=[self.numpnl])
         else:
             table.add_column('# Panels', 'd', data=[0])
-        if self.hsvs is not None:
-            table.add_column('# Horseshoe Vortices', 'd', data=[self.numhsv])
+        if self.tdps is not None:
+            table.add_column('# Horseshoe Vortices', 'd', data=[self.numtdp])
         else:
             table.add_column('# Horseshoe Vortices', 'd', data=[0])
         if self.ctrls is not None:
@@ -722,8 +712,8 @@ def panelsystem_from_json(jsonfilepath: str):
 
     if filetype == 'geom':
         psys = panelsystem_from_geom(sysdct)
-    elif filetype == 'mesh':
-        psys = panelsystem_from_mesh(sysdct)
+    # elif filetype == 'mesh':
+    #     psys = panelsystem_from_mesh(sysdct)
     else:
         return ValueError('Incorrect file type.')
 
@@ -731,74 +721,74 @@ def panelsystem_from_json(jsonfilepath: str):
 
     return psys
 
-def panelsystem_from_mesh(sysdct: Dict[str, any]):
+# def panelsystem_from_mesh(sysdct: Dict[str, any]):
 
-    name = sysdct['name']
-    bref = sysdct['bref']
-    cref = sysdct['cref']
-    sref = sysdct['sref']
-    xref = sysdct['xref']
-    yref = sysdct['yref']
-    zref = sysdct['zref']
-    rref = Vector(xref, yref, zref)
+#     name = sysdct['name']
+#     bref = sysdct['bref']
+#     cref = sysdct['cref']
+#     sref = sysdct['sref']
+#     xref = sysdct['xref']
+#     yref = sysdct['yref']
+#     zref = sysdct['zref']
+#     rref = Vector(xref, yref, zref)
 
-    grds = {}
-    griddata = sysdct['grids']
-    for gidstr, gd in griddata.items():
-        gid = int(gidstr)
-        if 'te' not in gd:
-            gd['te'] = False
-        grds[gid] = Grid(gid, gd['x'], gd['y'], gd['z'], gd['te'])
+#     grds = {}
+#     griddata = sysdct['grids']
+#     for gidstr, gd in griddata.items():
+#         gid = int(gidstr)
+#         if 'te' not in gd:
+#             gd['te'] = False
+#         grds[gid] = Grid(gid, gd['x'], gd['y'], gd['z'], gd['te'])
 
-    grps = {}
-    if 'groups' in sysdct:
-        groupdata = sysdct['groups']
-        for grpidstr, grpdata in groupdata.items():
-            grpid = int(grpidstr)
-            grps[grpid] = grpdata
-            if 'exclude' not in grps[grpid]:
-                grps[grpid]['exclude'] = False
-            if 'noload' not in grps[grpid]:
-                grps[grpid]['noload'] = False
+#     grps = {}
+#     if 'groups' in sysdct:
+#         groupdata = sysdct['groups']
+#         for grpidstr, grpdata in groupdata.items():
+#             grpid = int(grpidstr)
+#             grps[grpid] = grpdata
+#             if 'exclude' not in grps[grpid]:
+#                 grps[grpid]['exclude'] = False
+#             if 'noload' not in grps[grpid]:
+#                 grps[grpid]['noload'] = False
 
-    pnls = {}
-    paneldata = sysdct['panels']
-    for pidstr, pd in paneldata.items():
-        pid = int(pidstr)
-        if 'grpid' in pd:
-            grpid = pd['grpid']
-            grp = grps[grpid]
-            if not grp['exclude']:
-                pnlgrds = [grds[gidi] for gidi in pd['gids']]
-                pnls[pid] = Panel(pid, pnlgrds)
-                if grp['noload']:
-                    pnls[pid].noload = True
-                pnls[pid].grp = grpid
-        else:
-            pnlgrds = [grds[gidi] for gidi in pd['gids']]
-            pnls[pid] = Panel(pid, pnlgrds)
+#     pnls = {}
+#     paneldata = sysdct['panels']
+#     for pidstr, pd in paneldata.items():
+#         pid = int(pidstr)
+#         if 'grpid' in pd:
+#             grpid = pd['grpid']
+#             grp = grps[grpid]
+#             if not grp['exclude']:
+#                 pnlgrds = [grds[gidi] for gidi in pd['gids']]
+#                 pnls[pid] = Panel(pid, pnlgrds)
+#                 if grp['noload']:
+#                     pnls[pid].noload = True
+#                 pnls[pid].grp = grpid
+#         else:
+#             pnlgrds = [grds[gidi] for gidi in pd['gids']]
+#             pnls[pid] = Panel(pid, pnlgrds)
 
-    psys = PanelSystem(name, bref, cref, sref, rref)
-    psys.set_mesh(grds, pnls)
+#     psys = PanelSystem(name, bref, cref, sref, rref)
+#     psys.set_mesh(grds, pnls)
 
-    masses = {}
-    if 'masses' in sysdct:
-        if isinstance(sysdct['masses'], list):
-            masses = masses_from_json(sysdct['masses'])
-        # elif isinstance(sysdct['masses'], str):
-        #     if sysdct['masses'][-5:] == '.json':
-        #         massfilename = sysdct['masses']
-        #         massfilepath = join(path, massfilename)
-        #     masses = masses_from_json(massfilepath)
-    psys.masses = masses
+#     masses = {}
+#     if 'masses' in sysdct:
+#         if isinstance(sysdct['masses'], list):
+#             masses = masses_from_json(sysdct['masses'])
+#         # elif isinstance(sysdct['masses'], str):
+#         #     if sysdct['masses'][-5:] == '.json':
+#         #         massfilename = sysdct['masses']
+#         #         massfilepath = join(path, massfilename)
+#         #     masses = masses_from_json(massfilepath)
+#     psys.masses = masses
 
-    if 'cases' in sysdct and sysdct:
-        panelresults_from_dict(psys, sysdct['cases'])
+#     if 'cases' in sysdct and sysdct:
+#         panelresults_from_dict(psys, sysdct['cases'])
 
-    if 'source' in sysdct:
-        psys.source = sysdct['source']
+#     if 'source' in sysdct:
+#         psys.source = sysdct['source']
 
-    return psys
+#     return psys
 
 def panelsystem_from_geom(sysdct: Dict[str, any]):
 

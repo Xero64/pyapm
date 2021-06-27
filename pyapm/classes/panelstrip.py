@@ -1,14 +1,14 @@
 from math import sqrt
 from typing import List
 from pygeom.geom3d import Vector
-from .panel import Panel
+from .trianglepanel import TrianglePanel
 from .panelprofile import PanelProfile
 
 class PanelStrip(object):
     prfa: PanelProfile = None
     prfb: PanelProfile = None
     sht: object = None
-    pnls: List[Panel] = None
+    pnls: List[TrianglePanel] = None
     ind: int = None
     _point: Vector = None
     _bpos: float = None
@@ -35,9 +35,11 @@ class PanelStrip(object):
             grd2 = self.prfa.grds[i+1]
             grd3 = self.prfb.grds[i+1]
             grd4 = self.prfb.grds[i]
-            grds = [grd1, grd2, grd3, grd4]
-            pnl = Panel(pid, grds)
-            self.pnls.append(pnl)
+            pnl1 = TrianglePanel(pid, grd1, grd2, grd3)
+            self.pnls.append(pnl1)
+            pid += 1
+            pnl2 = TrianglePanel(pid, grd3, grd4, grd1)
+            self.pnls.append(pnl2)
             pid += 1
         return pid
     @property

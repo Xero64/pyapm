@@ -63,7 +63,7 @@ class PanelProfile(object):
         rotatedprofile = vector_to_global(self.crdsys, scaledprofile)
         translatedprofile = rotatedprofile + self.point
         return translatedprofile
-    def mesh_grids(self, gid: int):
+    def mesh_grids(self, gid: int) -> int:
         shp = self.get_shape()
         num = shp.shape[1]
         self.grds = []
@@ -72,8 +72,10 @@ class PanelProfile(object):
             if i == 0 or i == num-1:
                 if not self.nohsv:
                     te = True
-            self.grds.append(Grid(gid, shp[0, i].x, shp[0, i].y, shp[0, i].z, te))
+            grd = Grid(gid, shp[0, i].x, shp[0, i].y, shp[0, i].z)
+            grd.te = te
+            self.grds.append(grd)
             gid += 1
         return gid
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<PanelProfile at {self.point:}>'

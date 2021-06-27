@@ -2,7 +2,7 @@ from math import sqrt
 from typing import List, Dict
 from pygeom.geom3d import Vector
 from .grid import Grid
-from .panel import Panel
+from .trianglepanel import TrianglePanel
 from .panelsection import PanelSection, panelsection_from_json
 from .panelfunction import PanelFunction, panelfunction_from_json
 from .panelsheet import PanelSheet
@@ -26,7 +26,7 @@ class PanelSurface(object):
     _prfs: List[PanelProfile] = None
     _area: float = None
     grds: List[Grid] = None
-    pnls: List[Panel] = None
+    pnls: List[TrianglePanel] = None
     def __init__(self, name: str, point: Vector, twist: float, mirror: bool,
                  scts: List[PanelSection], fncs: List[PanelFunction], close: bool):
         self.name = name

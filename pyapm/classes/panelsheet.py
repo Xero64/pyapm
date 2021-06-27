@@ -8,7 +8,7 @@ from .panelprofile import PanelProfile
 from .panelfunction import PanelFunction
 from .panelcontrol import PanelControl
 from .grid import Grid
-from .panel import Panel
+from .trianglepanel import TrianglePanel
 from ..tools import equal_spacing, semi_cosine_spacing, full_cosine_spacing
 
 class PanelSheet(object):
@@ -28,7 +28,7 @@ class PanelSheet(object):
     _tilt: float = None
     _area: float = None
     grds: List[Grid] = None
-    pnls: List[Panel] = None
+    pnls: List[TrianglePanel] = None
     _ctrls: Dict[str, PanelControl] = None
     def __init__(self, scta: PanelSection, sctb: PanelSection):
         self.scta = scta
