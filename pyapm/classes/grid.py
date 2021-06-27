@@ -4,11 +4,13 @@ from pygeom.geom3d import Vector
 class Grid(Vector):
     gid: int = None
     te: bool = None
+    ze: bool = None
     ind: int = None
     trias: List[object] = None
     def __init__(self, gid: int, x: float, y: float, z: float) -> None:
         self.gid = gid
         self.te = False
+        self.ze = False
         self.trias = []
         super().__init__(x, y, z)
     def set_index(self, ind: int) -> None:

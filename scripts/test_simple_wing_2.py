@@ -1,8 +1,9 @@
 #%% Import Dependencies
 from IPython.display import display_markdown
+from pygeom.matrix3d.matrixvector import zero_matrix_vector
 from pyapm.classes.panelsystem import panelsystem_from_json
 from pyapm.outputs.msh import panelresult_to_msh
-from numpy import seterr
+from numpy import seterr, diag, fill_diagonal
 
 _ = seterr(divide='ignore')
 
@@ -19,11 +20,22 @@ psys.mesh_trailing_doublet_panels(pres.vfs.to_unit())
 #%% Assemble and Solve
 psys.assemble_panels()
 psys.assemble_trailing_panels()
+psys.apm(0.0)
+psys.bps(0.0)
+# fill_diagonal(psys._apm[0.0], 0.5)
 psys.solve_system()
 
 #%% Print Outs
 print(f'sig = \n{pres.sig}')
 print(f'mu = \n{pres.mu}')
+
+for pnl in psys.pnls.values():
+    print(pnl.pid)
+    print(pnl.pnto)
+    print(pnl.dirz)
+    print()
+
+print(diag(psys.apm(0.0)))
 
 #%% Display Result
 display_markdown(pres)

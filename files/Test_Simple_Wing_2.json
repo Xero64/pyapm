@@ -11,8 +11,8 @@
         {
             "name": "Wing",
             "twist": 0.0,
-            "cnum": 20,
-            "close": true,
+            "cnum": 10,
+            "close": false,
             "mirror": true,
             "sections": [
                 {
@@ -36,7 +36,7 @@
                     }
                 },
                 {
-                    "xpos": 0.0,
+                    "xpos": 0.5,
                     "ypos": 5.0,
                     "zpos": 0.0,
                     "chord": 1.0,
@@ -50,7 +50,7 @@
     "cases": [
         {
             "name": "Test Case",
-            "alpha": 0.0,
+            "alpha": 5.0,
             "speed": 50.0,
             "density": 1.225
         }

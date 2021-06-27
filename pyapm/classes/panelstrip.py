@@ -31,10 +31,16 @@ class PanelStrip(object):
         num = len(self.prfa.grds)-1
         self.pnls = []
         for i in range(num):
-            grd1 = self.prfa.grds[i]
-            grd2 = self.prfa.grds[i+1]
-            grd3 = self.prfb.grds[i+1]
-            grd4 = self.prfb.grds[i]
+            if self.sht.mirror:
+                grd2 = self.prfa.grds[i]
+                grd3 = self.prfa.grds[i+1]
+                grd4 = self.prfb.grds[i+1]
+                grd1 = self.prfb.grds[i]
+            else:
+                grd1 = self.prfa.grds[i]
+                grd2 = self.prfa.grds[i+1]
+                grd3 = self.prfb.grds[i+1]
+                grd4 = self.prfb.grds[i]
             pnl1 = TrianglePanel(pid, grd1, grd2, grd3)
             self.pnls.append(pnl1)
             pid += 1
