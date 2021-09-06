@@ -1,4 +1,4 @@
-# from math import sqrt, pi, acos
+from math import sqrt, pi, acos
 from typing import List, Tuple
 from numpy.matlib import matrix#, absolute, full, minimum, logical_not, ones
 from pygeom.geom3d import Vector#, khat, Coordinate
@@ -8,15 +8,15 @@ from .triangle import Triangle
 from .trailingdoubletpanel import TrailingDoubletPanel
 
 # oor2 = 1/sqrt(2.0)
-# angtol = pi/4
+angtol = pi/4
 
 class TrianglePanel(Triangle):
     pid: int = None
     ind: int = None
-    # grp: object = None
-    # sht: object = None
-    # sct: object = None
-    # srfc: object = None
+    grp: object = None
+    sht: object = None
+    sct: object = None
+    srfc: object = None
     tdps: List[TrailingDoubletPanel] = None
     _indd: Tuple[int] = None
     _nrma: GridNormal = None
@@ -25,7 +25,7 @@ class TrianglePanel(Triangle):
     _nrms: List[GridNormal] = None
     _inds: Tuple[int] = None
     _pnto: Vector = None
-    # _edgpnls: List['TrianglePanel'] = None
+    _edgpnls: List['TrianglePanel'] = None
     # _grdlocs: List[Vector] = None
     # _edgpnls: List[object] = None
     # _edginds: List[List[int]] = None
@@ -40,9 +40,10 @@ class TrianglePanel(Triangle):
     def __init__(self, pid: int, grda: Grid, grdb: Grid, grdc: Grid) -> None:
         self.pid = pid
         super().__init__(grda, grdb, grdc)
-        grda.trias.append(self)
-        grdb.trias.append(self)
-        grdc.trias.append(self)
+        grda.pnls.append(self)
+        grdb.pnls.append(self)
+        grdc.pnls.append(self)
+        self.tdps = []
     @property
     def indd(self) -> Tuple[int]:
         if self._indd is None:
@@ -110,7 +111,6 @@ class TrianglePanel(Triangle):
     #         nohsv = self.grp.nohsv
     #     return nohsv
     def mesh_trailing_doublet_panels(self, pid: int, diro: Vector) -> int:
-        self.tdps = []
         if self.grda.te and self.grdb.te:
             tdp = TrailingDoubletPanel(pid, self.grdb, self.grda, diro)
             self.tdps.append(tdp)
@@ -124,34 +124,29 @@ class TrianglePanel(Triangle):
             self.tdps.append(tdp)
             pid += 1
         return pid
-    # def check_panel(self, pnl: 'Panel'):
-    #     if pnl.grp is not None and self.grp is not None:
-    #         grpchk = pnl.grp == self.grp
-    #     else:
-    #         grpchk = False
-    #     if pnl.srfc is not None and self.srfc is not None:
-    #         srfchk = pnl.srfc == self.srfc
-    #     else:
-    #         srfchk = False
-    #     if srfchk:
-    #         if pnl.sht is not None and self.sht is not None:
-    #             typchk = True
-    #         elif pnl.sct is not None and self.sct is not None:
-    #             typchk = True
-    #         else:
-    #             typchk = False
-    #     else:
-    #         typchk = False
-    #     return grpchk, srfchk, typchk
-    # def check_angle(self, pnl: 'Panel') -> bool:
-    #     ang = angle_between_vectors(pnl.crd.dirz, self.crd.dirz)
-    #     angchk = abs(ang) < angtol
-    #     return angchk
-    # def check_edge(self, pnl: 'Panel', grda: Grid, grdb: Grid) -> bool:
-    #     edgchk = False
-    #     if grda in pnl.grds and grdb in pnl.grds:
-    #         edgchk = True
-    #     return edgchk
+    def check_panel(self, pnl: 'TrianglePanel'):
+        grpchk = False
+        if pnl.grp is not None and self.grp is not None:
+            grpchk = pnl.grp == self.grp
+        srfchk = False
+        if pnl.srfc is not None and self.srfc is not None:
+            srfchk = pnl.srfc == self.srfc
+        typchk = False
+        if srfchk:
+            if pnl.sht is not None and self.sht is not None:
+                typchk = True
+            elif pnl.sct is not None and self.sct is not None:
+                typchk = True
+        return grpchk, srfchk, typchk
+    def check_angle(self, pnl: 'TrianglePanel') -> bool:
+        ang = angle_between_vectors(pnl.dirz, self.dirz)
+        angchk = abs(ang) < angtol
+        return angchk
+    def check_edge(self, pnl: 'TrianglePanel', grda: Grid, grdb: Grid) -> bool:
+        edgchk = False
+        if grda in pnl.grds and grdb in pnl.grds:
+            edgchk = True
+        return edgchk
     # @property
     # def crd(self) -> Coordinate:
     #     if self._crd is None:
@@ -179,35 +174,35 @@ class TrianglePanel(Triangle):
     #         for grd in self.grds:
     #             self._grdlocs.append(self.crd.point_to_local(grd))
     #     return self._grdlocs
-    # @property
-    # def edgpnls(self):
-    #     if self._edgpnls is None:
-    #         self._edgpnls = []
-    #         for i in range(3):
-    #             grda = self.grds[i-1]
-    #             grdb = self.grds[i]
-    #             self._edgpnls.append([])
-    #             for pnl in grda.pnls:
-    #                 if pnl is not self:
-    #                     edgchk = self.check_edge(pnl, grda, grdb)
-    #                     if edgchk:
-    #                         _, srfchk, _ = self.check_panel(pnl)
-    #                         if srfchk:
-    #                             if not grda.te and not grdb.te:
-    #                                 angchk = self.check_angle(pnl)
-    #                                 if angchk:
-    #                                     self._edgpnls[i].append(pnl)
-    #                             else:
-    #                                 self._edgpnls[i].append(pnl)
-    #                         else:
-    #                             angchk = self.check_angle(pnl)
-    #                             if angchk:
-    #                                 self._edgpnls[i].append(pnl)
-    #             if grda.te and grdb.te:
-    #                 self._edgpnls[i].append(self)
-    #             elif len(self._edgpnls[i]) > 0:
-    #                 self._edgpnls[i].append(self)
-    #     return self._edgpnls
+    @property
+    def edgpnls(self):
+        if self._edgpnls is None:
+            self._edgpnls = []
+            for i in range(3):
+                grda = self.grds[i-1]
+                grdb = self.grds[i]
+                self._edgpnls.append([])
+                for pnl in grda.pnls:
+                    if pnl is not self:
+                        edgchk = self.check_edge(pnl, grda, grdb)
+                        if edgchk:
+                            _, srfchk, _ = self.check_panel(pnl)
+                            if srfchk:
+                                if not grda.te and not grdb.te:
+                                    angchk = self.check_angle(pnl)
+                                    if angchk:
+                                        self._edgpnls[i].append(pnl)
+                                else:
+                                    self._edgpnls[i].append(pnl)
+                            else:
+                                angchk = self.check_angle(pnl)
+                                if angchk:
+                                    self._edgpnls[i].append(pnl)
+                if grda.te and grdb.te:
+                    self._edgpnls[i].append(self)
+                elif len(self._edgpnls[i]) > 0:
+                    self._edgpnls[i].append(self)
+        return self._edgpnls
     # @property
     # def edginds(self):
     #     if self._edginds is None:
@@ -390,12 +385,12 @@ class TrianglePanel(Triangle):
     def __repr__(self):
         return f'<pyapm.Panel {self.pid:d}>'
 
-# def angle_between_vectors(veca: Vector, vecb: Vector):
-#     unta = veca.to_unit()
-#     untb = vecb.to_unit()
-#     adb = unta*untb
-#     if adb > 1.0:
-#         adb = 1.0
-#     elif adb < -1.0:
-#         adb = -1.0
-#     return acos(adb)
+def angle_between_vectors(veca: Vector, vecb: Vector):
+    unta = veca.to_unit()
+    untb = vecb.to_unit()
+    adb = unta*untb
+    if adb > 1.0:
+        adb = 1.0
+    elif adb < -1.0:
+        adb = -1.0
+    return acos(adb)

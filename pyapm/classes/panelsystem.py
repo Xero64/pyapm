@@ -248,7 +248,7 @@ class PanelSystem(object):
         if self._bps is None:
             self._bps = {}
         if mach not in self._bps:
-            self._bps[mach] = -1.0*self.aps(mach)*self.unsig(mach)
+            self._bps[mach] = -self.aps(mach)*self.unsig(mach)
         return self._bps[mach]
     def bnm(self, mach: float=0.0):
         if self._bnm is None:
@@ -284,14 +284,14 @@ class PanelSystem(object):
         if self._aph is None:
             self._aph = {}
         if mach not in self._aph:
-            self.assemble_horseshoes(False, mach=mach)
+            self.assemble_trailing_panels(False, mach=mach)
         return self._aph[mach]
-    def avh(self, mach: float=0.0):
-        if self._avh is None:
-            self._avh = {}
-        if mach not in self._avh:
-            self.assemble_horseshoes_full(False, mach=mach)
-        return self._avh[mach]
+    # def avh(self, mach: float=0.0):
+    #     if self._avh is None:
+    #         self._avh = {}
+    #     if mach not in self._avh:
+    #         self.assemble_horseshoes_full(False, mach=mach)
+    #     return self._avh[mach]
     def apm(self, mach: float=0.0):
         if self._apm is None:
             self._apm = {}
@@ -306,31 +306,31 @@ class PanelSystem(object):
                 apm[:, indb] += aph[:, ib]
             self._apm[mach] = apm
         return self._apm[mach]
-    def avm(self, mach: float=0.0):
-        if self._avm is None:
-            self._avm = {}
-        if self._avm is None:
-            avm = self.avd(mach).copy()
-            avh = self.avh(mach)
-            for i, tdp in enumerate(self.tdps):
-                ind = tdp.ind
-                avm[:, ind] = avm[:, ind] + avh[:, i]
-            self._avm[mach] = avm
-        return self._avm[mach]
-    def ans(self, mach: float=0.0):
-        if self._ans is None:
-            self._ans = {}
-        if mach not in self._ans:
-            nrms = self.nrms.repeat(self.numpnl, axis=1)
-            self._ans[mach] = elementwise_dot_product(nrms, self.avs(mach))
-        return self._ans[mach]
-    def anm(self, mach: float=0.0):
-        if self._anm is None:
-            self._anm = {}
-        if mach not in self._anm:
-            nrms = self.nrms.repeat(self.numpnl, axis=1)
-            self._anm[mach] = elementwise_dot_product(nrms, self.avm(mach))
-        return self._anm[mach]
+    # def avm(self, mach: float=0.0):
+    #     if self._avm is None:
+    #         self._avm = {}
+    #     if self._avm is None:
+    #         avm = self.avd(mach).copy()
+    #         avh = self.avh(mach)
+    #         for i, tdp in enumerate(self.tdps):
+    #             ind = tdp.ind
+    #             avm[:, ind] = avm[:, ind] + avh[:, i]
+    #         self._avm[mach] = avm
+    #     return self._avm[mach]
+    # def ans(self, mach: float=0.0):
+    #     if self._ans is None:
+    #         self._ans = {}
+    #     if mach not in self._ans:
+    #         nrms = self.nrms.repeat(self.numpnl, axis=1)
+    #         self._ans[mach] = elementwise_dot_product(nrms, self.avs(mach))
+    #     return self._ans[mach]
+    # def anm(self, mach: float=0.0):
+    #     if self._anm is None:
+    #         self._anm = {}
+    #     if mach not in self._anm:
+    #         nrms = self.nrms.repeat(self.numpnl, axis=1)
+    #         self._anm[mach] = elementwise_dot_product(nrms, self.avm(mach))
+    #     return self._anm[mach]
     @property
     def tdppnts(self):
         if self._tdppnts is None:
@@ -682,9 +682,9 @@ class PanelSystem(object):
         else:
             table.add_column('# Panels', 'd', data=[0])
         if self.tdps is not None:
-            table.add_column('# Horseshoe Vortices', 'd', data=[self.numtdp])
+            table.add_column('# Wake Panels', 'd', data=[self.numtdp])
         else:
-            table.add_column('# Horseshoe Vortices', 'd', data=[0])
+            table.add_column('# Wake Panels', 'd', data=[0])
         if self.ctrls is not None:
             table.add_column('# Controls', 'd', data=[self.numctrl])
         else:

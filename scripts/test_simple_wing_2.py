@@ -11,6 +11,23 @@ _ = seterr(divide='ignore')
 jsonfilepath = '../files/Test_Simple_Wing_2.json'
 psys = panelsystem_from_json(jsonfilepath)
 
+display_markdown(psys)
+
+numfreeedgs = 0
+numconnedgs = 0
+for pnl in psys.pnls.values():
+    # print(f'{pnl.pid}: {pnl.edgpnls}')
+    for edgpnl in pnl.edgpnls:
+        if len(edgpnl) == 0:
+            numfreeedgs += 1
+        else:
+            numconnedgs += 1
+
+numconnedgs = numconnedgs/2
+
+print(f'numfreeedgs = {numfreeedgs}')
+print(f'numconnedgs = {numconnedgs}')
+
 #%% Solve Panel Result
 pres = psys.results['Test Case']
 
@@ -26,8 +43,8 @@ psys.bps(0.0)
 psys.solve_system()
 
 #%% Print Outs
-print(f'sig = \n{pres.sig}')
-print(f'mu = \n{pres.mu}')
+# print(f'sig = \n{pres.sig}')
+# print(f'mu = \n{pres.mu}')
 
 for pnl in psys.pnls.values():
     print(pnl.pid)

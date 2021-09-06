@@ -47,6 +47,22 @@ class PanelStrip(object):
             pnl2 = TrianglePanel(pid, grd3, grd4, grd1)
             self.pnls.append(pnl2)
             pid += 1
+        if self.sht.mirror:
+            grd2 = self.prfa.grds[-1]
+            grd3 = self.prfa.grds[0]
+            grd4 = self.prfb.grds[0]
+            grd1 = self.prfb.grds[-1]
+        else:
+            grd1 = self.prfa.grds[-1]
+            grd2 = self.prfa.grds[0]
+            grd3 = self.prfb.grds[0]
+            grd4 = self.prfb.grds[-1]
+        pnl1 = TrianglePanel(pid, grd1, grd2, grd3)
+        self.pnls.append(pnl1)
+        pid += 1
+        pnl2 = TrianglePanel(pid, grd3, grd4, grd1)
+        self.pnls.append(pnl2)
+        pid += 1
         return pid
     @property
     def point(self):
