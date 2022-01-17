@@ -52,7 +52,8 @@ for pnl in psys.pnls.values():
     print(pnl.dirz)
     print()
 
-print(diag(psys.apm(0.0)))
+print(psys.apm(0.0).sum(axis=1))
+print(psys.aps(0.0).sum(axis=1))
 
 #%% Display Result
 display_markdown(pres)

@@ -3,12 +3,9 @@ from typing import List
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector, elementwise_multiply
 from pygeom.matrix3d import elementwise_cross_product, elementwise_dot_product
-from numpy.matlib import matrix, zeros, ones, divide, arctan, multiply, arctan2
-from numpy.matlib import logical_and, absolute, log, full, minimum, argmin, logical_not
+from numpy.matlib import matrix, zeros, ones, divide, arctan, multiply
+from numpy.matlib import logical_and, absolute, log
 from numpy.linalg import inv
-from numpy import seterr
-
-seterr(divide='ignore')
 
 tol = 1e-12
 piby2 = pi/2
@@ -193,7 +190,7 @@ class DirichletPoly(object):
             if incvel:
                 # Velocities in Local Coordinate System
                 veldi = vel_doublet_matrix(alcs, amag, blcs, bmag)
-                velsi = vel_source_matrix(Qab, alcs, phidi)
+                velsi = vel_source_matrix(Qab, phidi)
                 # Transform to Global Coordinate System and Add
                 dirxi = Vector(dirx.x, diry.x, dirz.x)
                 diryi = Vector(dirx.y, diry.y, dirz.y)
@@ -217,21 +214,26 @@ class DirichletPoly(object):
 
 def phi_doublet_matrix(vecs: MatrixVector, sgnz: matrix):
     mags = vecs.return_magnitude()
-    ms = divide(vecs.x, vecs.y)
+    ms = zeros(vecs.shape, dtype=float)
+    divide(vecs.x, vecs.y, where=vecs.y != 0.0, out=ms)
+    ns = zeros(vecs.shape, dtype=float)
+    divide(vecs.z, mags, where=mags != 0.0, out=ns)
     ths = arctan(ms)
     ths[vecs.y == 0.0] = piby2
-    gs = multiply(ms, divide(vecs.z, mags))
+    gs = multiply(ms, ns)
     Js = arctan(gs)
     Js[vecs.y == 0.0] = piby2
     phids = Js - multiply(sgnz, ths)
     return phids, mags
 
-def phi_source_matrix(am, bm, dab, rl, phid):
+def phi_source_matrix(am, bm, dab, rl, phid: matrix):
     numrab = am+bm+dab
     denrab = am+bm-dab
-    Pab = divide(numrab, denrab)
-    Pab[denrab == 0.0] = 1.0
-    Qab = log(Pab)
+    chk = logical_and(absolute(numrab) > tol, absolute(denrab) > tol)
+    Pab = ones(phid.shape, dtype=float)
+    divide(numrab, denrab, where=chk, out=Pab)
+    Qab = zeros(phid.shape, dtype=float)
+    log(Pab, where=Pab != 0.0, out=Qab)
     tmps = multiply(rl.y, Qab)
     phis = -multiply(rl.z, phid) - tmps
     return phis, Qab
@@ -244,16 +246,16 @@ def vel_doublet_matrix(av, am, bv, bm):
     axbm = axb.return_magnitude()
     chki = (axbm == 0.0)
     chki = logical_and(axbm >= -tol, axbm <= tol)
-    velvl = elementwise_multiply(axb, divide(am+bm, dm))
+    den = divide(am+bm, dm, where=dm != 0.0)
+    velvl = elementwise_multiply(axb, den)
     velvl.x[chki] = 0.0
     velvl.y[chki] = 0.0
     velvl.z[chki] = 0.0
     return velvl
 
-def vel_source_matrix(Qab, rl, phid):
+def vel_source_matrix(Qab, phid):
     velsl = zero_matrix_vector(Qab.shape, dtype=float)
     velsl.y = -Qab
-    faco = ones(Qab.shape, dtype=float)
-    faco[rl.z != 0.0] = -1.0
+    faco = -ones(Qab.shape, dtype=float)
     velsl.z = multiply(faco, phid)
     return velsl
