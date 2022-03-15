@@ -725,7 +725,7 @@ def panelsystem_from_json(jsonfilepath: str):
     elif filetype == 'mesh':
         psys = panelsystem_from_mesh(sysdct)
     else:
-        return ValueError('Incorrect file type.')
+        raise ValueError('Incorrect file type.')
 
     psys.source = jsonfilepath
 

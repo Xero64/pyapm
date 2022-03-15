@@ -53,11 +53,11 @@ class PolyFoil():
             elif self.cspc == 'equal':
                 self._cdst = equal_spacing(self.cnum)
             else:
-                return ValueError('Incorrect distribution on NACA4')
+                raise ValueError('Incorrect distribution on NACA4')
         return self._cdst
     @property
     def xc(self):
-        if self._xc is None:            
+        if self._xc is None:
             self._xc = array(linear_bias_left(self.cdst, 0.2), dtype=float)
         return self._xc
     @property
@@ -253,5 +253,5 @@ def polyfoil_from_xy(name: str, x: List[float], y: List[float], na: int=None, nb
     return PolyFoil(name, a, b0, b)
 
 def polyfoil_from_dat(datfilepath: str, na: int=None, nb: int=None):
-    name, x, y = read_dat(datfilepath)    
+    name, x, y = read_dat(datfilepath)
     return polyfoil_from_xy(name, x, y, na=na, nb=nb)

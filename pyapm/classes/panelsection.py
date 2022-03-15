@@ -188,7 +188,7 @@ def panelsection_from_json(sectdata: dict) -> PanelSection:
             if len(code) == 4:
                 airfoil = NACA4(code)
         else:
-            return ValueError(f'Airfoil identified by {airfoilstr:s} does not exist.')
+            raise ValueError(f'Airfoil identified by {airfoilstr:s} does not exist.')
     else:
         airfoil = None
     twist = 0.0

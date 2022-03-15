@@ -218,7 +218,7 @@ def panelsurface_from_json(surfdata: dict, display: bool=False):
         a.append(sect.twist)
         af.append(sect.airfoil)
     if None in y and None in z:
-        return ValueError('Need at least ypos or zpos specified in sections.')
+        raise ValueError('Need at least ypos or zpos specified in sections.')
     elif None in y:
         y = linear_interpolate_none(z, y)
     elif None in z:

@@ -29,7 +29,7 @@ def main(jsonfilepath: str='', mdfilepath: str=''):
     elif filetype == 'mesh':
         sys = panelsystem_from_mesh(sysdct)
     else:
-        return ValueError('Incorrect file type.')
+        raise ValueError('Incorrect file type.')
 
     if mdfilepath == '':
         if len(argv) == 3:
