@@ -66,11 +66,11 @@ class NACA4(object):
             elif self.cspc == 'equal':
                 self._cdst = equal_spacing(self.cnum)
             else:
-                return ValueError('Incorrect distribution on NACA4')
+                raise ValueError('Incorrect distribution on NACA4')
         return self._cdst
     @property
     def xc(self):
-        if self._xc is None:            
+        if self._xc is None:
             self._xc = linear_bias_left(self.cdst, 0.2)
         return self._xc
     @property

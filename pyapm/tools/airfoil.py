@@ -119,7 +119,7 @@ class Airfoil(object):
             elif self.cspc == 'equal':
                 self._cdst = equal_spacing(self.cnum)
             else:
-                return ValueError('Incorrect distribution on NACA4')
+                raise ValueError('Incorrect distribution on NACA4')
         return self._cdst
     def interpolate_spline(self):
         s = self.spline.arc_length()

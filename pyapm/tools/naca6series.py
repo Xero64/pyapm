@@ -82,7 +82,7 @@ class NACA6Series(object):
             elif self.cspc == 'equal':
                 self._cdst = equal_spacing(self.cnum)
             else:
-                return ValueError('Incorrect distribution on NACA6Series')
+                raise ValueError('Incorrect distribution on NACA6Series')
         return self._cdst
     @property
     def xc(self):
