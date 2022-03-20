@@ -1,4 +1,5 @@
-#%% Import Dependencies
+#%%
+# Import Dependencies
 from time import perf_counter
 from math import pi, cos, sin
 from pygeom.geom3d import Vector
@@ -8,7 +9,8 @@ from pyapm.tools.functions import mean, derivative
 from matplotlib.pyplot import figure
 from numpy.matlib import absolute
 
-#%% Create Poly
+#%%
+# Create Poly
 
 # Star
 num = 10
@@ -32,10 +34,12 @@ for i in range(num):
 #     Vector(-1.0, 1.0, 0.0)
 # ]
 
-#%% Print Bound Edge
+#%%
+# Print Bound Edge
 poly = Poly(grds)
 
-#%% Mesh Points
+#%%
+# Mesh Points
 xorg = 0.0
 yorg = 0.0
 zorg = -0.05
@@ -73,7 +77,8 @@ if zorg == 0.0:
     vels.z[absolute(vels.z-0.5) < 1e-12] = 0.5
     vels.z[absolute(vels.z+0.5) < 1e-12] = -0.5
 
-#%% Source Panel Velocity Potential and Velocity in Z
+#%%
+# Source Panel Velocity Potential and Velocity in Z
 figs = figure(figsize = (12, 12))
 axs = figs.gca()
 axs.set_aspect('equal')
@@ -88,7 +93,8 @@ axs.set_title('3D Source Panel Velocity in Z')
 css = axs.contourf(pnts.x, pnts.y, vels.z, levels = 20)
 cbs = figs.colorbar(css)
 
-#%% Doublet Panel Velocity Potential and Velocity in Z
+#%%
+# Doublet Panel Velocity Potential and Velocity in Z
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -103,7 +109,8 @@ axv.set_title('3D Doublet Panel Velocity in Z')
 csv = axv.contourf(pnts.x, pnts.y, velv.z, levels = 20)
 cbv = figv.colorbar(csv)
 
-#%% Doublet Velocity in Y
+#%%
+# Doublet Velocity in Y
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -122,7 +129,8 @@ axs.set_title('3D Doublet Panel Velocity in Y')
 css = axs.contourf(pntsx, pntsy, velvy, levels = csv.levels)
 cbs = figs.colorbar(css)
 
-#%% Doublet Velocity in X
+#%%
+# Doublet Velocity in X
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -141,7 +149,8 @@ axs.set_title('3D Doublet Panel Velocity in X')
 css = axs.contourf(pntsx, pntsy, velvx, levels = csv.levels)
 cbs = figs.colorbar(css)
 
-#%% Source Velocity in Y
+#%%
+# Source Velocity in Y
 figs = figure(figsize = (12, 12))
 axs = figs.gca()
 axs.set_aspect('equal')
@@ -160,7 +169,8 @@ axs.set_title('3D Source Panel Velocity in Y')
 css = axs.contourf(pntsx, pntsy, velsy, levels = css.levels)
 cbs = figs.colorbar(css)
 
-#%% Source Velocity in X
+#%%
+# Source Velocity in X
 figs = figure(figsize = (12, 12))
 axs = figs.gca()
 axs.set_aspect('equal')
@@ -179,7 +189,8 @@ axs.set_title('3D Source Panel Velocity in X')
 css = axs.contourf(pntsx, pntsy, velsx, levels = css.levels)
 cbs = figs.colorbar(css)
 
-#%% Mesh Points
+#%%
+# Mesh Points
 xorg = 0.0
 yorg = 0.0
 zorg = 0.0
@@ -217,7 +228,8 @@ axs.set_title('3D Source Panel Velocity Potential')
 css = axs.contourf(pnts.x, pnts.z, phis, levels = 20)
 cbs = figs.colorbar(css)
 
-#%% Doublet Velocity in Z
+#%%
+# Doublet Velocity in Z
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -236,7 +248,8 @@ axs.set_title('3D Doublet Panel Velocity in Z')
 css = axs.contourf(pntsx, pntsz, velvz, levels = csv.levels)
 cbs = figs.colorbar(css)
 
-#%% Doublet Velocity in X
+#%%
+# Doublet Velocity in X
 figv = figure(figsize = (12, 12))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -255,7 +268,8 @@ axs.set_title('3D Doublet Panel Velocity in X')
 css = axs.contourf(pntsx, pntsz, velvx, levels = csv.levels)
 cbs = figs.colorbar(css)
 
-#%% Source Velocity in Z
+#%%
+# Source Velocity in Z
 figs = figure(figsize = (12, 12))
 axs = figs.gca()
 axs.set_aspect('equal')
@@ -274,7 +288,8 @@ axs.set_title('3D Source Panel Velocity in Z')
 css = axs.contourf(pntsx, pntsz, velsz, levels = css.levels)
 cbs = figs.colorbar(css)
 
-#%% Source Velocity in X
+#%%
+# Source Velocity in X
 figs = figure(figsize = (12, 12))
 axs = figs.gca()
 axs.set_aspect('equal')

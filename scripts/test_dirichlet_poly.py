@@ -1,4 +1,5 @@
-#%% Import Dependencies
+#%%
+# Import Dependencies
 from time import perf_counter
 # from math import pi, cos, sin
 from pygeom.geom3d import Vector
@@ -8,7 +9,8 @@ from pyapm.classes.dirichletpoly import DirichletPoly
 from matplotlib.pyplot import figure
 from numpy.matlib import absolute
 
-#%% Create Poly
+#%%
+# Create Poly
 
 # # Star
 # num = 10
@@ -31,13 +33,16 @@ grds = [
     Vector(0.0, 1.0, 0.0)
 ]
 
-#%% Create Poly
+#%%
+# Create Poly
 poly = Poly(grds)
 
-#%% Create Dirichlet Poly
+#%%
+# Create Dirichlet Poly
 dpnl = DirichletPoly(grds)
 
-#%% Mesh Points
+#%%
+# Mesh Points
 xorg = 0.0
 yorg = 0.0
 zorg = 0.0
@@ -81,7 +86,8 @@ if zorg == 0.0:
     velsp.z[absolute(velsp.z-0.5) < 1e-12] = 0.5
     velsp.z[absolute(velsp.z+0.5) < 1e-12] = -0.5
 
-#%% Doublet Velocity Potential
+#%%
+# Doublet Velocity Potential
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -97,7 +103,8 @@ axd.set_title('3D Doublet Panel Velocity Potential - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.y, phid, levels = 20)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in X
+#%%
+# Doublet Velocity in X
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -112,7 +119,8 @@ axd.set_title('3D Doublet Panel Velocity in X - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.y, veld.x, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in Y
+#%%
+# Doublet Velocity in Y
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -127,7 +135,8 @@ axd.set_title('3D Doublet Panel Velocity in Y - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.y, veld.y, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in Z
+#%%
+# Doublet Velocity in Z
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -142,7 +151,8 @@ axd.set_title('3D Doublet Panel Velocity in Z - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.y, veld.z, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Source Velocity Potential
+#%%
+# Source Velocity Potential
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -157,7 +167,8 @@ axd.set_title('3D Source Panel Velocity Potential - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.y, phis, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Source Velocity in X
+#%%
+# Source Velocity in X
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -172,7 +183,8 @@ axd.set_title('3D Source Panel Velocity in X - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.y, vels.x, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Source Velocity in Y
+#%%
+# Source Velocity in Y
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -187,7 +199,8 @@ axd.set_title('3D Source Panel Velocity in Y - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.y, vels.y, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Source Velocity in Z
+#%%
+# Source Velocity in Z
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -203,7 +216,8 @@ axd.set_title('3D Source Panel Velocity in Z - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.y, vels.z, levels = 20)
 cbd = figd.colorbar(cfd)
 
-#%% Mesh Points
+#%%
+# Mesh Points
 xorg = 0.0
 yorg = -0.05
 zorg = 0.0
@@ -233,7 +247,8 @@ finished = perf_counter()
 elapsed = finished-start
 print(f'Poly time elapsed is {elapsed:.6f} seconds.')
 
-#%% Doublet Velocity Potential
+#%%
+# Doublet Velocity Potential
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -248,7 +263,8 @@ axd.set_title('3D Doublet Panel Velocity Potential - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.z, phid, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in X
+#%%
+# Doublet Velocity in X
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -263,7 +279,8 @@ axd.set_title('3D Doublet Panel Velocity in X - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.z, veld.x, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in Y
+#%%
+# Doublet Velocity in Y
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -278,7 +295,8 @@ axd.set_title('3D Doublet Panel Velocity in Y - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.z, veld.y, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in Z
+#%%
+# Doublet Velocity in Z
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -293,7 +311,8 @@ axd.set_title('3D Doublet Panel Velocity in Z - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.z, veld.z, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Source Velocity Potential
+#%%
+# Source Velocity Potential
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -308,7 +327,8 @@ axd.set_title('3D Source Panel Velocity Potential - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.z, phis, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Source Velocity in X
+#%%
+# Source Velocity in X
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -323,7 +343,8 @@ axd.set_title('3D Source Panel Velocity in X - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.z, vels.x, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Source Velocity in Y
+#%%
+# Source Velocity in Y
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -338,7 +359,8 @@ axd.set_title('3D Source Panel Velocity in Y - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.z, vels.y, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Source Velocity in Z
+#%%
+# Source Velocity in Z
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -353,7 +375,8 @@ axd.set_title('3D Source Panel Velocity in Z - Dirichlet Panel')
 cfd = axd.contourf(pnts.x, pnts.z, vels.z, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Mesh Points
+#%%
+# Mesh Points
 xorg = -0.05
 yorg = 0.0
 zorg = 0.0
@@ -383,7 +406,8 @@ finished = perf_counter()
 elapsed = finished-start
 print(f'Poly time elapsed is {elapsed:.6f} seconds.')
 
-#%% Doublet Velocity Potential
+#%%
+# Doublet Velocity Potential
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -398,7 +422,8 @@ axd.set_title('3D Doublet Panel Velocity Potential - Dirichlet Panel')
 cfd = axd.contourf(pnts.y, pnts.z, phid, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in X
+#%%
+# Doublet Velocity in X
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -413,7 +438,8 @@ axd.set_title('3D Doublet Panel Velocity in X - Dirichlet Panel')
 cfd = axd.contourf(pnts.y, pnts.z, veld.x, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in Y
+#%%
+# Doublet Velocity in Y
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -428,7 +454,8 @@ axd.set_title('3D Doublet Panel Velocity in Y - Dirichlet Panel')
 cfd = axd.contourf(pnts.y, pnts.z, veld.y, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in Z
+#%%
+# Doublet Velocity in Z
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -443,7 +470,8 @@ axd.set_title('3D Doublet Panel Velocity in Z - Dirichlet Panel')
 cfd = axd.contourf(pnts.y, pnts.z, veld.z, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Source Velocity Potential
+#%%
+# Source Velocity Potential
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -458,7 +486,8 @@ axd.set_title('3D Source Panel Velocity Potential - Dirichlet Panel')
 cfd = axd.contourf(pnts.y, pnts.z, phis, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Source Velocity in X
+#%%
+# Source Velocity in X
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -473,7 +502,8 @@ axd.set_title('3D Source Panel Velocity in X - Dirichlet Panel')
 cfd = axd.contourf(pnts.y, pnts.z, vels.x, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Source Velocity in Y
+#%%
+# Source Velocity in Y
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -488,7 +518,8 @@ axd.set_title('3D Source Panel Velocity in Y - Dirichlet Panel')
 cfd = axd.contourf(pnts.y, pnts.z, vels.y, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Source Velocity in Z
+#%%
+# Source Velocity in Z
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')

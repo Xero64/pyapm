@@ -1,9 +1,11 @@
 from math import pi
+
+from pygeom.matrix3d.matrixvector import elementwise_multiply
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import MatrixVector, elementwise_divide, zero_matrix_vector
 from numpy.matlib import matrix, zeros, multiply, divide, arctan, ones, absolute, square
 from .dirichletpoly import phi_doublet_matrix, vel_doublet_matrix
-from numpy import seterr
+from numpy import logical_not, reciprocal, seterr
 
 seterr(divide='ignore')
 
@@ -177,9 +179,11 @@ class HorseshoeDoublet():
         alcs.x = zeros(alcs.shape, dtype=float)
         axx = MatrixVector(alcs.x, -alcs.z, alcs.y)
         am2 = square(alcs.y) + square(alcs.z)
-        chkam2 = (absolute(am2) < tol)
+        chkam2 = absolute(am2) < tol
+        am2r = zeros(pnts.shape, dtype=float)
+        reciprocal(am2, where=logical_not(chkam2), out=am2r)
         faca = -1.0
-        veldl = elementwise_divide(axx, am2)*faca
+        veldl = elementwise_multiply(axx, am2r)*faca
         veldl.x[chkam2] = 0.0
         veldl.y[chkam2] = 0.0
         veldl.z[chkam2] = 0.0
@@ -196,9 +200,11 @@ class HorseshoeDoublet():
         blcs.x = zeros(blcs.shape, dtype=float)
         bxx = MatrixVector(blcs.x, -blcs.z, blcs.y)
         bm2 = square(blcs.y) + square(blcs.z)
-        chkbm2 = (absolute(bm2) < tol)
+        chkbm2 = absolute(bm2) < tol
+        bm2r = zeros(pnts.shape, dtype=float)
+        reciprocal(bm2, where=logical_not(chkbm2), out=bm2r)
         facb = 1.0
-        veldl = elementwise_divide(bxx, bm2)*facb
+        veldl = elementwise_multiply(bxx, bm2r)*facb
         veldl.x[chkbm2] = 0.0
         veldl.y[chkbm2] = 0.0
         veldl.z[chkbm2] = 0.0
@@ -211,11 +217,15 @@ class HorseshoeDoublet():
         return veld/twoPi
 
 def vel_trailing_doublet_matrix(ov, om, faco):
-    ov = faco*ov
+    ov: MatrixVector = faco*ov
     oxx = MatrixVector(zeros(ov.shape), -ov.z, ov.y)
     oxxm = oxx.return_magnitude()
-    chko = (oxxm == 0.0)
-    velol = elementwise_divide(oxx, multiply(om, om-ov.x))
+    chko = absolute(oxxm) < tol
+    den = multiply(om, om-ov.x)
+    chkd = absolute(den) < tol
+    denr = zeros(ov.shape, dtype=float)
+    reciprocal(den, where=logical_not(chkd), out=denr)
+    velol = elementwise_multiply(oxx, denr)
     velol.x[chko] = 0.0
     velol.y[chko] = 0.0
     velol.z[chko] = 0.0
@@ -223,10 +233,12 @@ def vel_trailing_doublet_matrix(ov, om, faco):
 
 def phi_trailing_doublet_matrix(rls: MatrixVector, sgnz: matrix):
     ths = zeros(rls.shape, dtype=float)
+    chky = absolute(rls.y) < tol
     ths[rls.y > 0.0] = piby2
-    ths[rls.y == 0.0] = -piby2
     ths[rls.y < 0.0] = -piby2
-    gs = divide(rls.z, rls.y)
+    ths[chky] = -piby2
+    gs = zeros(rls.shape, dtype=float)
+    divide(rls.z, rls.y, where=logical_not(chky), out=gs)
     Js = arctan(gs)
     Js[rls.y == 0.0] = -piby2
     phids = Js - multiply(sgnz, ths)

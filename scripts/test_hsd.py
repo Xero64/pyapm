@@ -1,4 +1,5 @@
-#%% Import Dependencies
+#%%
+# Import Dependencies
 from time import perf_counter
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector
@@ -7,7 +8,8 @@ from pyapm.classes.horseshoedoublet import HorseshoeDoublet
 from matplotlib.pyplot import figure
 from numpy.matlib import absolute
 
-#%% Create Trailing Edge Vortex
+#%%
+# Create Trailing Edge Vortex
 # grda = Vector(-0.25, 0.75, 0.0)
 # grdb = Vector(-1.25, -1.25, 0.0)
 # diro = Vector(1.0, 0.25, 0.0).to_unit()
@@ -18,7 +20,8 @@ diro = Vector(1.0, 0.0, 0.0).to_unit()
 hsv = HorseShoe(grda, grdb, diro)
 hsd = HorseshoeDoublet(grda, grdb, diro)
 
-#%% Mesh Points
+#%%
+# Mesh Points
 xorg = 0.0
 yorg = 0.0
 zorg = 0.0
@@ -56,7 +59,8 @@ if zorg == 0.0:
     phid[absolute(phid-0.5) < 1e-12] = 0.5
     phid[absolute(phid+0.5) < 1e-12] = -0.5
 
-#%% Doublet Velocity Potential
+#%%
+# Doublet Velocity Potential
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -71,7 +75,8 @@ axd.set_title('3D Doublet Panel Velocity Potential - Horseshoe Doublet')
 cfd = axd.contourf(pnts.x, pnts.y, phid, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in X
+#%%
+# Doublet Velocity in X
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -86,7 +91,8 @@ axd.set_title('3D Doublet Panel Velocity in X - Horseshoe Doublet')
 cfd = axd.contourf(pnts.x, pnts.y, veld.x, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in Y
+#%%
+# Doublet Velocity in Y
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -101,7 +107,8 @@ axd.set_title('3D Doublet Panel Velocity in Y - Horseshoe Doublet')
 cfd = axd.contourf(pnts.x, pnts.y, veld.y, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in Z
+#%%
+# Doublet Velocity in Z
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -116,7 +123,8 @@ axd.set_title('3D Doublet Panel Velocity in Z - Horseshoe Doublet')
 cfd = axd.contourf(pnts.x, pnts.y, veld.z, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Mesh Points
+#%%
+# Mesh Points
 xorg = 0.0
 yorg = 0.0
 zorg = 0.0
@@ -146,7 +154,8 @@ finished = perf_counter()
 elapsed = finished-start
 print(f'Horseshoe Doublet Time elapsed is {elapsed:.2f} seconds.')
 
-#%% Doublet Velocity Potential
+#%%
+# Doublet Velocity Potential
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -161,7 +170,8 @@ axd.set_title('3D Doublet Panel Velocity Potential - Horseshoe Doublet')
 cfd = axd.contourf(pnts.x, pnts.z, phid, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in X
+#%%
+# Doublet Velocity in X
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -176,7 +186,8 @@ axd.set_title('3D Doublet Panel Velocity in X - Horseshoe Doublet')
 cfd = axd.contourf(pnts.x, pnts.z, veld.x, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in Y
+#%%
+# Doublet Velocity in Y
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -191,7 +202,8 @@ axd.set_title('3D Doublet Panel Velocity in Y - Horseshoe Doublet')
 cfd = axd.contourf(pnts.x, pnts.z, veld.y, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in Z
+#%%
+# Doublet Velocity in Z
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -206,7 +218,8 @@ axd.set_title('3D Doublet Panel Velocity in Z - Horseshoe Doublet')
 cfd = axd.contourf(pnts.x, pnts.z, veld.z, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Mesh Points
+#%%
+# Mesh Points
 xorg = 0.0
 yorg = 0.0
 zorg = 0.0
@@ -236,7 +249,8 @@ finished = perf_counter()
 elapsed = finished-start
 print(f'Horseshoe Doublet Time elapsed is {elapsed:.2f} seconds.')
 
-#%% Doublet Velocity Potential
+#%%
+# Doublet Velocity Potential
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -251,7 +265,8 @@ axd.set_title('3D Doublet Panel Velocity Potential - Horseshoe Doublet')
 cfd = axd.contourf(pnts.y, pnts.z, phid, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in X
+#%%
+# Doublet Velocity in X
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -266,7 +281,8 @@ axd.set_title('3D Doublet Panel Velocity in X - Horseshoe Doublet')
 cfd = axd.contourf(pnts.y, pnts.z, veld.x, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in Y
+#%%
+# Doublet Velocity in Y
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')
@@ -281,7 +297,8 @@ axd.set_title('3D Doublet Panel Velocity in Y - Horseshoe Doublet')
 cfd = axd.contourf(pnts.y, pnts.z, veld.y, levels = cfp.levels)
 cbd = figd.colorbar(cfd)
 
-#%% Doublet Velocity in Z
+#%%
+# Doublet Velocity in Z
 figp = figure(figsize = (12, 10))
 axp = figp.gca()
 axp.set_aspect('equal')

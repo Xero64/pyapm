@@ -1,9 +1,11 @@
-#%% Import Dependencies
+#%%
+# Import Dependencies
 from pyapm.tools import equal_spacing, semi_cosine_spacing, full_cosine_spacing
 from pyapm.tools import linear_bias_left, linear_bias_right
 from matplotlib.pyplot import figure
 
-#%% Create Spacings
+#%%
+# Create Spacings
 num = 10
 
 s1 = equal_spacing(num)
@@ -20,7 +22,8 @@ s4 = full_cosine_spacing(num)
 print(f'equal = {s3}\n')
 print(f'full-cosine = {s4}\n')
 
-#%% Bias Equal Spacing
+#%%
+# Bias Equal Spacing
 ratio = 0.2
 
 s = s3
@@ -36,7 +39,8 @@ n = int((len(s)-1)/2)
 print(f's5[n] = {s5[n]}')
 print(f's6[n] = {s6[n]}')
 
-#%% Plots
+#%%
+# Plots
 fig = figure(figsize=(12, 8))
 ax = fig.gca()
 ax.grid(True)

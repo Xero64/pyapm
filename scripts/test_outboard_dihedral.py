@@ -1,14 +1,17 @@
-#%% Load Dependencies
+#%%
+# Load Dependencies
 from IPython.display import display_markdown
 from pyapm import panelsystem_from_json
 from pyapm.outputs.msh import panelresult_to_msh
 
-#%% Create Lattice System
+#%%
+# Create Lattice System
 jsonfilepath = '../files/Test_outboard_dihedral.json'
 psys = panelsystem_from_json(jsonfilepath)
 display_markdown(psys)
 
-#%% System Plots
+#%%
+# System Plots
 axt1 = psys.plot_twist_distribution()
 _ = axt1.set_ylabel('Twist (deg)')
 _ = axt1.set_xlabel('Span-Wise Coordinate - b (m)')
@@ -19,7 +22,8 @@ axt = psys.plot_chord_distribution()
 _ = axt.set_ylabel('Chord (m)')
 _ = axt.set_xlabel('Span-Wise Coordinate - b (m)')
 
-#%% Solve Panel Result
+#%%
+# Solve Panel Result
 pres = psys.results['Test Alpha']
 
 display_markdown(pres)
@@ -27,7 +31,8 @@ display_markdown(pres)
 mshfilepath = '../results/'+ psys.name + ' - ' + pres.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)
 
-#%% Distribution Plots
+#%%
+# Distribution Plots
 axd = pres.plot_strip_drag_force_distribution()
 axd = pres.plot_trefftz_drag_force_distribution(ax=axd)
 _ = axd.set_ylabel('Drag Force (N/m)')

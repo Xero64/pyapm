@@ -88,19 +88,22 @@ An Aerodynamic Panel Method implemented in Python for use from Python scripts. E
 **Typical Python Script File "test_prandtl-d2.py":**
 
 ```python
-#%% Import Dependencies
+#%%
+# Import Dependencies
 from IPython.display import display_markdown
 from pyapm.classes import PanelResult, panelsystem_from_json
 from pyapm.output.msh import panelresult_to_msh
 
-#%% Create Panel Mesh
+#%%
+# Create Panel Mesh
 jsonfilepath = r'../files/Prandtl-D2.json'
 psys = panelsystem_from_json(jsonfilepath)
 psys.assemble_panels()
 psys.assemble_horseshoes()
 psys.solve_system()
 
-#%% Solve Panel Result
+#%%
+# Solve Panel Result
 alpha = 0.0
 speed = 13.0
 rho = 1.145

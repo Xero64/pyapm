@@ -1,19 +1,23 @@
-#%% Import Dependencies
+#%%
+# Import Dependencies
 from IPython.display import display_markdown
 from pyapm.classes import panelsystem_from_json
 from pyapm.outputs.msh import panelresult_to_msh
 from pyvlm.tools import Bell
 
-#%% Create Panel Mesh
+#%%
+# Create Panel Mesh
 jsonfilepath = '../files/Prandtl-D2.json'
 psys = panelsystem_from_json(jsonfilepath)
 display_markdown(psys)
 
-#%% Create Bell Distribution
+#%%
+# Create Bell Distribution
 bell = Bell(3.75, psys.srfcs[0].prfy)
 bell.set_ym(psys.srfcs[0].strpy)
 
-#%% System Plots
+#%%
+# System Plots
 axt1 = psys.plot_twist_distribution()
 _ = axt1.set_ylabel('Twist (deg)')
 _ = axt1.set_xlabel('Span-Wise Coordinate - b (m)')
@@ -27,14 +31,16 @@ _ = axt.set_xlabel('Span-Wise Coordinate - b (m)')
 # _ = axw.set_ylabel('Strip Width (m)')
 # _ = axw.set_xlabel('Span-Wise Coordinate - b (m)')
 
-#%% Assembly and Solution
+#%%
+# Assembly and Solution
 psys.assemble_horseshoes_wash()
 # psys.assemble_panels_wash()
 psys.assemble_panels()
 psys.assemble_horseshoes()
 psys.solve_system()
 
-#%% Solve Panel Result
+#%%
+# Solve Panel Result
 pres = psys.results['Design Point']
 display_markdown(pres)
 display_markdown(pres.surface_loads)
@@ -46,7 +52,8 @@ bell.set_lift(pres.nfres.nffrctot.z)
 mshfilepath = '../results/' + psys.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)
 
-#%% Distribution Plots
+#%%
+# Distribution Plots
 axd = pres.plot_strip_drag_force_distribution(axis='y')
 _ = axd.set_ylabel('Drag Force (N/m)')
 _ = axd.set_xlabel('Span-Wise Coordinate - b (m)')

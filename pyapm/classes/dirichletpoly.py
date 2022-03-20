@@ -217,12 +217,18 @@ class DirichletPoly(object):
 
 def phi_doublet_matrix(vecs: MatrixVector, sgnz: matrix):
     mags = vecs.return_magnitude()
-    ms = divide(vecs.x, vecs.y)
+    chkm = mags < tol
+    chky = absolute(vecs.y) < tol
+    vecs.y[chky] = 0.0
+    ms = zeros(mags.shape, dtype=float)
+    divide(vecs.x, vecs.y, where=logical_not(chky), out=ms)
     ths = arctan(ms)
-    ths[vecs.y == 0.0] = piby2
-    gs = multiply(ms, divide(vecs.z, mags))
+    ths[chky] = piby2
+    ts = zeros(mags.shape, dtype=float)
+    divide(vecs.z, mags, where=logical_not(chkm), out=ts)
+    gs = multiply(ms, ts)
     Js = arctan(gs)
-    Js[vecs.y == 0.0] = piby2
+    Js[chky] = piby2
     phids = Js - multiply(sgnz, ths)
     return phids, mags
 
@@ -230,7 +236,8 @@ def phi_source_matrix(am, bm, dab, rl, phid):
     numrab = am+bm+dab
     denrab = am+bm-dab
     Pab = divide(numrab, denrab)
-    Pab[denrab == 0.0] = 1.0
+    chkd = absolute(denrab) < tol
+    Pab[chkd] = 1.0
     Qab = log(Pab)
     tmps = multiply(rl.y, Qab)
     phis = -multiply(rl.z, phid) - tmps
@@ -244,7 +251,10 @@ def vel_doublet_matrix(av, am, bv, bm):
     axbm = axb.return_magnitude()
     chki = (axbm == 0.0)
     chki = logical_and(axbm >= -tol, axbm <= tol)
-    velvl = elementwise_multiply(axb, divide(am+bm, dm))
+    chkd = absolute(dm) < tol
+    fac = zeros(axbm.shape, dtype=float)
+    divide(am+bm, dm, where=logical_not(chkd), out=fac)
+    velvl = elementwise_multiply(axb, fac)
     velvl.x[chki] = 0.0
     velvl.y[chki] = 0.0
     velvl.z[chki] = 0.0

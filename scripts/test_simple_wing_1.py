@@ -1,4 +1,5 @@
-#%% Import Dependencies
+#%%
+# Import Dependencies
 from pyapm.classes import Grid, Panel, PanelSystem, PanelResult
 from pyapm.outputs.msh import panelresult_to_msh
 from pyfoil.airfoil import naca_to_xyt
@@ -6,7 +7,8 @@ from numpy.matlib import zeros
 from pyvlm.tools import full_cosine_spacing
 from pygeom.geom3d import Vector
 
-#%% Create Grids
+#%%
+# Create Grids
 xznum = 20
 x, z, _ = naca_to_xyt('0012', num=xznum)
 
@@ -32,7 +34,8 @@ for j, (xj, zj) in enumerate(zip(x, z)):
         grids[gid] = Grid(gid, xj, yi, zj, te)
         gidmat[i, j] = gid
 
-#%% Create Panels
+#%%
+# Create Panels
 panels = {}
 pid = 0
 for i in range(2*xznum):
@@ -70,7 +73,8 @@ for i in range(xznum):
     pnlgrds = [grids[gidi] for gidi in gids]
     panels[pid] = Panel(pid, pnlgrds)
 
-#%% Create Panel System
+#%%
+# Create Panel System
 name = 'Test Simple Wing'
 bref = yrng
 cref = 1.0
@@ -83,12 +87,14 @@ psys.assemble_panels()
 psys.assemble_horseshoes()
 psys.solve_system()
 
-#%% Solve Panel Result
+#%%
+# Solve Panel Result
 alpha = 20.0
 
 pres = PanelResult(f'AoA = {alpha:.1f} degrees', psys)
 pres.set_state(alpha = alpha)
 
-#%% Output MSH File
+#%%
+# Output MSH File
 mshfilepath = '../results/' + psys.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)

@@ -1,4 +1,5 @@
-#%% Import Dependencies
+#%%
+# Import Dependencies
 from time import perf_counter
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector
@@ -8,7 +9,8 @@ from pyapm.tools.functions import mean, derivative
 from matplotlib.pyplot import figure
 from numpy.matlib import absolute
 
-#%% Create Trailing Edge Vortex
+#%%
+# Create Trailing Edge Vortex
 grda = Vector(-0.25, 0.75, 0.0)
 grdb = Vector(-1.25, -1.25, 0.0)
 diro = Vector(1.0, 0.25, 0.0).to_unit()
@@ -24,7 +26,8 @@ grds = [
 
 poly = Poly(grds)
 
-#%% Mesh Points
+#%%
+# Mesh Points
 xorg = 0.0
 yorg = 0.0
 zorg = -0.05
@@ -57,7 +60,8 @@ if zorg == 0.0:
     phip[absolute(phip-0.5) < 1e-12] = 0.5
     phip[absolute(phip+0.5) < 1e-12] = -0.5
 
-#%% Doublet Panel Velocity Potential and Velocity in Z
+#%%
+# Doublet Panel Velocity Potential and Velocity in Z
 figv = figure(figsize = (12, 10))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -86,7 +90,8 @@ axv.set_title('3D Doublet Panel Velocity in Z')
 csv = axv.contourf(pnts.x, pnts.y, velp.z, levels = 20)
 cbv = figv.colorbar(csv)
 
-#%% Doublet Velocity in Y
+#%%
+# Doublet Velocity in Y
 figv = figure(figsize = (12, 10))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -112,7 +117,8 @@ axs.set_title('3D Doublet Panel Velocity in Y')
 css = axs.contourf(pntsx, pntsy, velvy, levels = csv.levels)
 cbs = figs.colorbar(css)
 
-#%% Doublet Velocity in X
+#%%
+# Doublet Velocity in X
 figv = figure(figsize = (12, 10))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -138,7 +144,8 @@ axs.set_title('3D Doublet Panel Velocity in X')
 css = axs.contourf(pntsx, pntsy, velvx, levels = csv.levels)
 cbs = figs.colorbar(css)
 
-#%% Mesh Points
+#%%
+# Mesh Points
 xorg = 0.0
 yorg = -1.5
 zorg = 0.0
@@ -177,7 +184,8 @@ axv.set_title('3D Doublet Panel Velocity Potential')
 csv = axv.contourf(pnts.x, pnts.z, phip, levels = 20)
 cbv = figv.colorbar(csv)
 
-#%% Doublet Velocity in Z
+#%%
+# Doublet Velocity in Z
 figv = figure(figsize = (12, 10))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -203,7 +211,8 @@ axs.set_title('3D Doublet Panel Velocity in Z')
 css = axs.contourf(pntsx, pntsz, velvz, levels = csv.levels)
 cbs = figs.colorbar(css)
 
-#%% Doublet Velocity in X
+#%%
+# Doublet Velocity in X
 figv = figure(figsize = (12, 10))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -229,7 +238,8 @@ axs.set_title('3D Doublet Panel Velocity in X')
 css = axs.contourf(pntsx, pntsz, velvx, levels = csv.levels)
 cbs = figs.colorbar(css)
 
-#%% Mesh Points
+#%%
+# Mesh Points
 xorg = 0.0
 yorg = 0.0
 zorg = 0.0
@@ -268,7 +278,8 @@ axv.set_title('3D Doublet Panel Velocity Potential')
 csv = axv.contourf(pnts.y, pnts.z, phip, levels = 20)
 cbv = figv.colorbar(csv)
 
-#%% Doublet Velocity in Z
+#%%
+# Doublet Velocity in Z
 figv = figure(figsize = (12, 10))
 axv = figv.gca()
 axv.set_aspect('equal')
@@ -294,7 +305,8 @@ axs.set_title('3D Doublet Panel Velocity in Z')
 css = axs.contourf(pntsy, pntsz, velvz, levels = csv.levels)
 cbs = figs.colorbar(css)
 
-#%% Doublet Velocity in X
+#%%
+# Doublet Velocity in X
 figv = figure(figsize = (12, 10))
 axv = figv.gca()
 axv.set_aspect('equal')
