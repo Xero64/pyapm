@@ -10,9 +10,14 @@ def fetch_pids_ttol(pnts: MatrixVector, psys: PanelSystem, ztol: float=0.01, tto
     pidm = zeros((1, numpnl), dtype=int)
     wintm = zeros((numpnt, numpnl), dtype=bool)
     abszm = zeros((numpnt, numpnl), dtype=float)
-    for pnl in psys.pnls.values():
-        pidm[0, pnl.ind] = pnl.pid
-        wintm[:, pnl.ind], abszm[:, pnl.ind] = pnl.within_and_absz_ttol(pnts[:, 0], ttol=ttol)
+    if isinstance(psys.pnls, dict):
+        for pnl in psys.pnls.values():
+            pidm[0, pnl.ind] = pnl.pid
+            wintm[:, pnl.ind], abszm[:, pnl.ind] = pnl.within_and_absz_ttol(pnts[:, 0], ttol=ttol)
+    elif isinstance(psys.pnls, list):
+        for pnl in psys.pnls:
+            pidm[0, pnl.ind] = pnl.pid
+            wintm[:, pnl.ind], abszm[:, pnl.ind] = pnl.within_and_absz_ttol(pnts[:, 0], ttol=ttol)
     abszm[wintm is False] = float('inf')
     minm = argmin(abszm, axis=1)
     minm = array(minm).flatten()
