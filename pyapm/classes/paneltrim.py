@@ -1,6 +1,6 @@
+from typing import List, Dict
 from time import perf_counter
 from math import degrees, radians
-from typing import List
 from numpy.matlib import zeros
 from numpy.linalg import norm, inv
 from .panelresult import PanelResult, NearFieldResult
@@ -13,6 +13,8 @@ class PanelTrim(PanelResult):
     Clt: float = None
     Cmt: float = None
     Cnt: float = None
+    initstate: Dict['str', 'float'] = None
+    initctrls: Dict['str', 'float'] = None
     _tgtlst: List[str] = None
     _numtgt: int = None
     _trmmom: bool = None
@@ -32,6 +34,12 @@ class PanelTrim(PanelResult):
         self._tgtlst = None
         self._numtgt = None
         self._trmmom = None
+    def set_initial_state(self, initstate: Dict['str', 'float']):
+        self.initstate = initstate
+        self.set_state(**self.initstate)
+    def set_initial_controls(self, initctrls: Dict['str', 'float']):
+        self.initctrls = initctrls
+        self.set_state(**self.initctrls)
     @property
     def tgtlst(self):
         if self._tgtlst is None:
@@ -96,6 +104,7 @@ class PanelTrim(PanelResult):
     def current_Cmat(self):
         numtgt = len(self.tgtlst)
         Ccur = zeros((numtgt, 1), dtype=float)
+        self._nfres = None
         for i, tgt in enumerate(self.tgtlst):
             Ccur[i, 0] = getattr(self.nfres, tgt)
         # if self.trmlft:
@@ -134,16 +143,21 @@ class PanelTrim(PanelResult):
         #     Ccur = zeros((0, 1), dtype=float)
         return Ccur
     def current_Dmat(self):
-        numc = 0
-        if self.trmmom:
-            numc = len(self.sys.ctrls)
-        num = numc+2
+        numv = len(self.initstate)
+        numc = len(self.initctrls)
+        num = numv + numc
         Dcur = zeros((num, 1), dtype=float)
-        Dcur[0, 0] = radians(self.alpha)
-        Dcur[1, 0] = radians(self.beta)
+        j = 0
+        for var in self.initstate:
+            if var == 'alpha' or var == 'beta':
+                Dcur[j, 0] = radians(getattr(self, var))
+            else:
+                Dcur[j, 0] = getattr(self, var)
+            j += 1
         if self.trmmom:
-            for c, ctrl in enumerate(self.ctrls.values()):
-                Dcur[2 + c, 0] = radians(ctrl)
+            for ctrl in self.initctrls:
+                Dcur[j, 0] = radians(self.ctrls[ctrl])
+                j += 1
         # if self.trmmom:
         #     numc = len(self.sys.ctrls)
         # else:
@@ -163,22 +177,25 @@ class PanelTrim(PanelResult):
         #         c += 1
         return Dcur
     def Hmat(self):
-        numc = 0
-        if self.trmmom:
-            numc = len(self.sys.ctrls)
-        num = numc+2
+        numv = len(self.initstate)
+        numc = len(self.initctrls)
+        num = numv + numc
         numtgt = len(self.tgtlst)
         H = zeros((numtgt, num), dtype=float)
         for i, tgt in enumerate(self.tgtlst):
-            H[i, 0] = getattr(self.stres.alpha, tgt)
-            H[i, 1] = getattr(self.stres.beta, tgt)
-            for c, (control, ctrl) in enumerate(self.ctrls.items()):
-                if ctrl < 0.0:
-                    ctcp = self.gctrln_single(control)
+            j = 0
+            for var in self.initstate:
+                H[i, j] = getattr(getattr(self.stres, var), tgt)
+                j += 1
+            for ctrl in self.initctrls:
+                control = self.ctrls[ctrl]
+                if control < 0.0:
+                    ctcp = self.gctrln_single(ctrl)
                 else:
-                    ctcp = self.gctrlp_single(control)
+                    ctcp = self.gctrlp_single(ctrl)
                 ctres = NearFieldResult(self, ctcp)
-                H[i, 2+c] = getattr(ctres, tgt)
+                H[i, j] = getattr(ctres, tgt)
+                j += 1
         # if self.trmlft:
         #     H = zeros((1, 1), dtype=float)
         #     H[0, 0] = self.stres.alpha.CL
@@ -240,20 +257,27 @@ class PanelTrim(PanelResult):
         Ctgt = self.target_Cmat()
         Ccur = self.current_Cmat()
         Cdff = Ctgt-Ccur
+        print(f'Cdff = \n{Cdff}\n')
         H = self.Hmat()
-        A = H.transpose()*H
+        print(f'H = \n{H}\n')
+        # A = H.transpose()*H
+        A = H
+        print(f'A = \n{A}\n')
         Ainv = inv(A)
         Dcur = self.current_Dmat()
-        B = H.transpose()*Cdff
+        # B = H.transpose()*Cdff
+        B = Cdff
+        print(f'B = \n{B}\n')
         Ddff = Ainv*B
-        Dcur = Dcur+Ddff
+        print(f'Ddff = \n{Ddff}\n')
+        Dcur = Dcur + Ddff
         return Dcur
     def trim(self, crit: float=1e-6, imax: int=100, display=False):
+        display=True
         Ctgt = self.target_Cmat()
         Ccur = self.current_Cmat()
         Cdff = Ctgt-Ccur
         nrmC = norm(Cdff)
-        ctrls = {}
         if display:
             print(f'normC = {nrmC}')
         iter = 0
@@ -261,6 +285,7 @@ class PanelTrim(PanelResult):
             if display:
                 print(f'Iteration {iter:d}')
                 start = perf_counter()
+            self.reset()
             Dcur = self.trim_iteration()
             if display:
                 finish = perf_counter()
@@ -268,26 +293,35 @@ class PanelTrim(PanelResult):
                 print(f'Trim Internal Iteration Duration = {elapsed:.3f} seconds.')
             if Dcur is False:
                 return
-            alpha = degrees(Dcur[0, 0])
-            # if self.trmlft:
-            #     beta = self.beta
-            # else:
-            beta = degrees(Dcur[1, 0])
-            self.set_state(alpha=alpha, beta=beta)
+            j = 0
+            for var in self.initstate:
+                curstate = {}
+                if var == 'alpha' or var == 'beta':
+                    curstate[var] = degrees(Dcur[j, 0])
+                else:
+                    curstate[var] = Dcur[j, 0]
+                j += 1
+            self.set_state(**curstate)
             if self.trmmom:
-                # c = 0
-                for c, control in enumerate(self.ctrls):
-                    ctrls[control] = degrees(Dcur[2+c, 0])
-                    # c += 1
-                self.set_controls(**ctrls)
+                curctrls = {}
+                for ctrl in self.initctrls:
+                    curctrls[ctrl] = degrees(Dcur[j, 0])
+                    j += 1
+                self.set_controls(**curctrls)
             Ccur = self.current_Cmat()
             Cdff = Ctgt-Ccur
             nrmC = norm(Cdff)
             if display:
-                print(f'alpha = {alpha:.6f} deg')
-                print(f'beta = {beta:.6f} deg')
-                for control, ctrl in ctrls.items():
-                    print(f'{control} = {ctrl:.6f} deg')
+                print(Ctgt)
+                print(Ccur)
+                print(Cdff)
+                for var in self.initstate:
+                    if var == 'alpha' or var == 'beta':
+                        print(f'{var:s} = {getattr(self, var):.6f} deg')
+                    else:
+                        print(f'{var:s} = {getattr(self, var):.6f}')
+                for ctrl in self.initctrls:
+                    print(f'{ctrl} = {self.ctrls[ctrl]:.6f} deg')
                 print(f'normC = {nrmC}')
             iter += 1
             if iter >= imax:
@@ -311,6 +345,23 @@ def paneltrim_from_dict(psys: object, resdata: dict):
         if 'n' in resdata:
             n = resdata['n']
         trim.set_loads(L, Y, l, m, n)
+        initstate = {}
+        if 'alpha' in resdata:
+            initstate['alpha'] = resdata['alpha']
+        if 'beta' in resdata:
+            initstate['beta'] = resdata['beta']
+        if 'pbo2V' in resdata:
+            initstate['pbo2V'] = resdata['pbo2V']
+        if 'qco2V' in resdata:
+            initstate['qco2V'] = resdata['qco2V']
+        if 'rbo2V' in resdata:
+            initstate['rbo2V'] = resdata['rbo2V']
+        trim.set_initial_state(initstate)
+        initctrls = {}
+        for ctrl in psys.ctrls:
+            if ctrl in resdata:
+                initctrls[ctrl] = resdata[ctrl]
+        trim.set_initial_controls(initctrls)
     elif resdata['trim'] == 'Looping Trim':
         trim = LoopingTrim(name, psys)
         lf = 1.0

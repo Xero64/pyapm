@@ -1,3 +1,4 @@
+from typing import Dict
 from pygeom.geom3d import Vector
 from .mass import Mass, MassCollection
 
@@ -375,6 +376,8 @@ class LoadTrim():
     l: float = None
     m: float = None
     n: float = None
+    initstate: Dict['str', 'float'] = None
+    initctrls: Dict['str', 'float'] = None
     _dynpres: float = None
     _CL: float = None
     _CY: float = None
@@ -399,6 +402,10 @@ class LoadTrim():
         self.l = l
         self.m = m
         self.n = n
+    def set_initial_state(self, initstate: Dict['str', 'float']):
+        self.initstate = initstate
+    def set_initial_controls(self, initctrls: Dict['str', 'float']):
+        self.initctrls = initctrls
     def create_trim_result(self):
         from ..classes import PanelTrim
         ltrm = PanelTrim(self.name, self.sys)
@@ -406,6 +413,8 @@ class LoadTrim():
         ltrm.set_state(speed=self.speed)
         ltrm.set_targets(CLt=self.CL, CYt=self.CY,
                          Clt=self.Cl, Cmt=self.Cm, Cnt=self.Cn)
+        ltrm.set_initial_state(self.initstate)
+        ltrm.set_initial_controls(self.initctrls)
         return ltrm
     @property
     def dynpres(self):
