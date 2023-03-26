@@ -1,7 +1,7 @@
 from math import sqrt, acos, pi
 from typing import List
 from numpy.matlib import matrix, absolute, full, minimum, logical_not, ones
-from pygeom.geom3d import Vector, Coordinate, ihat, khat
+from pygeom.geom3d import Vector, Coordinate, IHAT, KHAT
 from pygeom.matrix3d import MatrixVector
 from .grid import Grid
 from .dirichletpoly import DirichletPoly
@@ -100,10 +100,10 @@ class Panel(DirichletPoly):
     def crd(self) -> Coordinate:
         if self._crd is None:
             dirz = self.nrm
-            vecy = dirz**ihat
+            vecy = dirz**IHAT
             magy = vecy.return_magnitude()
             if magy < oor2:
-                vecy = dirz**khat
+                vecy = dirz**KHAT
             diry = vecy.to_unit()
             dirx = (diry**dirz).to_unit()
             pntc = self.pnto.to_point()
@@ -112,7 +112,7 @@ class Panel(DirichletPoly):
     @property
     def hsvs(self):
         if self._hsvs is None:
-            self.set_horseshoes(ihat)
+            self.set_horseshoes(IHAT)
         return self._hsvs
     @property
     def area(self):

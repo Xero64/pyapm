@@ -1,12 +1,27 @@
 from math import pi
 from typing import List
-from pygeom.geom3d import Vector
-from pygeom.matrix3d import MatrixVector, zero_matrix_vector, elementwise_multiply
-from pygeom.matrix3d import elementwise_cross_product, elementwise_dot_product
-from numpy.matlib import matrix, zeros, ones, divide, arctan, multiply, arctan2
-from numpy.matlib import logical_and, absolute, log, full, minimum, argmin, logical_not
-from numpy.linalg import inv
+
 from numpy import seterr
+from numpy.linalg import inv
+from numpy.matlib import (
+    absolute,
+    arctan,
+    divide,
+    log,
+    logical_and,
+    logical_not,
+    matrix,
+    multiply,
+    ones,
+    zeros,
+)
+from pygeom.geom3d import Vector
+from pygeom.matrix3d import MatrixVector, zero_matrix_vector
+from pygeom.matrix3d.matrixvector import (
+    elementwise_cross_product,
+    elementwise_dot_product,
+    elementwise_multiply,
+)
 
 seterr(divide='ignore')
 
@@ -151,7 +166,8 @@ class DirichletPoly(object):
         sgnz[locz <= 0.0] = -1.0
         vecgcs = []
         for i in range(self.num):
-            vecgcs.append(self.relative_mach(pnts, self.grds[i], betx=betx, bety=bety, betz=betz))
+            vecgcs.append(self.relative_mach(pnts, self.grds[i], betx=betx,
+                                             bety=bety, betz=betz))
         phid = zeros(pnts.shape, dtype=float)
         phis = zeros(pnts.shape, dtype=float)
         if incvel:

@@ -1,7 +1,7 @@
 from math import degrees, atan2
 from typing import List, Dict
 from numpy.matlib import matrix
-from pygeom.geom3d import Vector, ihat
+from pygeom.geom3d import Vector, IHAT
 from .panelsection import PanelSection
 from .panelstrip import PanelStrip
 from .panelprofile import PanelProfile
@@ -234,10 +234,10 @@ class PanelSheet(object):
             if ctrl.uhvec.return_magnitude() == 0.0:
                 pnt1 = self.scta.pnt
                 crd1 = self.scta.chord
-                pnta = pnt1+crd1*ihat*ctrl.xhinge
+                pnta = pnt1+crd1*IHAT*ctrl.xhinge
                 pnt2 = self.sctb.pnt
                 crd2 = self.sctb.chord
-                pntb = pnt2+crd2*ihat*ctrl.xhinge
+                pntb = pnt2+crd2*IHAT*ctrl.xhinge
                 hvec = pntb-pnta
                 ctrl.set_hinge_vector(hvec)
     def set_control_panels(self):

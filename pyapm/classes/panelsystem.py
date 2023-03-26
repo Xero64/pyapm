@@ -1,21 +1,27 @@
 from json import load
-from typing import Dict, List, Tuple
+from os.path import dirname, exists, join
 from time import perf_counter
-from os.path import dirname, join, exists
-from numpy.matlib import zeros, matrix
+from typing import Dict, List, Tuple
+
 from matplotlib.pyplot import figure
+from numpy.matlib import matrix, zeros
 from py2md.classes import MDTable
 from pygeom.geom3d import Vector
-from pygeom.matrix3d import zero_matrix_vector, MatrixVector
-from pygeom.matrix3d import solve_matrix_vector, elementwise_dot_product, elementwise_cross_product
-from .panel import Panel
-from .grid import Grid
-from .horseshoedoublet import HorseshoeDoublet
-from .panelsurface import panelsurface_from_json, PanelSurface
-from .panelresult import panelresult_from_dict
-from .paneltrim import paneltrim_from_dict
+from pygeom.matrix3d import MatrixVector, solve_matrix_vector, zero_matrix_vector
+from pygeom.matrix3d.matrixvector import (
+    elementwise_cross_product,
+    elementwise_dot_product,
+)
+
 from ..tools import betm_from_mach
 from ..tools.mass import masses_from_json
+from .grid import Grid
+from .horseshoedoublet import HorseshoeDoublet
+from .panel import Panel
+from .panelresult import panelresult_from_dict
+from .panelsurface import PanelSurface, panelsurface_from_json
+from .paneltrim import paneltrim_from_dict
+
 
 class PanelSystem(object):
     name: str = None

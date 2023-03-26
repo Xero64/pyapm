@@ -36,10 +36,14 @@ class PanelTrim(PanelResult):
         self._trmmom = None
     def set_initial_state(self, initstate: Dict['str', 'float']):
         self.initstate = initstate
+        # if 'alpha' not in self.initstate:
+        #     self.initstate['alpha'] = 0.0
+        # if 'beta' not in self.initstate:
+        #     self.initstate['beta'] = 0.0
         self.set_state(**self.initstate)
     def set_initial_controls(self, initctrls: Dict['str', 'float']):
         self.initctrls = initctrls
-        self.set_state(**self.initctrls)
+        self.set_controls(**self.initctrls)
     @property
     def tgtlst(self):
         if self._tgtlst is None:
@@ -253,44 +257,53 @@ class PanelTrim(PanelResult):
         # else:
         #     H = zeros((0, 0), dtype=float)
         return H
-    def trim_iteration(self):
+    def trim_iteration(self, display=False):
+        # display = True
         Ctgt = self.target_Cmat()
         Ccur = self.current_Cmat()
         Cdff = Ctgt-Ccur
-        print(f'Cdff = \n{Cdff}\n')
+        if display:
+            print(f'Cdff = \n{Cdff}\n')
         H = self.Hmat()
-        print(f'H = \n{H}\n')
-        # A = H.transpose()*H
-        A = H
-        print(f'A = \n{A}\n')
+        if display:
+            print(f'H = \n{H}\n')
+        if H.shape[0] != H.shape[1]:
+            A = H.transpose()*H
+            B = H.transpose()*Cdff
+        else:
+            A = H
+            B = Cdff
+        if display:
+            print(f'A = \n{A}\n')
+            print(f'B = \n{B}\n')
         Ainv = inv(A)
         Dcur = self.current_Dmat()
-        # B = H.transpose()*Cdff
-        B = Cdff
-        print(f'B = \n{B}\n')
+        if display:
+            print(f'Dcur = \n{Dcur}\n')
         Ddff = Ainv*B
-        print(f'Ddff = \n{Ddff}\n')
+        if display:
+            print(f'Ddff = \n{Ddff}\n')
         Dcur = Dcur + Ddff
         return Dcur
     def trim(self, crit: float=1e-6, imax: int=100, display=False):
-        display=True
+        # display = True
         Ctgt = self.target_Cmat()
         Ccur = self.current_Cmat()
         Cdff = Ctgt-Ccur
         nrmC = norm(Cdff)
         if display:
-            print(f'normC = {nrmC}')
+            print(f'normC = {nrmC}\n')
         iter = 0
         while nrmC > crit:
             if display:
-                print(f'Iteration {iter:d}')
+                print(f'Iteration {iter:d}\n')
                 start = perf_counter()
             self.reset()
-            Dcur = self.trim_iteration()
+            Dcur = self.trim_iteration(display=display)
             if display:
                 finish = perf_counter()
                 elapsed = finish-start
-                print(f'Trim Internal Iteration Duration = {elapsed:.3f} seconds.')
+                print(f'Trim Internal Iteration Duration = {elapsed:.3f} seconds.\n')
             if Dcur is False:
                 return
             j = 0
@@ -301,7 +314,7 @@ class PanelTrim(PanelResult):
                 else:
                     curstate[var] = Dcur[j, 0]
                 j += 1
-            self.set_state(**curstate)
+                self.set_state(**curstate)
             if self.trmmom:
                 curctrls = {}
                 for ctrl in self.initctrls:
@@ -312,21 +325,27 @@ class PanelTrim(PanelResult):
             Cdff = Ctgt-Ccur
             nrmC = norm(Cdff)
             if display:
-                print(Ctgt)
-                print(Ccur)
-                print(Cdff)
-                for var in self.initstate:
-                    if var == 'alpha' or var == 'beta':
-                        print(f'{var:s} = {getattr(self, var):.6f} deg')
-                    else:
-                        print(f'{var:s} = {getattr(self, var):.6f}')
-                for ctrl in self.initctrls:
+                print(f'Ctgt = \n{Ctgt}\n')
+                print(f'Ccur = \n{Ccur}\n')
+                print(f'Cdff = \n{Cdff}\n')
+                print(f'alpha = {self.alpha} deg')
+                print(f'beta = {self.beta} deg')
+                print(f'pbo2V = {self.pbo2V}')
+                print(f'qco2V = {self.qco2V}')
+                print(f'rbo2V = {self.rbo2V}')
+                # for var in self.initstate:
+                #     if var == 'alpha' or var == 'beta':
+                #         print(f'{var:s} = {getattr(self, var):.6f} deg')
+                #     else:
+                #         print(f'{var:s} = {getattr(self, var):.6f}')
+                for ctrl in self.ctrls:
                     print(f'{ctrl} = {self.ctrls[ctrl]:.6f} deg')
-                print(f'normC = {nrmC}')
+                print(f'normC = {nrmC}\n')
             iter += 1
             if iter >= imax:
-                print(f'Convergence failed for {self.name}.')
+                print(f'Convergence failed for {self.name:s}.')
                 return False
+        print(f'Converged {self.name:s} in {iter:d} iterations.')
 
 def paneltrim_from_dict(psys: object, resdata: dict):
     name = resdata['name']
@@ -345,23 +364,6 @@ def paneltrim_from_dict(psys: object, resdata: dict):
         if 'n' in resdata:
             n = resdata['n']
         trim.set_loads(L, Y, l, m, n)
-        initstate = {}
-        if 'alpha' in resdata:
-            initstate['alpha'] = resdata['alpha']
-        if 'beta' in resdata:
-            initstate['beta'] = resdata['beta']
-        if 'pbo2V' in resdata:
-            initstate['pbo2V'] = resdata['pbo2V']
-        if 'qco2V' in resdata:
-            initstate['qco2V'] = resdata['qco2V']
-        if 'rbo2V' in resdata:
-            initstate['rbo2V'] = resdata['rbo2V']
-        trim.set_initial_state(initstate)
-        initctrls = {}
-        for ctrl in psys.ctrls:
-            if ctrl in resdata:
-                initctrls[ctrl] = resdata[ctrl]
-        trim.set_initial_controls(initctrls)
     elif resdata['trim'] == 'Looping Trim':
         trim = LoopingTrim(name, psys)
         lf = 1.0
@@ -382,6 +384,25 @@ def paneltrim_from_dict(psys: object, resdata: dict):
     if 'speed' in resdata:
         speed = resdata['speed']
     trim.set_speed_and_density(speed, rho)
+
+    initstate = {}
+    if 'alpha' in resdata:
+        initstate['alpha'] = resdata['alpha']
+    if 'beta' in resdata:
+        initstate['beta'] = resdata['beta']
+    if 'pbo2V' in resdata:
+        initstate['pbo2V'] = resdata['pbo2V']
+    if 'qco2V' in resdata:
+        initstate['qco2V'] = resdata['qco2V']
+    if 'rbo2V' in resdata:
+        initstate['rbo2V'] = resdata['rbo2V']
+    trim.set_initial_state(initstate)
+
+    initctrls = {}
+    for ctrl in psys.ctrls:
+        if ctrl in resdata:
+            initctrls[ctrl] = resdata[ctrl]
+    trim.set_initial_controls(initctrls)
 
     if isinstance(trim, (LoopingTrim, TurningTrim)):
 

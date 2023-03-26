@@ -18,6 +18,8 @@ class LoopingTrim():
     _CL = None
     _prate = None
     _qco2V = None
+    initstate: Dict['str', 'float'] = None
+    initctrls: Dict['str', 'float'] = None
     def __init__(self, name: str, sys: object):
         self.name = name
         self.sys = sys
@@ -45,6 +47,19 @@ class LoopingTrim():
     def set_load_factor(self, loadfac: float):
         self.loadfac = loadfac
         self.reset()
+    def set_initial_state(self, initstate: Dict['str', 'float']):
+        self.initstate = initstate
+        if 'alpha' not in self.initstate:
+            self.initstate['alpha'] = 0.0
+        if 'beta' not in self.initstate:
+            self.initstate['beta'] = 0.0
+        # if 'qco2V' not in self.initstate:
+        #     self.initstate['qco2V'] = self.qco2V
+    def set_initial_controls(self, initctrls: Dict['str', 'float']):
+        self.initctrls = initctrls
+        for control in self.sys.ctrls:
+            if control not in self.initctrls:
+                self.initctrls[control] = 0.0
     def create_trim_result(self):
         from ..classes import PanelTrim
         ltrm = PanelTrim(self.name, self.sys)
@@ -53,6 +68,8 @@ class LoopingTrim():
         ltrm.set_targets(CLt=self.CL)
         rcg = Vector(self.mass.xcm, self.mass.ycm, self.mass.zcm)
         ltrm.set_cg(rcg)
+        ltrm.set_initial_state(self.initstate)
+        ltrm.set_initial_controls(self.initctrls)
         return ltrm
     @property
     def weight(self):
@@ -143,6 +160,8 @@ class TurningTrim():
     _rrate = None
     _qco2V = None
     _rbo2V = None
+    initstate: Dict['str', 'float'] = None
+    initctrls: Dict['str', 'float'] = None
     def __init__(self, name: str, sys: object):
         self.name = name
         self.sys = sys
@@ -170,6 +189,21 @@ class TurningTrim():
     def set_bank_angle(self, bankang: float):
         self.bankang = bankang
         self.reset()
+    def set_initial_state(self, initstate: Dict['str', 'float']):
+        self.initstate = initstate
+        if 'alpha' not in self.initstate:
+            self.initstate['alpha'] = 0.0
+        if 'beta' not in self.initstate:
+            self.initstate['beta'] = 0.0
+        # if 'qco2V' not in self.initstate:
+        #     self.initstate['qco2V'] = self.qco2V
+        # if 'rbo2V' not in self.initstate:
+        #     self.initstate['rbo2V'] = self.rbo2V
+    def set_initial_controls(self, initctrls: Dict['str', 'float']):
+        self.initctrls = initctrls
+        for control in self.sys.ctrls:
+            if control not in self.initctrls:
+                self.initctrls[control] = 0.0
     def create_trim_result(self):
         from ..classes import PanelTrim
         ltrm = PanelTrim(self.name, self.sys)
@@ -178,6 +212,8 @@ class TurningTrim():
         ltrm.set_targets(CLt=self.CL)
         rcg = Vector(self.mass.xcm, self.mass.ycm, self.mass.zcm)
         ltrm.set_cg(rcg)
+        ltrm.set_initial_state(self.initstate)
+        ltrm.set_initial_controls(self.initctrls)
         return ltrm
     @property
     def loadfac(self):
@@ -286,6 +322,8 @@ class LevelTrim():
     _lift = None
     _dynpres = None
     _CL = None
+    initstate: Dict['str', 'float'] = None
+    initctrls: Dict['str', 'float'] = None
     def __init__(self, name: str, sys: object):
         self.name = name
         self.sys = sys
@@ -312,12 +350,18 @@ class LevelTrim():
         elif isinstance(mass, (Mass, MassCollection)):
             self.mass = mass
         self.reset()
+    def set_initial_state(self, initstate: Dict['str', 'float']):
+        self.initstate = initstate
+    def set_initial_controls(self, initctrls: Dict['str', 'float']):
+        self.initctrls = initctrls
     def create_trim_result(self):
         from ..classes import PanelTrim
-        lres = PanelTrim(self.name, self.sys)
-        lres.set_density(rho=self.density)
-        lres.set_state(speed=self.speed)
-        return lres
+        ltrm = PanelTrim(self.name, self.sys)
+        ltrm.set_density(rho=self.density)
+        ltrm.set_state(speed=self.speed)
+        ltrm.set_initial_state(self.initstate)
+        ltrm.set_initial_controls(self.initctrls)
+        return ltrm
     @property
     def weight(self):
         if self._weight is None:

@@ -2,7 +2,7 @@ from math import pi
 
 from pygeom.matrix3d.matrixvector import elementwise_multiply
 from pygeom.geom3d import Vector
-from pygeom.matrix3d import MatrixVector, elementwise_divide, zero_matrix_vector
+from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from numpy.matlib import matrix, zeros, multiply, divide, arctan, ones, absolute, square
 from .dirichletpoly import phi_doublet_matrix, vel_doublet_matrix
 from numpy import logical_not, reciprocal, seterr
@@ -74,8 +74,8 @@ class HorseshoeDoublet():
         vecs.z = vecs.z/betz
         return vecs
     def doublet_influence_coefficients(self, pnts: MatrixVector, incvel: bool=True,
-                                       betx: float=1.0, bety: float=1.0, betz: float=1.0,
-                                       checktol: bool=False):
+                                       betx: float=1.0, bety: float=1.0,
+                                       betz: float=1.0, checktol: bool=False):
         vecab = Vector(self.vecab.x/betx, self.vecab.y/bety, self.vecab.z/betz)
         dirxab = vecab.to_unit()
         dirzab = Vector(self.nrm.x, self.nrm.y, self.nrm.z)

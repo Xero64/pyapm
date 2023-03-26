@@ -5,7 +5,8 @@ from pyapm import panelsystem_from_json
 from pyapm.classes.horseshoevortex2d import HorseshoeVortex2D, Vector2D
 from pyapm.outputs.msh import panelresult_to_msh
 from matplotlib.pyplot import figure
-from pygeom.matrix2d import zero_matrix_vector, elementwise_dot_product
+from pygeom.matrix2d import zero_matrix_vector
+from pygeom.matrix2d.matrixvector2d import elementwise_dot_product
 from numpy.matlib import zeros
 
 #%%

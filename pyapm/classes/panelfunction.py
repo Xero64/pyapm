@@ -1,4 +1,5 @@
-from pygeom.geom1d import LinearSpline, CubicSpline
+from pygeom.geom1d.linearspline import LinearSpline
+from pygeom.geom1d.cubicspline import CubicSpline
 from ..tools import equal_spacing
 
 class PanelFunction(object):

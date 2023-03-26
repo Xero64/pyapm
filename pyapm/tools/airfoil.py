@@ -1,5 +1,6 @@
 from matplotlib.pyplot import figure
-from pygeom.geom2d import CubicSpline2D, Point2D
+from pygeom.geom2d import Point2D
+from pygeom.geom2d.cubicspline2d import CubicSpline2D
 from . import read_dat
 from .spacing import full_cosine_spacing, equal_spacing
 from typing import List

@@ -3,10 +3,9 @@
 from IPython.display import display_markdown
 from pyapm.classes import panelsystem_from_json
 from pyapm.outputs.msh import panelresult_to_msh
-from pyapm.tools.points import fetch_pids, point_results
+from pyapm.tools.points import fetch_pids_ttol, point_results
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector
-from numpy.matlib import zeros
 
 #%%
 # Create Panel System
@@ -37,7 +36,7 @@ pnts[4, 1] = Vector(0.75, -0.05, 0.05)
 pnts[5, 1] = Vector(0.75, -0.05, -0.05)
 pnts[6, 1] = Vector(0.75, -4.5, 0.05)
 
-pids, chkz = fetch_pids(pnts, psys, ztol=0.1)
+pids, chkz = fetch_pids_ttol(pnts, psys, ztol=0.1)
 print(f'pids = \n{pids}\n')
 print(f'chkz = \n{chkz}\n')
 

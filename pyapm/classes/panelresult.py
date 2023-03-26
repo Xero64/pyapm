@@ -2,9 +2,9 @@ from math import cos, sin, radians, pi
 from typing import Dict
 from pygeom.geom3d import Vector, Coordinate
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
-from pygeom.matrix3d import elementwise_multiply, elementwise_cross_product
+from pygeom.matrix3d.matrixvector import elementwise_multiply, elementwise_cross_product
 from pygeom.matrix2d import MatrixVector2D
-from pygeom.matrix2d import elementwise_dot_product as elementwise_dot_product_2d
+from pygeom.matrix2d.matrixvector2d import elementwise_dot_product as ew_dot_2d
 from numpy.matlib import matrix,  zeros
 from numpy import square, multiply
 from matplotlib.pyplot import figure
@@ -298,14 +298,14 @@ class PanelResult(object):
         indo = self.sys.ctrls[control][1]
         mu = self.unmu[:, indv]*self.vfs + self.unmu[:, indo]*self.ofs
         qloc = self.calc_qloc(mu, vfs=self.vfs, ofs=self.ofs)
-        vdot = elementwise_dot_product_2d(self.qloc, qloc)
+        vdot = ew_dot_2d(self.qloc, qloc)
         return (-2.0/self.speed**2)*vdot
     def gctrln_single(self, control: str):
         indv = self.sys.ctrls[control][2]
         indo = self.sys.ctrls[control][3]
         mu = self.unmu[:, indv]*self.vfs + self.unmu[:, indo]*self.ofs
         qloc = self.calc_qloc(mu, vfs=self.vfs, ofs=self.ofs)
-        vdot = elementwise_dot_product_2d(self.qloc, qloc)
+        vdot = ew_dot_2d(self.qloc, qloc)
         return (-2.0/self.speed**2)*vdot
     @property
     def ctresp(self):
@@ -1266,7 +1266,7 @@ class StabilityResult(object):
             vfsu = Vector(1.0, 0.0, 0.0)
             muu = self.res.unmu[:, 0].x
             qlocu = self.res.calc_qloc(muu, vfs=vfsu)
-            vdotu = elementwise_dot_product_2d(self.res.qloc, qlocu)
+            vdotu = ew_dot_2d(self.res.qloc, qlocu)
             cpu = (-2.0/self.res.speed**2)*vdotu
             self._u = NearFieldResult(self.res, cpu)
         return self._u
@@ -1276,7 +1276,7 @@ class StabilityResult(object):
             vfsv = Vector(0.0, 1.0, 0.0)
             muv = self.res.unmu[:, 0].y
             qlocv = self.res.calc_qloc(muv, vfs=vfsv)
-            vdotv = elementwise_dot_product_2d(self.res.qloc, qlocv)
+            vdotv = ew_dot_2d(self.res.qloc, qlocv)
             cpv = (-2.0/self.res.speed**2)*vdotv
             self._v = NearFieldResult(self.res, cpv)
         return self._v
@@ -1286,7 +1286,7 @@ class StabilityResult(object):
             vfsw = Vector(0.0, 0.0, 1.0)
             muw = self.res.unmu[:, 0].z
             qlocw = self.res.calc_qloc(muw, vfs=vfsw)
-            vdotw = elementwise_dot_product_2d(self.res.qloc, qlocw)
+            vdotw = ew_dot_2d(self.res.qloc, qlocw)
             cpw = (-2.0/self.res.speed**2)*vdotw
             self._w = NearFieldResult(self.res, cpw)
         return self._w
@@ -1296,7 +1296,7 @@ class StabilityResult(object):
             ofsp = self.res.wcs.vector_to_global(Vector(1.0, 0.0, 0.0))
             mup = self.res.unmu[:, 1]*ofsp
             qlocp = self.res.calc_qloc(mup, ofs=ofsp)
-            vdotp = elementwise_dot_product_2d(self.res.qloc, qlocp)
+            vdotp = ew_dot_2d(self.res.qloc, qlocp)
             cpp = (-2.0/self.res.speed**2)*vdotp
             self._p = NearFieldResult(self.res, cpp)
         return self._p
@@ -1306,7 +1306,7 @@ class StabilityResult(object):
             ofsq = self.res.wcs.vector_to_global(Vector(0.0, 1.0, 0.0))
             muq = self.res.unmu[:, 1]*ofsq
             qlocq = self.res.calc_qloc(muq, ofs=ofsq)
-            vdotq = elementwise_dot_product_2d(self.res.qloc, qlocq)
+            vdotq = ew_dot_2d(self.res.qloc, qlocq)
             cpq = (-2.0/self.res.speed**2)*vdotq
             self._q = NearFieldResult(self.res, cpq)
         return self._q
@@ -1316,7 +1316,7 @@ class StabilityResult(object):
             ofsr = self.res.wcs.vector_to_global(Vector(0.0, 0.0, 1.0))
             mur = self.res.unmu[:, 1]*ofsr
             qlocr = self.res.calc_qloc(mur, ofs=ofsr)
-            vdotr = elementwise_dot_product_2d(self.res.qloc, qlocr)
+            vdotr = ew_dot_2d(self.res.qloc, qlocr)
             cpr = (-2.0/self.res.speed**2)*vdotr
             self._r = NearFieldResult(self.res, cpr)
         return self._r
@@ -1336,7 +1336,7 @@ class StabilityResult(object):
                               2*V*(cosal*cosbt*pbo2V/b - cosal*qco2V*sinbt/c - rbo2V*sinal/b))
             mualpha = self.res.unmu[:, 0]*vfsalpha + self.res.unmu[:, 1]*ofsalpha
             qlocalpha = self.res.calc_qloc(mualpha, vfs=vfsalpha, ofs=ofsalpha)
-            vdotalpha = elementwise_dot_product_2d(self.res.qloc, qlocalpha)
+            vdotalpha = ew_dot_2d(self.res.qloc, qlocalpha)
             cpalpha = (-2.0/self.res.speed**2)*vdotalpha
             self._alpha = NearFieldResult(self.res, cpalpha)
         return self._alpha
@@ -1356,7 +1356,7 @@ class StabilityResult(object):
                              -2*V*sinal*(cosbt*qco2V/c + pbo2V*sinbt/b))
             mubeta = self.res.unmu[:, 0]*vfsbeta + self.res.unmu[:, 1]*ofsbeta
             qlocbeta = self.res.calc_qloc(mubeta, vfs=vfsbeta, ofs=ofsbeta)
-            vdotbeta = elementwise_dot_product_2d(self.res.qloc, qlocbeta)
+            vdotbeta = ew_dot_2d(self.res.qloc, qlocbeta)
             cpbeta = (-2.0/self.res.speed**2)*vdotbeta
             self._beta = NearFieldResult(self.res, cpbeta)
         return self._beta
@@ -1367,7 +1367,7 @@ class StabilityResult(object):
             ofspbo2V = self.res.wcs.vector_to_global(pqr)
             mupbo2V = self.res.unmu[:, 1]*ofspbo2V
             qlocpbo2V = self.res.calc_qloc(mupbo2V, ofs=ofspbo2V)
-            vdotpbo2V = elementwise_dot_product_2d(self.res.qloc, qlocpbo2V)
+            vdotpbo2V = ew_dot_2d(self.res.qloc, qlocpbo2V)
             cppbo2V = (-2.0/self.res.speed**2)*vdotpbo2V
             self._pbo2V = NearFieldResult(self.res, cppbo2V)
         return self._pbo2V
@@ -1378,7 +1378,7 @@ class StabilityResult(object):
             ofsqco2V = self.res.wcs.vector_to_global(pqr)
             muqco2V = self.res.unmu[:, 1]*ofsqco2V
             qlocqco2V = self.res.calc_qloc(muqco2V, ofs=ofsqco2V)
-            vdotqco2V = elementwise_dot_product_2d(self.res.qloc, qlocqco2V)
+            vdotqco2V = ew_dot_2d(self.res.qloc, qlocqco2V)
             cpqco2V = (-2.0/self.res.speed**2)*vdotqco2V
             self._qco2V = NearFieldResult(self.res, cpqco2V)
         return self._qco2V
@@ -1389,7 +1389,7 @@ class StabilityResult(object):
             ofsrbo2V = self.res.wcs.vector_to_global(pqr)
             murbo2V = self.res.unmu[:, 1]*ofsrbo2V
             qlocrbo2V = self.res.calc_qloc(murbo2V, ofs=ofsrbo2V)
-            vdotrbo2V = elementwise_dot_product_2d(self.res.qloc, qlocrbo2V)
+            vdotrbo2V = ew_dot_2d(self.res.qloc, qlocrbo2V)
             cprbo2V = (-2.0/self.res.speed**2)*vdotrbo2V
             self._rbo2V = NearFieldResult(self.res, cprbo2V)
         return self._rbo2V
@@ -1399,7 +1399,7 @@ class StabilityResult(object):
             ofspdbo2V = Vector(2*self.res.speed/self.res.sys.bref, 0.0, 0.0)
             mupdbo2V = self.res.unmu[:, 1]*ofspdbo2V
             qlocpdbo2V = self.res.calc_qloc(mupdbo2V, ofs=ofspdbo2V)
-            vdotpdbo2V = elementwise_dot_product_2d(self.res.qloc, qlocpdbo2V)
+            vdotpdbo2V = ew_dot_2d(self.res.qloc, qlocpdbo2V)
             cppdbo2V = (-2.0/self.res.speed**2)*vdotpdbo2V
             self._pdbo2V = NearFieldResult(self.res, cppdbo2V)
         return self._pdbo2V
@@ -1409,7 +1409,7 @@ class StabilityResult(object):
             ofsqdco2V = Vector(0.0, 2*self.res.speed/self.res.sys.cref, 0.0)
             muqdco2V = self.res.unmu[:, 1]*ofsqdco2V
             qlocqdco2V = self.res.calc_qloc(muqdco2V, ofs=ofsqdco2V)
-            vdotqdco2V = elementwise_dot_product_2d(self.res.qloc, qlocqdco2V)
+            vdotqdco2V = ew_dot_2d(self.res.qloc, qlocqdco2V)
             cpqdco2V = (-2.0/self.res.speed**2)*vdotqdco2V
             self._qdco2V = NearFieldResult(self.res, cpqdco2V)
         return self._qdco2V
@@ -1419,7 +1419,7 @@ class StabilityResult(object):
             ofsrdbo2V = Vector(0.0, 0.0, 2*self.res.speed/self.res.sys.bref)
             murdbo2V = self.res.unmu[:, 1]*ofsrdbo2V
             qlocrdbo2V = self.res.calc_qloc(murdbo2V, ofs=ofsrdbo2V)
-            vdotrdbo2V = elementwise_dot_product_2d(self.res.qloc, qlocrdbo2V)
+            vdotrdbo2V = ew_dot_2d(self.res.qloc, qlocrdbo2V)
             cprdbo2V = (-2.0/self.res.speed**2)*vdotrdbo2V
             self._rdbo2V = NearFieldResult(self.res, cprdbo2V)
         return self._rdbo2V

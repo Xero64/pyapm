@@ -1,6 +1,6 @@
 from math import pi
 from pygeom.geom2d import Vector2D
-from pygeom.matrix2d import MatrixVector2D, elementwise_divide
+from pygeom.matrix2d.matrixvector2d import MatrixVector2D, elementwise_divide
 from numpy.matlib import square
 
 twoPi = 2*pi
