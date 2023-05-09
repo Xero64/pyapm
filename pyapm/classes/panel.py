@@ -107,7 +107,7 @@ class Panel(DirichletPoly):
             diry = vecy.to_unit()
             dirx = (diry**dirz).to_unit()
             pntc = self.pnto.to_point()
-            self._crd = Coordinate(pntc, dirx, diry, dirz)
+            self._crd = Coordinate(pntc, dirx, diry)
         return self._crd
     @property
     def hsvs(self):

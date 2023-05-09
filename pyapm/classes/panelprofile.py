@@ -49,8 +49,7 @@ class PanelProfile(object):
             sintwist = sin(twist)
             costwist = cos(twist)
             dirx = Vector(costwist, sintwist*sintilt, -sintwist*costilt)
-            dirz = dirx**diry
-            self._crdsys = Coordinate(self.point, dirx, diry, dirz)
+            self._crdsys = Coordinate(self.point, dirx, diry)
         return self._crdsys
     def get_profile(self, offset: bool=True):
         prfa = self.scta.get_profile(offset=offset)

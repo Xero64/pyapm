@@ -106,8 +106,7 @@ class PanelResult(object):
             cosbt, sinbt = trig_angle(self.beta)
             dirx = Vector(cosbt*cosal, -sinbt, cosbt*sinal)
             diry = Vector(sinbt*cosal, cosbt, sinbt*sinal)
-            dirz = Vector(-sinal, 0.0, cosal)
-            self._acs = Coordinate(pnt, dirx, diry, dirz)
+            self._acs = Coordinate(pnt, dirx, diry)
         return self._acs
     @property
     def wcs(self):
@@ -115,8 +114,7 @@ class PanelResult(object):
             pnt = self.sys.rref
             dirx = -1.0*self.acs.dirx
             diry = self.acs.diry
-            dirz = -1.0*self.acs.dirz
-            self._wcs = Coordinate(pnt, dirx, diry, dirz)
+            self._wcs = Coordinate(pnt, dirx, diry)
         return self._wcs
     @property
     def vfs(self):
@@ -246,7 +244,7 @@ class PanelResult(object):
             vfsg = zero_matrix_vector(self.arm.shape, dtype=float)
             vfsg[:, 0] = vfs
         else:
-            vfsg = vfs-ofs**self.arm
+            vfsg = vfs + self.arm**ofs
         vl = zeros((self.sys.numpnl, 1), dtype=float)
         vt = zeros((self.sys.numpnl, 1), dtype=float)
         ql = zeros((self.sys.numpnl, 1), dtype=float)
