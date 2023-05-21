@@ -39,7 +39,7 @@ class Panel(DirichletPoly):
     def set_index(self, ind: int):
         self.ind = ind
     def dndl(self, gain: float, hvec: Vector):
-        return gain*(hvec**self.nrm)
+        return gain*hvec.cross(self.nrm)
     @property
     def noload(self):
         noload = False
@@ -100,13 +100,13 @@ class Panel(DirichletPoly):
     def crd(self) -> Coordinate:
         if self._crd is None:
             dirz = self.nrm
-            vecy = dirz**IHAT
+            vecy = dirz.cross(IHAT)
             magy = vecy.return_magnitude()
             if magy < oor2:
-                vecy = dirz**KHAT
+                vecy = dirz.cross(KHAT)
             diry = vecy.to_unit()
-            dirx = (diry**dirz).to_unit()
-            pntc = self.pnto.to_point()
+            dirx = diry.cross(dirz).to_unit()
+            pntc = self.pnto
             self._crd = Coordinate(pntc, dirx, diry)
         return self._crd
     @property
@@ -179,14 +179,14 @@ class Panel(DirichletPoly):
                     dirx = (grdb-grda).to_unit()
                     dirza = pnla.nrm
                     dirzb = pnlb.nrm
-                    dirya = dirza**dirx
-                    diryb = dirzb**dirx
+                    dirya = dirza.cross(dirx)
+                    diryb = dirzb.cross(dirx)
                     veca = pnla.pnto - grda
                     vecb = pnlb.pnto - grda
-                    xa = veca*dirx
-                    xb = vecb*dirx
-                    ya = veca*dirya
-                    yb = vecb*diryb
+                    xa = veca.dot(dirx)
+                    xb = vecb.dot(dirx)
+                    ya = veca.dot(dirya)
+                    yb = vecb.dot(diryb)
                     xc = xa - (xb-xa)/(yb-ya)*ya
                     self._edgpnts.append(grda + dirx*xc)
                 else:
@@ -353,13 +353,13 @@ class Panel(DirichletPoly):
             diry = self.diryab[0, i]
             dirz = self.dirzab[0, i]
             xy1 = ones((pnts.shape[0], 3), dtype=float)
-            xy1[:, 1] = rgcs*dirx
-            xy1[:, 2] = rgcs*diry
+            xy1[:, 1] = rgcs.dot(dirx)
+            xy1[:, 2] = rgcs.dot(diry)
             t123 = xy1*self.baryinv[i].transpose()
             mint = t123.min(axis=1)
             chk = mint > -ttol
             wint[chk] = True
-            abszi = absolute(rgcs*dirz)
+            abszi = absolute(rgcs.dot(dirz))
             abszi[logical_not(chk)] = float('inf')
             absz = minimum(absz, abszi)
         wint = wint.reshape(shp)
@@ -374,7 +374,7 @@ class Panel(DirichletPoly):
             dirx = self.dirxab[0, i]
             diry = self.diryab[0, i]
             dirz = self.dirzab[0, i]
-            vecl = Vector(vecg*dirx, vecg*diry, vecg*dirz)
+            vecl = Vector(vecg.dot(dirx), vecg.dot(diry), vecg.dot(dirz))
             ainv = self.baryinv[i]
             bmat = matrix([[1.0], [vecl.x], [vecl.y]])
             tmat = ainv*bmat
@@ -391,7 +391,7 @@ class Panel(DirichletPoly):
 def angle_between_vectors(veca: Vector, vecb: Vector):
     unta = veca.to_unit()
     untb = vecb.to_unit()
-    adb = unta*untb
+    adb = unta.dot(untb)
     if adb > 1.0:
         adb = 1.0
     elif adb < -1.0:

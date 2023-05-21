@@ -73,9 +73,9 @@ class HorseShoe(object):
     @property
     def width(self):
         if self._width is None:
-            diry = (self.nrm**self.diro).to_unit()
-            grday = self.grda*diry
-            grdby = self.grdb*diry
+            diry = self.nrm.cross(self.diro).to_unit()
+            grday = self.grda.dot(diry)
+            grdby = self.grdb.dot(diry)
             self._width = grdby - grday
         return self._width
     def sign_local_z(self, pnts: MatrixVector, betx: float=1.0):
@@ -119,7 +119,7 @@ class HorseShoe(object):
     #     b = r-rb
     #     axx = Vector(0.0, a.z, -a.y)
     #     bxx = Vector(0.0, b.z, -b.y)
-    #     am2 = a*a
-    #     bm2 = b*b
+    #     am2 = a.dot(a)
+    #     bm2 = b.dot(b)
     #     vel = (axx/am2-bxx/bm2)/twoPi
     #     return vel

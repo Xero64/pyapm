@@ -40,17 +40,17 @@ class TrailingEdge(object):
     @property
     def dirz(self):
         if self._dirz is None:
-            self._dirz = (self.dirx**self.veco).to_unit()
+            self._dirz = self.dirx.cross(self.veco).to_unit()
         return self._dirz
     @property
     def diry(self):
         if self._diry is None:
-            self._diry = (self.dirz**self.dirx).to_unit()
+            self._diry = self.dirz.cross(self.dirx).to_unit()
         return self._diry
     @property
     def pntc(self):
         if self._pntc is None:
-            lenx = self.veco*self.dirx
+            lenx = self.veco.dot(self.dirx)
             self._pntc = self.grdo + lenx*self.dirx
         return self._pntc
     @property
@@ -62,24 +62,24 @@ class TrailingEdge(object):
     def pntol(self):
         if self._pntol is None:
             vec = self.pnto-self.pntc
-            self._pntol = Vector(vec*self.dirx, vec*self.diry, vec*self.dirz)
+            self._pntol = Vector(vec.dot(self.dirx), vec.dot(self.diry), vec.dot(self.dirz))
         return self._pntol
     @property
     def grdol(self):
         if self._grdol is None:
             vec = self.grdo-self.pntc
-            self._grdol = Vector(vec*self.dirx, vec*self.diry, vec*self.dirz)
+            self._grdol = Vector(vec.dot(self.dirx), vec.dot(self.diry), vec.dot(self.dirz))
         return self._grdol
     def points_to_local(self, pnts: MatrixVector, betx: float=1.0):
         vecs = pnts-self.pntc
         if betx != 1.0:
             vecs.x = vecs.x/betx
-        return MatrixVector(vecs*self.dirx, vecs*self.diry, vecs*self.dirz)
+        return MatrixVector(vecs.dot(self.dirx), vecs.dot(self.diry), vecs.dot(self.dirz))
     def vectors_to_global(self, vecs: MatrixVector):
         dirx = Vector(self.dirx.x, self.diry.x, self.dirz.x)
         diry = Vector(self.dirx.y, self.diry.y, self.dirz.y)
         dirz = Vector(self.dirx.z, self.diry.z, self.dirz.z)
-        return MatrixVector(vecs*dirx, vecs*diry, vecs*dirz)
+        return MatrixVector(vecs.dot(dirx), vecs.dot(diry), vecs.dot(dirz))
     def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool=False,
                                     sgnz: matrix=None, factor: bool=True,
                                     betx: float=1.0):

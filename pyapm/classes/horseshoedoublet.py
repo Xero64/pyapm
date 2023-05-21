@@ -56,14 +56,14 @@ class HorseshoeDoublet():
     @property
     def nrm(self):
         if self._nrm is None:
-            self._nrm = (self.vecab**self.diro).to_unit()
+            self._nrm = self.vecab.cross(self.diro).to_unit()
         return self._nrm
     @property
     def width(self):
         if self._width is None:
-            diry = (self.nrm**self.diro).to_unit()
-            grday = self.grda*diry
-            grdby = self.grdb*diry
+            diry = self.nrm.cross(self.diro).to_unit()
+            grday = self.grda.dot(diry)
+            grdby = self.grdb.dot(diry)
             self._width = grdby - grday
         return self._width
     def relative_mach(self, pnts: MatrixVector, pnt: Vector,
@@ -79,17 +79,17 @@ class HorseshoeDoublet():
         vecab = Vector(self.vecab.x/betx, self.vecab.y/bety, self.vecab.z/betz)
         dirxab = vecab.to_unit()
         dirzab = Vector(self.nrm.x, self.nrm.y, self.nrm.z)
-        diryab = dirzab**dirxab
+        diryab = dirzab.cross(dirxab)
         agcs = self.relative_mach(pnts, self.grda, betx=betx, bety=bety, betz=betz)
         bgcs = self.relative_mach(pnts, self.grdb, betx=betx, bety=bety, betz=betz)
-        locz = agcs*self.nrm
+        locz = agcs.dot(self.nrm)
         sgnz = ones(locz.shape, dtype=float)
         sgnz[locz <= 0.0] = -1.0
         phid = zeros(pnts.shape, dtype=float)
         if incvel:
             veld = zero_matrix_vector(pnts.shape, dtype=float)
         # Vector A in Local Coordinate System
-        alcs = MatrixVector(agcs*dirxab, agcs*diryab, agcs*dirzab)
+        alcs = MatrixVector(agcs.dot(dirxab), agcs.dot(diryab), agcs.dot(dirzab))
         if checktol:
             alcs.x[absolute(alcs.x) < tol] = 0.0
             alcs.y[absolute(alcs.y) < tol] = 0.0
@@ -97,7 +97,7 @@ class HorseshoeDoublet():
         # Vector A Doublet Velocity Potentials
         phida, amag = phi_doublet_matrix(alcs, sgnz)
         # Vector B in Local Coordinate System
-        blcs = MatrixVector(bgcs*dirxab, bgcs*diryab, bgcs*dirzab)
+        blcs = MatrixVector(bgcs.dot(dirxab), bgcs.dot(diryab), bgcs.dot(dirzab))
         if checktol:
             blcs.x[absolute(blcs.x) < tol] = 0.0
             blcs.y[absolute(blcs.y) < tol] = 0.0
@@ -115,12 +115,12 @@ class HorseshoeDoublet():
             dirxi = Vector(dirxab.x, diryab.x, dirzab.x)
             diryi = Vector(dirxab.y, diryab.y, dirzab.y)
             dirzi = Vector(dirxab.z, diryab.z, dirzab.z)
-            veld += MatrixVector(veldi*dirxi, veldi*diryi, veldi*dirzi)
+            veld += MatrixVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
         # Trailing Edge A Coordinate Transformation
         dirxa = self.diro
         dirza = self.nrm
-        dirya = -dirza**dirxa
-        alcs = MatrixVector(agcs*dirxa, agcs*dirya, agcs*dirza)
+        dirya = -dirza.cross(dirxa)
+        alcs = MatrixVector(agcs.dot(dirxa), agcs.dot(dirya), agcs.dot(dirza))
         # Trailing Edge A Velocity Potential
         phida, amag = phi_doublet_matrix(alcs, sgnz)
         phidt = phi_trailing_doublet_matrix(alcs, sgnz)
@@ -135,12 +135,12 @@ class HorseshoeDoublet():
             dirxi = Vector(dirxa.x, dirya.x, dirza.x)
             diryi = Vector(dirxa.y, dirya.y, dirza.y)
             dirzi = Vector(dirxa.z, dirya.z, dirza.z)
-            veld += MatrixVector(veldi*dirxi, veldi*diryi, veldi*dirzi)
+            veld += MatrixVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
         # Trailing Edge B Coordinate Transformation
         dirxb = self.diro
         dirzb = self.nrm
-        diryb = dirzb**dirxb
-        blcs = MatrixVector(bgcs*dirxb, bgcs*diryb, bgcs*dirzb)
+        diryb = dirzb.cross(dirxb)
+        blcs = MatrixVector(bgcs.dot(dirxb), bgcs.dot(diryb), bgcs.dot(dirzb))
         # Trailing Edge B Velocity Potential
         phidb, bmag = phi_doublet_matrix(blcs, sgnz)
         phidt = phi_trailing_doublet_matrix(blcs, sgnz)
@@ -154,7 +154,7 @@ class HorseshoeDoublet():
             dirxi = Vector(dirxb.x, diryb.x, dirzb.x)
             diryi = Vector(dirxb.y, diryb.y, dirzb.y)
             dirzi = Vector(dirxb.z, diryb.z, dirzb.z)
-            veld += MatrixVector(veldi*dirxi, veldi*diryi, veldi*dirzi)
+            veld += MatrixVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
         # Factors and Outputs
         phid = phid/fourPi
         if incvel:
@@ -174,8 +174,8 @@ class HorseshoeDoublet():
         agcs = self.relative_mach(pnts, self.grda, betx=betx, bety=bety, betz=betz)
         dirxa = -self.diro
         dirza = self.nrm
-        dirya = dirza**dirxa
-        alcs = MatrixVector(agcs*dirxa, agcs*dirya, agcs*dirza)
+        dirya = dirza.cross(dirxa)
+        alcs = MatrixVector(agcs.dot(dirxa), agcs.dot(dirya), agcs.dot(dirza))
         alcs.x = zeros(alcs.shape, dtype=float)
         axx = MatrixVector(alcs.x, -alcs.z, alcs.y)
         am2 = square(alcs.y) + square(alcs.z)
@@ -190,13 +190,13 @@ class HorseshoeDoublet():
         dirxi = Vector(dirxa.x, dirya.x, dirza.x)
         diryi = Vector(dirxa.y, dirya.y, dirza.y)
         dirzi = Vector(dirxa.z, dirya.z, dirza.z)
-        velda = MatrixVector(veldl*dirxi, veldl*diryi, veldl*dirzi)*faca
+        velda = MatrixVector(veldl.dot(dirxi), veldl.dot(diryi), veldl.dot(dirzi))*faca
         # Trailing Vortex B
         bgcs = self.relative_mach(pnts, self.grdb, betx=betx, bety=bety, betz=betz)
         dirxb = self.diro
         dirzb = self.nrm
-        diryb = dirzb**dirxb
-        blcs = MatrixVector(bgcs*dirxb, bgcs*diryb, bgcs*dirzb)
+        diryb = dirzb.cross(dirxb)
+        blcs = MatrixVector(bgcs.dot(dirxb), bgcs.dot(diryb), bgcs.dot(dirzb))
         blcs.x = zeros(blcs.shape, dtype=float)
         bxx = MatrixVector(blcs.x, -blcs.z, blcs.y)
         bm2 = square(blcs.y) + square(blcs.z)
@@ -211,7 +211,7 @@ class HorseshoeDoublet():
         dirxi = Vector(dirxb.x, diryb.x, dirzb.x)
         diryi = Vector(dirxb.y, diryb.y, dirzb.y)
         dirzi = Vector(dirxb.z, diryb.z, dirzb.z)
-        veldb = MatrixVector(veldl*dirxi, veldl*diryi, veldl*dirzi)*facb
+        veldb = MatrixVector(veldl.dot(dirxi), veldl.dot(diryi), veldl.dot(dirzi))*facb
         # Add Together
         veld = velda + veldb
         return veld/twoPi

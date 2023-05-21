@@ -54,7 +54,7 @@ class DirichletPoly(object):
     @property
     def pnto(self) -> Vector:
         if self._pnto is None:
-            self._pnto = sum(self.grds)/self.num
+            self._pnto = sum(self.grds, start=Vector(0.0, 0.0, 0.0))/self.num
         return self._pnto
     @property
     def grdr(self):
@@ -74,14 +74,14 @@ class DirichletPoly(object):
         for i in range(self.num):
             veca = grds[0, i-1]
             vecb = grds[0, i]
-            vecaxb[0, i] = veca**vecb
+            vecaxb[0, i] = veca.cross(vecb)
         return vecaxb
     def edge_vector(self, grds: MatrixVector):
         vecab = zero_matrix_vector((1, self.num), dtype=float)
         for i in range(self.num):
             veca = grds[0, i-1]
             vecb = grds[0, i]
-            vecab[0, i] = vecb-veca
+            vecab[0, i] = vecb - veca
         return vecab
     @property
     def vecab(self):
@@ -133,8 +133,8 @@ class DirichletPoly(object):
                 dirz = self.dirzab[0, i]
                 grda = self.grdr[0, i-1]
                 grdb = self.grdr[0, i]
-                grdal = Vector(grda*dirx, grda*diry, grda*dirz)
-                grdbl = Vector(grdb*dirx, grdb*diry, grdb*dirz)
+                grdal = Vector(grda.dot(dirx), grda.dot(diry), grda.dot(dirz))
+                grdbl = Vector(grdb.dot(dirx), grdb.dot(diry), grdb.dot(dirz))
                 amat = zeros((3, 3), dtype=float)
                 amat[0, :] = 1.0
                 amat[1, 1] = grdal.x
@@ -161,7 +161,7 @@ class DirichletPoly(object):
         diryab = elementwise_cross_product(dirzab, dirxab)
         nrm = vecaxb.sum().to_unit()
         rgcs = self.relative_mach(pnts, self.pnto, betx=betx, bety=bety, betz=betz)
-        locz = rgcs*nrm
+        locz = rgcs.dot(nrm)
         sgnz = ones(locz.shape, dtype=float)
         sgnz[locz <= 0.0] = -1.0
         vecgcs = []
@@ -182,7 +182,7 @@ class DirichletPoly(object):
             dirz = dirzab[0, i]
             # Vector A in Local Coordinate System
             veca = vecgcs[i-1]
-            alcs = MatrixVector(veca*dirx, veca*diry, veca*dirz)
+            alcs = MatrixVector(veca.dot(dirx), veca.dot(diry), veca.dot(dirz))
             if checktol:
                 alcs.x[absolute(alcs.x) < tol] = 0.0
                 alcs.y[absolute(alcs.y) < tol] = 0.0
@@ -191,7 +191,7 @@ class DirichletPoly(object):
             phida, amag = phi_doublet_matrix(alcs, sgnz)
             # Vector B in Local Coordinate System
             vecb = vecgcs[i]
-            blcs = MatrixVector(vecb*dirx, vecb*diry, vecb*dirz)
+            blcs = MatrixVector(vecb.dot(dirx), vecb.dot(diry), vecb.dot(dirz))
             if checktol:
                 blcs.x[absolute(blcs.x) < tol] = 0.0
                 blcs.y[absolute(blcs.y) < tol] = 0.0
@@ -214,8 +214,8 @@ class DirichletPoly(object):
                 dirxi = Vector(dirx.x, diry.x, dirz.x)
                 diryi = Vector(dirx.y, diry.y, dirz.y)
                 dirzi = Vector(dirx.z, diry.z, dirz.z)
-                veld += MatrixVector(veldi*dirxi, veldi*diryi, veldi*dirzi)
-                vels += MatrixVector(velsi*dirxi, velsi*diryi, velsi*dirzi)
+                veld += MatrixVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
+                vels += MatrixVector(velsi.dot(dirxi), velsi.dot(diryi), velsi.dot(dirzi))
         phid = phid/fourPi
         phis = phis/fourPi
         if incvel:

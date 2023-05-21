@@ -1,9 +1,22 @@
 from math import pi
-from numpy.matlib import matrix, ones, absolute, divide, multiply, arctan, log, logical_and
-from pygeom.geom3d import Vector, Coordinate
+
+from numpy.matlib import (
+    absolute,
+    arctan,
+    divide,
+    log,
+    logical_and,
+    matrix,
+    multiply,
+    ones,
+)
+from pygeom.geom3d import Coordinate, Vector
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
-from pygeom.matrix3d import elementwise_dot_product, elementwise_cross_product
-from pygeom.matrix3d import elementwise_multiply
+from pygeom.matrix3d.matrixvector import (
+    elementwise_cross_product,
+    elementwise_dot_product,
+    elementwise_multiply,
+)
 
 tol = 1e-12
 piby2 = pi/2
@@ -54,7 +67,7 @@ class BoundEdge(object):
     @property
     def vecaxb(self):
         if self._vecaxb is None:
-            self._vecaxb = self.veca**self.vecb
+            self._vecaxb = self.veca.cross(self.vecb)
         return self._vecaxb
     @property
     def area(self):
@@ -74,12 +87,12 @@ class BoundEdge(object):
     @property
     def diry(self):
         if self._diry is None:
-            self._diry = (self.dirz**self.dirx).to_unit()
+            self._diry = self.dirz.cross(self.dirx).to_unit()
         return self._diry
     @property
     def pntc(self):
         if self._pntc is None:
-            lenx = self.veca*self.dirx
+            lenx = self.veca.dot(self.dirx)
             self._pntc = self.grda + lenx*self.dirx
         return self._pntc
     @property
@@ -91,19 +104,22 @@ class BoundEdge(object):
     def pntol(self):
         if self._pntol is None:
             vec = self.pnto-self.pntc
-            self._pntol = Vector(vec*self.dirx, vec*self.diry, vec*self.dirz)
+            self._pntol = Vector(vec.dot(self.dirx), vec.dot(self.diry),
+                                 vec.dot(self.dirz))
         return self._pntol
     @property
     def grdal(self):
         if self._grdal is None:
             vec = self.grda-self.pntc
-            self._grdal = Vector(vec*self.dirx, vec*self.diry, vec*self.dirz)
+            self._grdal = Vector(vec.dot(self.dirx), vec.dot(self.diry),
+                                 vec.dot(self.dirz))
         return self._grdal
     @property
     def grdbl(self):
         if self._grdbl is None:
             vec = self.grdb-self.pntc
-            self._grdbl = Vector(vec*self.dirx, vec*self.diry, vec*self.dirz)
+            self._grdbl = Vector(vec.dot(self.dirx), vec.dot(self.diry),
+                                 vec.dot(self.dirz))
         return self._grdbl
     @property
     def te(self):
@@ -115,12 +131,13 @@ class BoundEdge(object):
         vecs = pnts-self.pntc
         if betx != 1.0:
             vecs.x = vecs.x/betx
-        return MatrixVector(vecs*self.dirx, vecs*self.diry, vecs*self.dirz)
+        return MatrixVector(vecs.dot(self.dirx), vecs.dot(self.diry),
+                            vecs.dot(self.dirz))
     def vectors_to_global(self, vecs: MatrixVector):
         dirx = Vector(self.dirx.x, self.diry.x, self.dirz.x)
         diry = Vector(self.dirx.y, self.diry.y, self.dirz.y)
         dirz = Vector(self.dirx.z, self.diry.z, self.dirz.z)
-        return MatrixVector(vecs*dirx, vecs*diry, vecs*dirz)
+        return MatrixVector(vecs.dot(dirx), vecs.dot(diry), vecs.dot(dirz))
     def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool=False,
                                     sgnz: matrix=None, factor: bool=True,
                                     betx: float=1.0):

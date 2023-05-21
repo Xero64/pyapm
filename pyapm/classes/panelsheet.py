@@ -92,11 +92,13 @@ class PanelSheet(object):
             for control in self.ctrls:
                 ctrl = self._ctrls[control]
                 if ctrl.uhvec.return_magnitude() == 0.0:
-                    pntal = Vector((ctrl.xhinge-scta.xoc)*scta.chord, 0.0, -scta.zoc*scta.chord)
-                    pnta = scta.point+scta.crdsys.vector_to_global(pntal)
-                    pntbl = Vector((ctrl.xhinge-sctb.xoc)*sctb.chord, 0.0, -sctb.zoc*sctb.chord)
-                    pntb = sctb.point+sctb.crdsys.vector_to_global(pntbl)
-                    hvec = pntb-pnta
+                    pntal = Vector((ctrl.xhinge - scta.xoc)*scta.chord,
+                                   0.0, -scta.zoc*scta.chord)
+                    pnta = scta.point + scta.crdsys.vector_to_global(pntal)
+                    pntbl = Vector((ctrl.xhinge-sctb.xoc)*sctb.chord,
+                                   0.0, -sctb.zoc*sctb.chord)
+                    pntb = sctb.point + sctb.crdsys.vector_to_global(pntbl)
+                    hvec = pntb - pnta
                     ctrl.set_hinge_vector(hvec)
         return self._ctrls
     @property
@@ -234,10 +236,10 @@ class PanelSheet(object):
             if ctrl.uhvec.return_magnitude() == 0.0:
                 pnt1 = self.scta.pnt
                 crd1 = self.scta.chord
-                pnta = pnt1+crd1*IHAT*ctrl.xhinge
+                pnta = pnt1+crd1*IHAT.dot(ctrl.xhinge)
                 pnt2 = self.sctb.pnt
                 crd2 = self.sctb.chord
-                pntb = pnt2+crd2*IHAT*ctrl.xhinge
+                pntb = pnt2+crd2*IHAT.dot(ctrl.xhinge)
                 hvec = pntb-pnta
                 ctrl.set_hinge_vector(hvec)
     def set_control_panels(self):

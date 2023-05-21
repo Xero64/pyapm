@@ -32,7 +32,7 @@ class SurfaceLoad(object):
             ind = strp.ind
             rrel = strp.point - self.rref
             self.frctot += strpres.stfrc[ind, 0]
-            self.momtot += strpres.stmom[ind, 0] + rrel**strpres.stfrc[ind, 0]
+            self.momtot += strpres.stmom[ind, 0] + rrel.cross(strpres.stfrc[ind, 0])
         self.rfrc, self.rmom = self.strc.rbdy.return_reactions(self.frctot, self.momtot)
         self.ptfrc = zero_matrix_vector(self.strc.pnts.shape, dtype=float)
         self.ptmom = zero_matrix_vector(self.strc.pnts.shape, dtype=float)
@@ -50,9 +50,9 @@ class SurfaceLoad(object):
             ptfrcb = ptfrca - strpres.stfrc[ind, 0]
             ptmomb = ptmoma - strpres.stmom[ind, 0]
             rrel = strp.point - self.strc.pnts[indb, 0]
-            ptmomb -= rrel**strpres.stfrc[ind, 0]
+            ptmomb -= rrel.cross(strpres.stfrc[ind, 0])
             rrel = self.strc.pnts[indb, 0]-self.strc.pnts[inda, 0]
-            ptmomb -= rrel**ptfrca
+            ptmomb -= rrel.cross(ptfrca)
             self.ptfrc[inda, 0] = ptfrca
             self.ptfrc[indb, 0] = ptfrcb
             self.ptmom[inda, 0] = ptmoma

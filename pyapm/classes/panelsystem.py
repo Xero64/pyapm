@@ -343,7 +343,7 @@ class PanelSystem(object):
     #                 nrm = Vector(0.0, 0.0, -1.0)
     #             else:
     #                 nrm = Vector(0.0, 0.0, 1.0)
-    #             self._awh[i, j] = avh*nrm
+    #             self._awh[i, j] = avh.dot(nrm)
     #     if time:
     #         finish = perf_counter()
     #         elapsed = finish - start
@@ -402,10 +402,10 @@ class PanelSystem(object):
                                 rrel = self.rrel[ind, 0]
                                 dndlp = pnl.dndl(ctrl.posgain, ctrl.uhvec)
                                 unsig[ind, ctup[0]] = -dndlp
-                                unsig[ind, ctup[1]] = -rrel**dndlp
+                                unsig[ind, ctup[1]] = -rrel.cross(dndlp)
                                 dndln = pnl.dndl(ctrl.neggain, ctrl.uhvec)
                                 unsig[ind, ctup[2]] = -dndln
-                                unsig[ind, ctup[3]] = -rrel**dndln
+                                unsig[ind, ctup[3]] = -rrel.cross(dndln)
             self._unsig[mach] = unsig
         return self._unsig[mach]
     def unmu(self, mach: float=0.0):
