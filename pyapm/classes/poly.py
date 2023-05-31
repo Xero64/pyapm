@@ -53,40 +53,42 @@ class Poly(object):
             vecs.x = vecs.x/betx
             nrm = Vector(self.nrm.x/betx, self.nrm.y, self.nrm.z)
         locz = vecs*nrm
-        sgnz = ones(locz.shape, float)
+        sgnz = ones(locz.shape, dtype=float)
         sgnz[locz <= 0.0] = -1.0
         return sgnz
     def influence_coefficients(self, pnts: MatrixVector, betx: float=1.0):
-        phiv = zeros(pnts.shape, float)
-        phis = zeros(pnts.shape, float)
-        velv = zero_matrix_vector(pnts.shape, float)
-        vels = zero_matrix_vector(pnts.shape, float)
+        phiv = zeros(pnts.shape, dtype=float)
+        phis = zeros(pnts.shape, dtype=float)
+        velv = zero_matrix_vector(pnts.shape, dtype=float)
+        vels = zero_matrix_vector(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
-            ephiv, ephis, evelv, evels = edg.influence_coefficients(pnts, sgnz=sgnz, betx=betx)
+            ephiv, ephis, evelv, evels = edg.influence_coefficients(pnts, sgnz=sgnz,
+                                                                    betx=betx)
             phiv += ephiv
             phis += ephis
             velv += evelv
             vels += evels
         return phiv, phis, velv, vels
     def doublet_influence_coefficients(self, pnts: MatrixVector, betx: float=1.0):
-        phiv = zeros(pnts.shape, float)
-        velv = zero_matrix_vector(pnts.shape, float)
+        phiv = zeros(pnts.shape, dtype=float)
+        velv = zero_matrix_vector(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
-            ephiv, evelv = edg.doublet_influence_coefficients(pnts, sgnz=sgnz, betx=betx)
+            ephiv, evelv = edg.doublet_influence_coefficients(pnts, sgnz=sgnz,
+                                                              betx=betx)
             phiv += ephiv
             velv += evelv
         return phiv, velv
     def doublet_velocity_potentials(self, pnts: MatrixVector, betx: float=1.0):
-        phiv = zeros(pnts.shape, float)
+        phiv = zeros(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
             phiv += edg.doublet_velocity_potentials(pnts, sgnz=sgnz, betx=betx)
         return phiv
     def velocity_potentials(self, pnts: MatrixVector, betx: float=1.0):
-        phiv = zeros(pnts.shape, float)
-        phis = zeros(pnts.shape, float)
+        phiv = zeros(pnts.shape, dtype=float)
+        phis = zeros(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
             ephiv, ephis = edg.velocity_potentials(pnts, sgnz=sgnz, betx=betx)

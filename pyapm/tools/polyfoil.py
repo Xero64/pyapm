@@ -3,6 +3,7 @@ from .spacing import full_cosine_spacing, equal_spacing
 from .spacing import linear_bias_left
 from numpy import multiply, power, array, hstack, arctan, sin, cos, zeros, sqrt, pi
 from scipy.optimize import root, least_squares
+from matplotlib.pyplot import figure
 from . import read_dat
 
 class PolyFoil():
@@ -100,12 +101,14 @@ class PolyFoil():
     @property
     def xu(self):
         if self._xu is None:
-            self._xu = [xi-ti*sin(thi) for xi, ti, thi in zip(self.xc, self.t, self.thc)]
+            self._xu = [xi-ti*sin(thi) for xi, ti, thi in zip(self.xc, self.t,
+                                                              self.thc)]
         return self._xu
     @property
     def yu(self):
         if self._yu is None:
-            self._yu = [yi+ti*cos(thi) for yi, ti, thi in zip(self.yc, self.t, self.thc)]
+            self._yu = [yi+ti*cos(thi) for yi, ti, thi in zip(self.yc, self.t,
+                                                              self.thc)]
         return self._yu
     @property
     def thu(self):
@@ -115,12 +118,14 @@ class PolyFoil():
     @property
     def xl(self):
         if self._xl is None:
-            self._xl = [xi+ti*sin(thi) for xi, ti, thi in zip(self.xc, self.t, self.thc)]
+            self._xl = [xi+ti*sin(thi) for xi, ti, thi in zip(self.xc, self.t,
+                                                              self.thc)]
         return self._xl
     @property
     def yl(self):
         if self._yl is None:
-            self._yl = [yi-ti*cos(thi) for yi, ti, thi in zip(self.yc, self.t, self.thc)]
+            self._yl = [yi-ti*cos(thi) for yi, ti, thi in zip(self.yc, self.t,
+                                                              self.thc)]
         return self._yl
     @property
     def thl(self):
@@ -208,7 +213,8 @@ def fit_func(xvals: array, tgt: array, coeff: array, na: int=0):
     g = yc + multiply(to2, costhc)
     return hstack((f, g))-tgt
 
-def polyfoil_from_xy(name: str, x: List[float], y: List[float], na: int=None, nb: int=None):
+def polyfoil_from_xy(name: str, x: List[float], y: List[float],
+                     na: int=None, nb: int=None):
     num = len(x)
     area = 0.0
     for i in range(num):

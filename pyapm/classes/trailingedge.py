@@ -1,7 +1,7 @@
 from math import pi
 from numpy.matlib import matrix, ones, zeros, absolute, divide, multiply, arctan, square
 from pygeom.geom3d import Vector, Coordinate
-from pygeom.matrix3d import MatrixVector, elementwise_divide
+from pygeom.matrix3d.matrixvector import MatrixVector, elementwise_divide
 from .boundedge import phi_doublet_matrix
 
 tol = 1e-12
@@ -56,25 +56,28 @@ class TrailingEdge(object):
     @property
     def crd(self):
         if self._crd is None:
-            self._crd = Coordinate(self.pntc, self.dirx, self.diry, self.dirz)
+            self._crd = Coordinate(self.pntc, self.dirx, self.diry)
         return self._crd
     @property
     def pntol(self):
         if self._pntol is None:
             vec = self.pnto-self.pntc
-            self._pntol = Vector(vec.dot(self.dirx), vec.dot(self.diry), vec.dot(self.dirz))
+            self._pntol = Vector(vec.dot(self.dirx), vec.dot(self.diry),
+                                 vec.dot(self.dirz))
         return self._pntol
     @property
     def grdol(self):
         if self._grdol is None:
             vec = self.grdo-self.pntc
-            self._grdol = Vector(vec.dot(self.dirx), vec.dot(self.diry), vec.dot(self.dirz))
+            self._grdol = Vector(vec.dot(self.dirx), vec.dot(self.diry),
+                                 vec.dot(self.dirz))
         return self._grdol
     def points_to_local(self, pnts: MatrixVector, betx: float=1.0):
         vecs = pnts-self.pntc
         if betx != 1.0:
             vecs.x = vecs.x/betx
-        return MatrixVector(vecs.dot(self.dirx), vecs.dot(self.diry), vecs.dot(self.dirz))
+        return MatrixVector(vecs.dot(self.dirx), vecs.dot(self.diry),
+                            vecs.dot(self.dirz))
     def vectors_to_global(self, vecs: MatrixVector):
         dirx = Vector(self.dirx.x, self.diry.x, self.dirz.x)
         diry = Vector(self.dirx.y, self.diry.y, self.dirz.y)

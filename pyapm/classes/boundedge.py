@@ -98,7 +98,7 @@ class BoundEdge(object):
     @property
     def crd(self):
         if self._crd is None:
-            self._crd = Coordinate(self.pntc, self.dirx, self.diry, self.dirz)
+            self._crd = Coordinate(self.pntc, self.dirx, self.diry)
         return self._crd
     @property
     def pntol(self):
@@ -163,9 +163,11 @@ class BoundEdge(object):
         else:
             return phids
     def doublet_influence_coefficients(self, pnts: MatrixVector,
-                                       sgnz: matrix=None, factor: bool=True, betx: float=1.0):
+                                       sgnz: matrix=None, factor: bool=True,
+                                       betx: float=1.0):
         phid, _, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True,
-                                                                   sgnz=sgnz, factor=False,
+                                                                   sgnz=sgnz,
+                                                                   factor=False,
                                                                    betx=betx)
         veldl = vel_doublet_matrix(av, am, bv, bm)
         veld = self.vectors_to_global(veldl)
@@ -175,7 +177,8 @@ class BoundEdge(object):
     def velocity_potentials(self, pnts: MatrixVector,
                             sgnz: matrix=None, factor: bool=True, betx: float=1.0):
         phid, rl, _, am, _, bm = self.doublet_velocity_potentials(pnts, extraout=True,
-                                                                  sgnz=sgnz, factor=False,
+                                                                  sgnz=sgnz,
+                                                                  factor=False,
                                                                   betx=betx)
         phis, _ = phi_source_matrix(am, bm, self.lenab, rl, phid)
         if factor:
@@ -184,7 +187,8 @@ class BoundEdge(object):
     def influence_coefficients(self, pnts: MatrixVector,
                                sgnz: matrix=None, factor: bool=True, betx: float=1.0):
         phid, rl, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True,
-                                                                    sgnz=sgnz, factor=False,
+                                                                    sgnz=sgnz,
+                                                                    factor=False,
                                                                     betx=betx)
         phis, Qab = phi_source_matrix(am, bm, self.lenab, rl, phid)
         velsl = vel_source_matrix(Qab, rl, phid)

@@ -2,8 +2,8 @@
     "name": "Test Straight",
     "mach": 0.0,
     "sref": 5.0,
-    "cref": 0.5,
-    "bref": 10.0,
+    "cref": 1.0,
+    "bref": 5.0,
     "xref": 0.125,
     "yref": 0.0,
     "zref": 0.0,
@@ -19,7 +19,7 @@
                     "xpos": 0.0,
                     "ypos": 0.0,
                     "zpos": 0.0,
-                    "chord": 0.5,
+                    "chord": 1.0,
                     "twist": 0.0,
                     "bnum": 50,
                     "bspc": "semi-cosine",
@@ -27,9 +27,9 @@
                 },
                 {
                     "xpos": 0.0,
-                    "ypos": 5.0,
+                    "ypos": 2.5,
                     "zpos": 0.0,
-                    "chord": 0.5,
+                    "chord": 1.0,
                     "twist": 0.0,
                     "airfoil": "NACA 0012"
                 }
@@ -39,7 +39,7 @@
     "cases": [
         {
             "name": "Test Alpha",
-            "alpha": 3.0,
+            "alpha": 10.0,
             "outputs": [
                 "stability derivatives",
                 "stability derivatives body"
