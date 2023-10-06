@@ -23,7 +23,7 @@ from .panelsurface import PanelSurface, panelsurface_from_json
 from .paneltrim import paneltrim_from_dict
 
 
-class PanelSystem(object):
+class PanelSystem():
     name: str = None
     grds: Dict[int, Grid] = None
     pnls: Dict[int, Panel] = None
@@ -73,6 +73,7 @@ class PanelSystem(object):
     _area: float = None
     _strps: List[object] = None
     _phind: Dict[int, List[int]] = None
+
     def __init__(self, name: str, bref: float, cref: float, sref: float, rref: Vector):
         self.name = name
         self.bref = bref
@@ -81,23 +82,28 @@ class PanelSystem(object):
         self.rref = rref
         self.ctrls = {}
         self.results = {}
+
     def set_mesh(self, grds: Dict[int, Grid], pnls: Dict[int, Panel]):
         self.grds = grds
         self.pnls = pnls
         self.update()
+
     def set_geom(self, srfcs: List[PanelSurface]=None):
         self.srfcs = srfcs
         self.mesh()
         self.update()
+
     def update(self):
         for ind, grd in enumerate(self.grds.values()):
             grd.set_index(ind)
         for ind, pnl in enumerate(self.pnls.values()):
             pnl.set_index(ind)
+
     def reset(self):
         for attr in self.__dict__:
             if attr[0] == '_':
                 self.__dict__[attr] = None
+
     def set_horseshoes(self, diro: Vector):
         for pnl in self.pnls.values():
             pnl.set_horseshoes(diro)
@@ -117,11 +123,13 @@ class PanelSystem(object):
         self._ash = None
         self._alh = None
         self._phind = None
+
     @property
     def ar(self):
         if self._ar is None:
             self._ar = self.bref**2/self.sref
         return self._ar
+
     @property
     def area(self):
         if self._area is None:
@@ -129,26 +137,31 @@ class PanelSystem(object):
             for pnl in self.pnls.values():
                 self._area += pnl.area
         return self._area
+
     @property
     def numgrd(self):
         if self._numgrd is None:
             self._numgrd = len(self.grds)
         return self._numgrd
+
     @property
     def numpnl(self):
         if self._numpnl is None:
             self._numpnl = len(self.pnls)
         return self._numpnl
+
     @property
     def numhsv(self):
         if self._numhsv is None:
             self._numhsv = len(self.hsvs)
         return self._numhsv
+
     @property
     def numctrl(self):
         if self._numctrl is None:
             self._numctrl = len(self.ctrls)
         return self._numctrl
+
     @property
     def pnts(self):
         if self._pnts is None:
@@ -156,11 +169,13 @@ class PanelSystem(object):
             for pnl in self.pnls.values():
                 self._pnts[pnl.ind, 0] = pnl.pnto
         return self._pnts
+
     @property
     def rrel(self):
         if self._rrel is None:
             self._rrel = self.pnts-self.rref
         return self._rrel
+
     @property
     def nrms(self):
         if self._nrms is None:
@@ -168,6 +183,7 @@ class PanelSystem(object):
             for pnl in self.pnls.values():
                 self._nrms[pnl.ind, 0] = pnl.nrm
         return self._nrms
+
     @property
     def pnla(self):
         if self._pnla is None:
@@ -175,6 +191,7 @@ class PanelSystem(object):
             for pnl in self.pnls.values():
                 self._pnla[pnl.ind, 0] = pnl.area
         return self._pnla
+
     @property
     def hsvs(self):
         if self._hsvs is None:
@@ -182,6 +199,7 @@ class PanelSystem(object):
             for pnl in self.pnls.values():
                 self._hsvs = self._hsvs + pnl.hsvs
         return self._hsvs
+
     @property
     def phind(self):
         if self._phind is None:
@@ -193,54 +211,63 @@ class PanelSystem(object):
                 else:
                     self._phind[pind] = [i]
         return self._phind
+
     def bps(self, mach: float=0.0):
         if self._bps is None:
             self._bps = {}
         if mach not in self._bps:
             self._bps[mach] = -1.0*self.aps(mach)*self.unsig(mach)
         return self._bps[mach]
+
     def bnm(self, mach: float=0.0):
         if self._bnm is None:
             self._bnm = {}
         if mach not in self._bnm:
             self._bnm[mach] = -self.nrms-self.ans(mach)*self.unsig(mach)
         return self._bnm[mach]
+
     def apd(self, mach: float=0.0):
         if self._apd is None:
             self._apd = {}
         if mach not in self._apd:
             self.assemble_panels(False, mach=mach)
         return self._apd[mach]
+
     def avd(self, mach: float=0.0):
         if self._avd is None:
             self._avd = {}
         if mach not in self._avd:
             self.assemble_panels_full(False, mach=mach)
         return self._avd[mach]
+
     def aps(self, mach: float=0.0):
         if self._aps is None:
             self._aps = {}
         if mach not in self._aps:
             self.assemble_panels(False, mach=mach)
         return self._aps[mach]
+
     def avs(self, mach: float=0.0):
         if self._avs is None:
             self._avs = {}
         if mach not in self._avs:
             self.assemble_panels_full(False, mach=mach)
         return self._avs[mach]
+
     def aph(self, mach: float=0.0):
         if self._aph is None:
             self._aph = {}
         if mach not in self._aph:
             self.assemble_horseshoes(False, mach=mach)
         return self._aph[mach]
+
     def avh(self, mach: float=0.0):
         if self._avh is None:
             self._avh = {}
         if mach not in self._avh:
             self.assemble_horseshoes_full(False, mach=mach)
         return self._avh[mach]
+
     def apm(self, mach: float=0.0):
         if self._apm is None:
             self._apm = {}
@@ -252,6 +279,7 @@ class PanelSystem(object):
                 apm[:, ind] = apm[:, ind] + aph[:, i]
             self._apm[mach] = apm
         return self._apm[mach]
+
     def avm(self, mach: float=0.0):
         if self._avm is None:
             self._avm = {}
@@ -263,6 +291,7 @@ class PanelSystem(object):
                 avm[:, ind] = avm[:, ind] + avh[:, i]
             self._avm[mach] = avm
         return self._avm[mach]
+
     def ans(self, mach: float=0.0):
         if self._ans is None:
             self._ans = {}
@@ -270,6 +299,7 @@ class PanelSystem(object):
             nrms = self.nrms.repeat(self.numpnl, axis=1)
             self._ans[mach] = elementwise_dot_product(nrms, self.avs(mach))
         return self._ans[mach]
+
     def anm(self, mach: float=0.0):
         if self._anm is None:
             self._anm = {}
@@ -277,6 +307,7 @@ class PanelSystem(object):
             nrms = self.nrms.repeat(self.numpnl, axis=1)
             self._anm[mach] = elementwise_dot_product(nrms, self.avm(mach))
         return self._anm[mach]
+
     @property
     def hsvpnts(self):
         if self._hsvpnts is None:
@@ -284,6 +315,7 @@ class PanelSystem(object):
             for i, hsv in enumerate(self.hsvs):
                 self._hsvpnts[i, 0] = hsv.pnto
         return self._hsvpnts
+
     @property
     def hsvnrms(self):
         if self._hsvnrms is None:
@@ -291,6 +323,7 @@ class PanelSystem(object):
             for i, hsv in enumerate(self.hsvs):
                 self._hsvnrms[i, 0] = hsv.nrm
         return self._hsvnrms
+
     @property
     def strps(self):
         if self._strps is None:
@@ -303,6 +336,7 @@ class PanelSystem(object):
                         self._strps.append(strp)
                         ind += 1
         return self._strps
+
     def assemble_panels_wash(self, time: bool=True):
         if time:
             start = perf_counter()
@@ -318,6 +352,7 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'Wash matrix assembly time is {elapsed:.3f} seconds.')
+
     def assemble_horseshoes_wash(self, time: bool=True):
         if time:
             start = perf_counter()
@@ -330,6 +365,7 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
+
     # def assemble_horseshoes_wash_v2(self, time: bool=True):
     #     if time:
     #         start = perf_counter()
@@ -348,21 +384,25 @@ class PanelSystem(object):
     #         finish = perf_counter()
     #         elapsed = finish - start
     #         print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
+
     @property
     def awh(self):
         if self._awh is None:
             self.assemble_horseshoes_wash(time=False)
         return self._awh
+
     @property
     def awd(self):
         if self._awd is None:
             self.assemble_panels_wash(time=False)
         return self._awd
+
     @property
     def aws(self):
         if self._aws is None:
             self.assemble_panels_wash(time=False)
         return self._aws
+
     @property
     def adh(self):
         if self._adh is None:
@@ -370,6 +410,7 @@ class PanelSystem(object):
             for i, hsv in enumerate(self.hsvs):
                 self._adh[:, i] = -self._awh[:, i]*hsv.width
         return self._adh
+
     @property
     def ash(self):
         if self._ash is None:
@@ -377,6 +418,7 @@ class PanelSystem(object):
             for i, hsv in enumerate(self.hsvs):
                 self._ash[i, 0] = -hsv.vecab.z
         return self._ash
+
     @property
     def alh(self):
         if self._alh is None:
@@ -384,6 +426,7 @@ class PanelSystem(object):
             for i, hsv in enumerate(self.hsvs):
                 self._alh[i, 0] = hsv.vecab.y
         return self._alh
+
     def unsig(self, mach: float=0.0):
         if self._unsig is None:
             self._unsig = {}
@@ -408,18 +451,21 @@ class PanelSystem(object):
                                 unsig[ind, ctup[3]] = -rrel.cross(dndln)
             self._unsig[mach] = unsig
         return self._unsig[mach]
+
     def unmu(self, mach: float=0.0):
         if self._unmu is None:
             self._unmu = {}
         if mach not in self._unmu:
             self.solve_dirichlet_system(time=False, mach=mach)
         return self._unmu[mach]
+
     def unphi(self, mach: float=0.0):
         if self._unphi is None:
             self._unphi = {}
         if mach not in self._unphi:
             self.solve_dirichlet_system(time=False, mach=mach)
         return self._unphi[mach]
+
     def assemble_panels(self, time: bool=True, mach=0.0):
         if time:
             start = perf_counter()
@@ -440,6 +486,7 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'Panel assembly time is {elapsed:.3f} seconds.')
+
     def assemble_panels_full(self, time: bool=True, mach: float=0.0):
         if time:
             start = perf_counter()
@@ -468,6 +515,7 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'Full panel assembly time is {elapsed:.3f} seconds.')
+
     def assemble_horseshoes(self, time: bool=True, mach: float=0.0):
         if time:
             start = perf_counter()
@@ -483,6 +531,7 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'Horse shoe assembly time is {elapsed:.3f} seconds.')
+
     def assemble_horseshoes_full(self, time: bool=True, mach: float=0.0):
         if time:
             start = perf_counter()
@@ -502,6 +551,7 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'Full horse shoe assembly time is {elapsed:.3f} seconds.')
+
     def solve_system(self, time: bool=True, mach: float=0.0):
         if time:
             start = perf_counter()
@@ -510,6 +560,7 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'System solution time is {elapsed:.3f} seconds.')
+
     def solve_dirichlet_system(self, time: bool=True, mach: float=0.0):
         if time:
             start = perf_counter()
@@ -523,6 +574,7 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'System solution time is {elapsed:.3f} seconds.')
+
     def solve_neumann_system(self, time: bool=True, mach: float=0.0):
         if time:
             start = perf_counter()
@@ -536,6 +588,7 @@ class PanelSystem(object):
             finish = perf_counter()
             elapsed = finish - start
             print(f'System solution time is {elapsed:.3f} seconds.')
+
     def plot_twist_distribution(self, ax=None, axis: str='b', surfaces: list=None):
         if self.srfcs is not None:
             if ax is None:
@@ -566,6 +619,7 @@ class PanelSystem(object):
                         ax.plot(z, t, label=label)
             ax.legend()
         return ax
+
     def plot_chord_distribution(self, ax=None, axis: str='b', surfaces: list=None):
         if self.srfcs is not None:
             if ax is None:
@@ -596,6 +650,7 @@ class PanelSystem(object):
                         ax.plot(z, c, label=label)
             ax.legend()
         return ax
+
     def plot_tilt_distribution(self, ax=None, axis: str='b', surfaces: list=None):
         if self.srfcs is not None:
             if ax is None:
@@ -626,6 +681,7 @@ class PanelSystem(object):
                         ax.plot(z, t, label=label)
             ax.legend()
         return ax
+
     def plot_strip_width_distribution(self, ax=None, axis: str='b', surfaces: list=None):
         if self.srfcs is not None:
             if ax is None:
@@ -656,6 +712,7 @@ class PanelSystem(object):
                         ax.plot(z, w, label=label)
             ax.legend()
         return ax
+
     def mesh(self):
         if self.srfcs is not None:
             gid, pid = 1, 1
@@ -675,8 +732,10 @@ class PanelSystem(object):
                         if control not in self.ctrls:
                             self.ctrls[control] = (ind, ind+1, ind+2, ind+3)
                             ind += 4
+
     def __repr__(self):
         return '<PanelSystem: {:s}>'.format(self.name)
+
     def __str__(self):
         outstr = '# Panel System '+self.name+'\n'
         table = MDTable()
@@ -708,6 +767,7 @@ class PanelSystem(object):
         if len(table.columns) > 0:
             outstr += table._repr_markdown_()
         return outstr
+
     def _repr_markdown_(self):
         return self.__str__()
 

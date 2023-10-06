@@ -10,7 +10,7 @@ from .panelstrip import PanelStrip
 from .panelprofile import PanelProfile
 from ..tools.airfoil import airfoil_interpolation
 
-class PanelSurface(object):
+class PanelSurface():
     name: str = None
     point: Vector = None
     twist: float = None
@@ -27,6 +27,7 @@ class PanelSurface(object):
     _area: float = None
     grds: List[Grid] = None
     pnls: List[Panel] = None
+
     def __init__(self, name: str, point: Vector, twist: float, mirror: bool,
                  scts: List[PanelSection], fncs: List[PanelFunction], close: bool):
         self.name = name
@@ -37,6 +38,7 @@ class PanelSurface(object):
         self.fncs = fncs
         self.close = close
         self.update()
+
     def update(self):
         bval = 0.0
         for i in range(len(self.scts)):
@@ -63,10 +65,12 @@ class PanelSurface(object):
             scts = [sct.mirror_section_in_y(ymir=ymir) for sct in self.scts]
             scts.reverse()
             self.scts = scts[:-1] + self.scts
+
     def set_chord_spacing(self, cnum: int):
         self.cnum = cnum
         for sct in self.scts:
             sct.set_cnum(self.cnum)
+
     @property
     def shts(self):
         if self._shts is None:
@@ -75,6 +79,7 @@ class PanelSurface(object):
                 self._shts.append(PanelSheet(self.scts[i], self.scts[i+1]))
                 self._shts[i].fncs = self.fncs
         return self._shts
+
     @property
     def strps(self):
         if self._strps is None:
@@ -82,6 +87,7 @@ class PanelSurface(object):
             for sht in self.shts:
                 self._strps += sht.strps
         return self._strps
+
     @property
     def prfs(self):
         if self._prfs is None:
@@ -93,24 +99,31 @@ class PanelSurface(object):
                 self._prfs += sht.prfs
             self._prfs.append(sctb)
         return self._prfs
+
     @property
     def strpb(self):
         return [strp.bpos for strp in self.strps]
+
     @property
     def strpy(self):
         return [strp.ypos for strp in self.strps]
+
     @property
     def strpz(self):
         return [strp.zpos for strp in self.strps]
+
     @property
     def prfb(self):
         return [prf.bpos for prf in self.prfs]
+
     @property
     def prfy(self):
         return [prf.point.y for prf in self.prfs]
+
     @property
     def prfz(self):
         return [prf.point.z for prf in self.prfs]
+
     @property
     def area(self):
         if self._area is None:
@@ -118,6 +131,7 @@ class PanelSurface(object):
             for sht in self.shts:
                 self._area += sht.area
         return self._area
+
     def mesh_grids(self, gid: int):
         self.grds = []
         for sht in self.shts:
@@ -130,6 +144,7 @@ class PanelSurface(object):
         gid = sctb.mesh_grids(gid)
         self.grds += sctb.grds
         return gid
+
     def mesh_panels(self, pid: int):
         self.pnls = []
         for sht in self.shts:
@@ -145,12 +160,14 @@ class PanelSurface(object):
                     pnl.srfc = self
                     self.pnls.append(pnl)
         return pid
+
     @property
     def pinds(self):
         pinds = []
         for pnl in self.pnls:
             pinds.append(pnl.ind)
         return pinds
+
     def __repr__(self):
         return f'<PanelSurface: {self.name:s}>'
 

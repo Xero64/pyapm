@@ -30,7 +30,7 @@ piby2 = pi/2
 twoPi = 2*pi
 fourPi = 4*pi
 
-class DirichletPoly(object):
+class DirichletPoly():
     grds: List[Vector] = None
     _num: int = None
     _pnto: Vector = None
@@ -44,18 +44,22 @@ class DirichletPoly(object):
     _diryab: MatrixVector = None
     _dirzab: MatrixVector = None
     _baryinv: List[matrix] = None
+
     def __init__(self, grds: List[Vector]):
         self.grds = grds
+
     @property
     def num(self):
         if self._num is None:
             self._num = len(self.grds)
         return self._num
+
     @property
     def pnto(self) -> Vector:
         if self._pnto is None:
             self._pnto = sum(self.grds, start=Vector(0.0, 0.0, 0.0))/self.num
         return self._pnto
+
     @property
     def grdr(self):
         if self._grdr is None:
@@ -63,12 +67,14 @@ class DirichletPoly(object):
             for i in range(self.num):
                 self._grdr[0, i] = self.grds[i] - self.pnto
         return self._grdr
+
     def mach_grids(self, betx: float=1.0, bety: float=1.0, betz: float=1.0):
         grdm = self.grdr.copy()
         grdm.x = grdm.x/betx
         grdm.y = grdm.y/bety
         grdm.z = grdm.z/betz
         return grdm
+
     def edge_cross(self, grds: MatrixVector):
         vecaxb = zero_matrix_vector((1, self.num), dtype=float)
         for i in range(self.num):
@@ -76,6 +82,7 @@ class DirichletPoly(object):
             vecb = grds[0, i]
             vecaxb[0, i] = veca.cross(vecb)
         return vecaxb
+
     def edge_vector(self, grds: MatrixVector):
         vecab = zero_matrix_vector((1, self.num), dtype=float)
         for i in range(self.num):
@@ -83,46 +90,55 @@ class DirichletPoly(object):
             vecb = grds[0, i]
             vecab[0, i] = vecb - veca
         return vecab
+
     @property
     def vecab(self):
         if self._vecab is None:
             self._vecab = self.edge_vector(self.grdr)
         return self._vecab
+
     @property
     def vecaxb(self):
         if self._vecaxb is None:
             self._vecaxb = self.edge_cross(self.grdr)
         return self._vecaxb
+
     @property
     def sumaxb(self):
         if self._sumaxb is None:
             self._sumaxb = self.vecaxb.sum()
         return self._sumaxb
+
     @property
     def area(self):
         if self._area is None:
             self._area = self.sumaxb.return_magnitude()/2
         return self._area
+
     @property
     def nrm(self):
         if self._nrm is None:
             self._nrm = self.sumaxb.to_unit()
         return self._nrm
+
     @property
     def dirxab(self):
         if self._dirxab is None:
             self._dirxab = self.vecab.to_unit()
         return self._dirxab
+
     @property
     def diryab(self):
         if self._diryab is None:
             self._diryab = elementwise_cross_product(self.dirzab, self.dirxab)
         return self._diryab
+
     @property
     def dirzab(self):
         if self._dirzab is None:
             self._dirzab = self.vecaxb.to_unit()
         return self._dirzab
+
     @property
     def baryinv(self):
         if self._baryinv is None:
@@ -143,6 +159,7 @@ class DirichletPoly(object):
                 amat[2, 2] = grdbl.y
                 self._baryinv.append(inv(amat))
         return self._baryinv
+
     def relative_mach(self, pnts: MatrixVector, pnt: Vector,
                       betx: float=1.0, bety: float=1.0, betz: float=1.0):
         vecs = pnts-pnt
@@ -150,6 +167,7 @@ class DirichletPoly(object):
         vecs.y = vecs.y/bety
         vecs.z = vecs.z/betz
         return vecs
+
     def influence_coefficients(self, pnts: MatrixVector, incvel: bool=True,
                                betx: float=1.0, bety: float=1.0, betz: float=1.0,
                                checktol: bool=False):
@@ -225,6 +243,7 @@ class DirichletPoly(object):
         else:
             output = phid, phis
         return output
+
     def velocity_potentials(self, pnts: MatrixVector,
                             betx: float=1.0, bety: float=1.0, betz: float=1.0):
         phi = self.influence_coefficients(pnts, incvel=False,

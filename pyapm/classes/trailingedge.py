@@ -9,7 +9,7 @@ piby2 = pi/2
 fourPi = 4*pi
 twoPi = 2*pi
 
-class TrailingEdge(object):
+class TrailingEdge():
     pnto: Vector = None
     grdo: Vector = None
     diro: Vector = None
@@ -22,37 +22,44 @@ class TrailingEdge(object):
     _crd: Coordinate = None
     _pntol: Vector = None
     _grdol: Vector = None
+
     def __init__(self, pnto: Vector, grdo: Vector, diro: Vector, faco: float):
         self.pnto = pnto
         self.grdo = grdo
         self.diro = diro.to_unit()
         self.faco = faco/abs(faco)
+
     @property
     def veco(self):
         if self._veco is None:
             self._veco = self.pnto - self.grdo
         return self._veco
+
     @property
     def dirx(self):
         if self._dirx is None:
             self._dirx = self.faco*self.diro
         return self._dirx
+
     @property
     def dirz(self):
         if self._dirz is None:
             self._dirz = self.dirx.cross(self.veco).to_unit()
         return self._dirz
+
     @property
     def diry(self):
         if self._diry is None:
             self._diry = self.dirz.cross(self.dirx).to_unit()
         return self._diry
+
     @property
     def pntc(self):
         if self._pntc is None:
             lenx = self.veco.dot(self.dirx)
             self._pntc = self.grdo + lenx*self.dirx
         return self._pntc
+
     @property
     def crd(self):
         if self._crd is None:
@@ -65,6 +72,7 @@ class TrailingEdge(object):
             self._pntol = Vector(vec.dot(self.dirx), vec.dot(self.diry),
                                  vec.dot(self.dirz))
         return self._pntol
+
     @property
     def grdol(self):
         if self._grdol is None:
@@ -72,17 +80,20 @@ class TrailingEdge(object):
             self._grdol = Vector(vec.dot(self.dirx), vec.dot(self.diry),
                                  vec.dot(self.dirz))
         return self._grdol
+
     def points_to_local(self, pnts: MatrixVector, betx: float=1.0):
         vecs = pnts-self.pntc
         if betx != 1.0:
             vecs.x = vecs.x/betx
         return MatrixVector(vecs.dot(self.dirx), vecs.dot(self.diry),
                             vecs.dot(self.dirz))
+
     def vectors_to_global(self, vecs: MatrixVector):
         dirx = Vector(self.dirx.x, self.diry.x, self.dirz.x)
         diry = Vector(self.dirx.y, self.diry.y, self.dirz.y)
         dirz = Vector(self.dirx.z, self.diry.z, self.dirz.z)
         return MatrixVector(vecs.dot(dirx), vecs.dot(diry), vecs.dot(dirz))
+
     def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool=False,
                                     sgnz: matrix=None, factor: bool=True,
                                     betx: float=1.0):
@@ -107,6 +118,7 @@ class TrailingEdge(object):
         else:
             output = phid
         return output
+
     def doublet_influence_coefficients(self, pnts: MatrixVector,
                                        sgnz: matrix=None, factor: bool=True,
                                        betx: float=1.0):
@@ -132,6 +144,7 @@ class TrailingEdge(object):
         veldl.z[chkom2] = 0.0
         veld = self.vectors_to_global(veldl)*self.faco
         return veld/twoPi
+
     def __str__(self):
         outstr = ''
         outstr += f'pnto = {self.pnto}\n'

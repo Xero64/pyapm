@@ -5,7 +5,7 @@ from . import read_dat
 from .spacing import full_cosine_spacing, equal_spacing
 from typing import List
 
-class Airfoil(object):
+class Airfoil():
     name: str = None
     xin: List[float] = None
     yin: List[float] = None
@@ -31,6 +31,7 @@ class Airfoil(object):
     _yl: List[float] = None
     _xc: List[float] = None
     _yc: List[float] = None
+
     def __init__(self, name: str, xin: list, yin: list, cnum: int=80,
                  normalise: bool=False, shift: bool=False):
         self.name = name
@@ -40,44 +41,53 @@ class Airfoil(object):
         self.normalise = normalise
         self.shift = shift
         self.update(cnum)
+
     def update(self, cnum: int, cspc: str='full-cosine'):
         self.cnum = cnum
         self.cspc = cspc
         self.reset()
+
     def reset(self):
         for attr in self.__dict__:
             if attr[0] == '_':
                 self.__dict__[attr] = None
+
     @property
     def xte(self):
         if self._xte is None:
             self._xte = (self.xin[0]+self.xin[-1])/2
         return self._xte
+
     @property
     def yte(self):
         if self._yte is None:
             self._yte = (self.yin[0]+self.yin[-1])/2
         return self._yte
+
     @property
     def xle(self):
         if self._xle is None:
             self._xle = min(self.xin)
         return self._xle
+
     @property
     def ile(self):
         if self._ile is None:
             self._ile = self.xin.index(self.xle)
         return self._ile
+
     @property
     def yle(self):
         if self._yle is None:
             self._yle = self.yin[self.ile]
         return self._yle
+
     @property
     def chord(self):
         if self._chord is None:
             self._chord = self.xte - self.xle
         return self._chord
+
     @property
     def xsp(self):
         if self._xsp is None:
@@ -92,6 +102,7 @@ class Airfoil(object):
                 else:
                     self._xsp = [xi for xi in self.xin]
         return self._xsp
+
     @property
     def ysp(self):
         if self._ysp is None:
@@ -106,12 +117,14 @@ class Airfoil(object):
                 else:
                     self._ysp = [yi for yi in self.yin]
         return self._ysp
+
     @property
     def spline(self):
         if self._spline is None:
             pnts = [Point2D(xi, yi) for xi, yi in zip(self.xsp, self.ysp)]
             self._spline = CubicSpline2D(pnts)
         return self._spline
+
     @property
     def cdst(self):
         if self._cdst is None:
@@ -122,6 +135,7 @@ class Airfoil(object):
             else:
                 raise ValueError('Incorrect distribution on NACA4')
         return self._cdst
+
     def interpolate_spline(self):
         s = self.spline.arc_length()
         s0 = s[0]
@@ -144,46 +158,55 @@ class Airfoil(object):
             y.reverse()
         self._x = x
         self._y = y
+
     @property
     def x(self):
         if self._x is None:
             self.interpolate_spline()
         return self._x
+
     @property
     def y(self):
         if self._y is None:
             self.interpolate_spline()
         return self._y
+
     @property
     def xu(self):
         if self._xu is None:
             self._xu = self.x[-self.cnum-1:]
         return self._xu
+
     @property
     def yu(self):
         if self._yu is None:
             self._yu = self.y[-self.cnum-1:]
         return self._yu
+
     @property
     def xl(self):
         if self._xl is None:
             self._xl = [xi for xi in reversed(self.x[:self.cnum+1])]
         return self._xl
+
     @property
     def yl(self):
         if self._yl is None:
             self._yl = [yi for yi in reversed(self.y[:self.cnum+1])]
         return self._yl
+
     @property
     def xc(self):
         if self._xc is None:
             self._xc = [(xli+xui)/2 for xli, xui in zip(self.xl, self.xu)]
         return self._xc
+
     @property
     def yc(self):
         if self._yc is None:
             self._yc = [(yli+yui)/2 for yli, yui in zip(self.yl, self.yu)]
         return self._yc
+
     def plot(self, ax=None):
         if ax is None:
             fig = figure(figsize=(12, 8))

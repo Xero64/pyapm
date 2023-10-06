@@ -28,6 +28,7 @@ class PanelSection(PanelProfile):
     ctrls: Dict[str, PanelControl] = None
     _thkcor: float = None
     _scttyp: str = None
+
     def __init__(self, point: Vector, chord: float, twist: float, airfoil: object):
         super().__init__(point, chord, twist)
         self.point = point
@@ -43,6 +44,7 @@ class PanelSection(PanelProfile):
         self.xoc = 0.0
         self.zoc = 0.0
         self.ctrls = {}
+
     def mirror_section_in_y(self, ymir: float=0.0):
         point = Vector(self.point.x, ymir-self.point.y, self.point.z)
         chord = self.chord
@@ -63,17 +65,22 @@ class PanelSection(PanelProfile):
         if self.tilt is not None:
             sect.set_tilt(-self._tilt)
         return sect
+
     def set_cnum(self, cnum: int):
         self.cnum = cnum
         self.airfoil.update(self.cnum)
+
     def offset_position(self, xpos: float, ypos: float, zpos: float):
         self.point.x = self.point.x + xpos
         self.point.y = self.point.y + ypos
         self.point.z = self.point.z + zpos
+
     def offset_twist(self, twist: float):
-        self.twist = self.twist+twist
+        self.twist = self.twist + twist
+
     def add_control(self, ctrl: PanelControl):
         self.ctrls[ctrl.name] = ctrl
+
     @property
     def tilt(self):
         if self._tilt is None:
@@ -86,6 +93,7 @@ class PanelSection(PanelProfile):
             else:
                 self._tilt = (self.shta.tilt + self.shtb.tilt)/2
         return self._tilt
+
     @property
     def thkcor(self):
         if self._thkcor is None:
@@ -94,6 +102,7 @@ class PanelSection(PanelProfile):
                 halfdelta = (self.shtb.tilt - self.shta.tilt)/2
                 self._thkcor = 1.0/cos(radians(halfdelta))
         return self._thkcor
+
     @property
     def scttyp(self):
         if self._scttyp is None:
@@ -117,6 +126,7 @@ class PanelSection(PanelProfile):
                 else:
                     self._scttyp = 'notip'
         return self._scttyp
+
     def get_profile(self, offset: bool=True):
         num = self.cnum*2+1
         profile = zero_matrix_vector((1, num), dtype=float)
@@ -131,6 +141,7 @@ class PanelSection(PanelProfile):
             offvec = Vector(self.xoc, 0.0, self.zoc)
             profile = profile-offvec
         return profile
+
     def mesh_panels(self, pid: int):
         mesh = False
         reverse = False
@@ -170,6 +181,7 @@ class PanelSection(PanelProfile):
                 self.pnls.append(pnl)
                 pid += 1
         return pid
+
     def __repr__(self):
         return f'<pyapm.PanelSection at {self.point:}>'
 

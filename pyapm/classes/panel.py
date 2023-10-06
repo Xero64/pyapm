@@ -31,15 +31,19 @@ class Panel(DirichletPoly):
     _grdpnls: List[List[object]] = None
     _grdinds: List[List[int]] = None
     _grdfacs: List[List[float]] = None
+
     def __init__(self, pid: int, grds: List[Grid]):
         super().__init__(grds)
         self.pid = pid
         for grd in self.grds:
             grd.pnls.append(self)
+
     def set_index(self, ind: int):
         self.ind = ind
+
     def dndl(self, gain: float, hvec: Vector):
         return gain*hvec.cross(self.nrm)
+
     @property
     def noload(self):
         noload = False
@@ -50,6 +54,7 @@ class Panel(DirichletPoly):
         if self.grp is not None:
             noload = self.grp.noload
         return noload
+
     @property
     def nohsv(self):
         nohsv = False
@@ -60,6 +65,7 @@ class Panel(DirichletPoly):
         if self.grp is not None:
             nohsv = self.grp.nohsv
         return nohsv
+
     def set_horseshoes(self, diro: Vector):
         self._hsvs = []
         if not self.nohsv:
@@ -68,6 +74,7 @@ class Panel(DirichletPoly):
                 grdb = self.grds[i-1]
                 if grda.te and grdb.te:
                     self._hsvs.append(HorseshoeDoublet(grda, grdb, diro, self.ind))
+
     def check_panel(self, pnl):
         if pnl.grp is not None and self.grp is not None:
             grpchk = pnl.grp == self.grp
@@ -87,15 +94,18 @@ class Panel(DirichletPoly):
         else:
             typchk = False
         return grpchk, srfchk, typchk
+
     def check_angle(self, pnl):
         ang = angle_between_vectors(pnl.crd.dirz, self.crd.dirz)
         angchk = abs(ang) < angtol
         return angchk
+
     def check_edge(self, pnl, grda, grdb):
         edgchk = False
         if grda in pnl.grds and grdb in pnl.grds:
             edgchk = True
         return edgchk
+
     @property
     def crd(self) -> Coordinate:
         if self._crd is None:
@@ -109,11 +119,13 @@ class Panel(DirichletPoly):
             pntc = self.pnto
             self._crd = Coordinate(pntc, dirx, diry)
         return self._crd
+
     @property
     def hsvs(self):
         if self._hsvs is None:
             self.set_horseshoes(IHAT)
         return self._hsvs
+
     @property
     def area(self):
         if self.noload:
@@ -121,6 +133,7 @@ class Panel(DirichletPoly):
         else:
             area = super().area
         return area
+
     @property
     def grdlocs(self):
         if self._grdlocs is None:
@@ -128,6 +141,7 @@ class Panel(DirichletPoly):
             for grd in self.grds:
                 self._grdlocs.append(self.crd.point_to_local(grd))
         return self._grdlocs
+
     @property
     def edgpnls(self):
         if self._edgpnls is None:
@@ -157,6 +171,7 @@ class Panel(DirichletPoly):
                 elif len(self._edgpnls[i]) > 0:
                     self._edgpnls[i].append(self)
         return self._edgpnls
+
     @property
     def edginds(self):
         if self._edginds is None:
@@ -166,6 +181,7 @@ class Panel(DirichletPoly):
                 for pnl in self.edgpnls[i]:
                     self._edginds[i].append(pnl.ind)
         return self._edginds
+
     @property
     def edgpnts(self):
         if self._edgpnts is None:
@@ -192,6 +208,7 @@ class Panel(DirichletPoly):
                 else:
                     self._edgpnts.append((grda + grdb)/2)
         return self._edgpnts
+
     @property
     def edgdist(self):
         if self._edgdist is None:
@@ -201,6 +218,7 @@ class Panel(DirichletPoly):
                 for pnl in self.edgpnls[i]:
                     self._edgdist[i].append((pnt-pnl.pnto).return_magnitude())
         return self._edgdist
+
     @property
     def edgfacs(self):
         if self._edgfacs is None:
@@ -216,6 +234,7 @@ class Panel(DirichletPoly):
                 else:
                     ValueError(f'Too many panels associated to edge {i:d} of panel {self.pid:d}.')
         return self._edgfacs
+
     def edge_mu(self, mu: matrix):
         edgmu = []
         for i in range(self.num):
@@ -226,11 +245,13 @@ class Panel(DirichletPoly):
                 for ind, fac in zip(self.edginds[i], self.edgfacs[i]):
                     edgmu[i] += mu[ind, 0]*fac
         return edgmu
+
     @property
     def edgpntl(self):
         if self._edgpntl is None:
             self._edgpntl = [self.crd.point_to_local(pnt) for pnt in self.edgpnts]
         return self._edgpntl
+
     def diff_mu(self, mu: matrix):
         pnlmu = mu[self.ind, 0]
         edgmu = self.edge_mu(mu)
@@ -296,6 +317,7 @@ class Panel(DirichletPoly):
         qx = -qxJs/Js
         qy = -qyJs/Js
         return qx, qy
+
     @property
     def grdpnls(self):
         if self._grdpnls is None:
@@ -316,6 +338,7 @@ class Panel(DirichletPoly):
                         else:
                             self._grdpnls[i].append(pnl)
         return self._grdpnls
+
     @property
     def grdinds(self):
         if self._grdinds is None:
@@ -325,6 +348,7 @@ class Panel(DirichletPoly):
                 for pnl in self.grdpnls[i]:
                     self._grdinds[i].append(pnl.ind)
         return self._grdinds
+
     @property
     def grdfacs(self):
         if self._grdfacs is None:
@@ -335,6 +359,7 @@ class Panel(DirichletPoly):
                 suminvd = sum(pnlinvd)
                 self._grdfacs.append([invd/suminvd for invd in pnlinvd])
         return self._grdfacs
+
     def grid_res(self, pnlres: matrix):
         grdres = []
         for i in range(self.num):
@@ -342,6 +367,7 @@ class Panel(DirichletPoly):
             for ind, fac in zip(self.grdinds[i], self.grdfacs[i]):
                 grdres[i] += pnlres[ind, 0]*fac
         return grdres
+
     def within_and_absz_ttol(self, pnts: MatrixVector, ttol: float=0.1):
         shp = pnts.shape
         pnts = pnts.reshape((-1, 1))
@@ -365,6 +391,7 @@ class Panel(DirichletPoly):
         wint = wint.reshape(shp)
         absz = absz.reshape(shp)
         return wint, absz
+
     def point_res(self, pnlres: matrix, pnt: Vector, ttol: float=0.1):
         vecg = pnt - self.pnto
         gres = self.grid_res(pnlres)
@@ -385,6 +412,7 @@ class Panel(DirichletPoly):
                 r = ro*to + ra*ta + rb*tb
                 break
         return r
+
     def __repr__(self):
         return f'<pyapm.Panel {self.pid:d}>'
 

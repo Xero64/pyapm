@@ -1,6 +1,6 @@
 from pygeom.geom3d import Vector
 
-class PanelControl(object):
+class PanelControl():
     name = None
     posgain = None
     neggain = None
@@ -8,17 +8,20 @@ class PanelControl(object):
     uhvec = None
     reverse = None
     pnls = None
+
     def __init__(self, name: str, posgain: float, neggain: float, xhinge: float):
         self.name = name
         self.posgain = posgain
         self.neggain = neggain
         self.xhinge = xhinge
         self.pnls = []
+
     def set_hinge_vector(self, hvec: Vector):
         if hvec.return_magnitude() != 0.0:
             self.uhvec = hvec.to_unit()
         else:
             self.uhvec = hvec
+
     def duplicate(self, mirror=True):
         if mirror and self.reverse:
             posgain, neggain = -self.neggain, -self.posgain
@@ -32,6 +35,7 @@ class PanelControl(object):
         ctrl.reverse = False
         ctrl.set_hinge_vector(uhvec)
         return ctrl
+
     def add_panel(self, pnl):
         self.pnls.append(pnl)
 

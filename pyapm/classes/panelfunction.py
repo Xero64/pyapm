@@ -2,16 +2,18 @@ from pygeom.geom1d.linearspline import LinearSpline
 from pygeom.geom1d.cubicspline import CubicSpline
 from ..tools import equal_spacing
 
-class PanelFunction(object):
+class PanelFunction():
     var = None
     interp = None
     values = None
     spline = None
+
     def __init__(self, var: str, spacing: str, interp: str, values: list):
         self.var = var
         self.spacing = spacing
         self.interp = interp
         self.values = values
+
     def set_spline(self, bmax: float):
         if self.spacing == 'equal':
             num = len(self.values)
@@ -21,6 +23,7 @@ class PanelFunction(object):
             self.spline = LinearSpline(spc, self.values)
         elif self.interp == 'cubic':
             self.spline = CubicSpline(spc, self.values)
+
     def interpolate(self, b: float):
         return self.spline.single_interpolate_spline(b)
 

@@ -12,6 +12,7 @@ class RigidBody():
     _rrel: List[Vector] = None
     _amat: matrix = None
     _ainv: matrix = None
+
     def __init__(self, pnt: Vector, pnts: List[Vector], ks: List[Vector], gs: List[Vector]):
         self.pnt = pnt
         self.pnts = []
@@ -21,16 +22,19 @@ class RigidBody():
             self.pnts.append(pnti)
             self.ks.append(ki)
             self.gs.append(gi)
+
     @property
     def numpnt(self):
         if self._numpnt is None:
             self._numpnt = len(self.pnts)
         return self._numpnt
+
     @property
     def rrel(self):
         if self._rrel is None:
             self._rrel = [pnti - self.pnt for pnti in self.pnts]
         return self._rrel
+
     @property
     def amat(self):
         if self._amat is None:
@@ -79,6 +83,7 @@ class RigidBody():
                 self._amat[5, 4] -= ri.y * ri.z * ki.x
                 self._amat[5, 5] += gi.z + rix2 * ki.y + riy2 * ki.x
         return self._amat
+
     @property
     def ainv(self):
         if self._ainv is None:
@@ -87,6 +92,7 @@ class RigidBody():
             else:
                 self._ainv = zeros((6, 6), dtype=float)
         return self._ainv
+
     def return_reactions(self, frc: Vector, mom: Vector):
         pmat = zeros((6, 1), dtype=float)
         pmat[0, 0] = frc.x
@@ -101,7 +107,7 @@ class RigidBody():
         frcs = []
         moms = []
         for ki, gi, ri in zip(self.ks, self.gs, self.rrel):
-            ui = utl-ri**url
+            ui = utl - ri.cross(url)
             frcs.append(-Vector(ki.x*ui.x, ki.y*ui.y, ki.z*ui.z))
             moms.append(-Vector(gi.x*url.x, gi.y*url.y, gi.z*url.z))
         return frcs, moms

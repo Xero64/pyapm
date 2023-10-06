@@ -21,9 +21,11 @@ class PanelTrim(PanelResult):
     # trmfrc = None
     # trmmom = None
     # trmlft = None
+
     def __init__(self, name: str, sys: object):
         super().__init__(name, sys)
         # self.set_trim_loads()
+
     def set_targets(self, CLt: float=0.0, CYt: float=0.0,
                     Clt: float=0.0, Cmt: float=0.0, Cnt: float=0.0):
         self.CLt = CLt
@@ -34,6 +36,7 @@ class PanelTrim(PanelResult):
         self._tgtlst = None
         self._numtgt = None
         self._trmmom = None
+
     def set_initial_state(self, initstate: Dict['str', 'float']):
         self.initstate = initstate
         # if 'alpha' not in self.initstate:
@@ -41,9 +44,11 @@ class PanelTrim(PanelResult):
         # if 'beta' not in self.initstate:
         #     self.initstate['beta'] = 0.0
         self.set_state(**self.initstate)
+
     def set_initial_controls(self, initctrls: Dict['str', 'float']):
         self.initctrls = initctrls
         self.set_controls(**self.initctrls)
+
     @property
     def tgtlst(self):
         if self._tgtlst is None:
@@ -59,6 +64,7 @@ class PanelTrim(PanelResult):
             if self.Cnt is not None:
                 self._tgtlst.append('Cn')
         return self._tgtlst
+
     @property
     def trmmom(self):
         if self._trmmom is None:
@@ -70,14 +76,17 @@ class PanelTrim(PanelResult):
             elif 'Cn' in self.tgtlst:
                 self._trmmom = True
         return self._trmmom
+
     # def set_trim_loads(self, trmfrc: bool=True, trmmom: bool=True, trmlft: bool=False):
     #     self.trmfrc = trmfrc
     #     self.trmmom = trmmom
     #     self.trmlft = trmlft
+
     def delta_C(self):
         Ctgt = self.target_Cmat()
         Ccur = self.current_Cmat()
-        return Ctgt-Ccur
+        return Ctgt - Ccur
+
     def target_Cmat(self):
         numtgt = len(self.tgtlst)
         Ctgt = zeros((numtgt, 1), dtype=float)
@@ -105,6 +114,7 @@ class PanelTrim(PanelResult):
         # else:
         #     Ctgt = zeros((0, 1), dtype=float)
         return Ctgt
+
     def current_Cmat(self):
         numtgt = len(self.tgtlst)
         Ccur = zeros((numtgt, 1), dtype=float)
@@ -146,6 +156,7 @@ class PanelTrim(PanelResult):
         # else:
         #     Ccur = zeros((0, 1), dtype=float)
         return Ccur
+
     def current_Dmat(self):
         numv = len(self.initstate)
         numc = len(self.initctrls)
@@ -162,6 +173,7 @@ class PanelTrim(PanelResult):
             for ctrl in self.initctrls:
                 Dcur[j, 0] = radians(self.ctrls[ctrl])
                 j += 1
+
         # if self.trmmom:
         #     numc = len(self.sys.ctrls)
         # else:
@@ -180,6 +192,7 @@ class PanelTrim(PanelResult):
         #         Dcur[2+c, 0] = radians(self.ctrls[control])
         #         c += 1
         return Dcur
+
     def Hmat(self):
         numv = len(self.initstate)
         numc = len(self.initctrls)
@@ -200,6 +213,7 @@ class PanelTrim(PanelResult):
                 ctres = NearFieldResult(self, ctcp)
                 H[i, j] = getattr(ctres, tgt)
                 j += 1
+
         # if self.trmlft:
         #     H = zeros((1, 1), dtype=float)
         #     H[0, 0] = self.stres.alpha.CL
@@ -257,6 +271,7 @@ class PanelTrim(PanelResult):
         # else:
         #     H = zeros((0, 0), dtype=float)
         return H
+
     def trim_iteration(self, display=False):
         # display = True
         Ctgt = self.target_Cmat()
@@ -285,11 +300,12 @@ class PanelTrim(PanelResult):
             print(f'Ddff = \n{Ddff}\n')
         Dcur = Dcur + Ddff
         return Dcur
+
     def trim(self, crit: float=1e-6, imax: int=100, display=False):
         # display = True
         Ctgt = self.target_Cmat()
         Ccur = self.current_Cmat()
-        Cdff = Ctgt-Ccur
+        Cdff = Ctgt - Ccur
         nrmC = norm(Cdff)
         if display:
             print(f'normC = {nrmC}\n')
@@ -343,6 +359,14 @@ class PanelTrim(PanelResult):
                 print(f'normC = {nrmC}\n')
             iter += 1
             if iter >= imax:
+                print(f'Ctgt = \n{Ctgt}\n')
+                print(f'Ccur = \n{Ccur}\n')
+                print(f'Cdff = \n{Cdff}\n')
+                print(f'alpha = {self.alpha} deg')
+                print(f'beta = {self.beta} deg')
+                print(f'pbo2V = {self.pbo2V}')
+                print(f'qco2V = {self.qco2V}')
+                print(f'rbo2V = {self.rbo2V}')
                 print(f'Convergence failed for {self.name:s}.')
                 return False
         print(f'Converged {self.name:s} in {iter:d} iterations.')

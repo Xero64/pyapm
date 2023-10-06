@@ -11,7 +11,7 @@ from .grid import Grid
 from .panel import Panel
 from ..tools import equal_spacing, semi_cosine_spacing, full_cosine_spacing
 
-class PanelSheet(object):
+class PanelSheet():
     scta: PanelSection = None
     sctb: PanelSection = None
     fncs: Dict[str, PanelFunction] = None
@@ -30,17 +30,20 @@ class PanelSheet(object):
     grds: List[Grid] = None
     pnls: List[Panel] = None
     _ctrls: Dict[str, PanelControl] = None
+
     def __init__(self, scta: PanelSection, sctb: PanelSection):
         self.scta = scta
         self.scta.shtb = self
         self.sctb = sctb
         self.sctb.shta = self
         self.fncs = {}
+
     @property
     def mirror(self) -> bool:
         if self._mirror is None:
             self._mirror = self.scta.mirror
         return self._mirror
+
     @property
     def ruled(self) -> bool:
         if self._ruled is None:
@@ -49,6 +52,7 @@ class PanelSheet(object):
             else:
                 self._ruled = self.scta.ruled
         return self._ruled
+
     @property
     def noload(self) -> bool:
         if self._noload is None:
@@ -57,6 +61,7 @@ class PanelSheet(object):
             else:
                 self._noload = self.scta.noload
         return self._noload
+
     @property
     def nomesh(self) -> bool:
         if self._nomesh is None:
@@ -65,6 +70,7 @@ class PanelSheet(object):
             else:
                 self._nomesh = self.scta.nomesh
         return self._nomesh
+
     @property
     def nohsv(self) -> bool:
         if self._nohsv is None:
@@ -73,6 +79,7 @@ class PanelSheet(object):
             else:
                 self._nohsv = self.scta.nohsv
         return self._nohsv
+
     @property
     def ctrls(self):
         if self._ctrls is None:
@@ -101,6 +108,7 @@ class PanelSheet(object):
                     hvec = pntb - pnta
                     ctrl.set_hinge_vector(hvec)
         return self._ctrls
+
     @property
     def bnum(self) -> int:
         if self._bnum is None:
@@ -109,6 +117,7 @@ class PanelSheet(object):
             else:
                 self._bnum = self.scta.bnum
         return self._bnum
+
     @property
     def bspc(self) -> int:
         if self._bspc is None:
@@ -117,6 +126,7 @@ class PanelSheet(object):
             else:
                 self._bspc = self.scta.bspc
         return self._bspc
+
     @property
     def bdst(self) -> matrix:
         if self._bdst is None:
@@ -134,6 +144,7 @@ class PanelSheet(object):
             else:
                 self._bdst = bdst
         return self._bdst
+
     @property
     def prfs(self):
         if self._prfs is None:
@@ -173,6 +184,7 @@ class PanelSheet(object):
                         prf.set_ruled_twist()
                     self._prfs.append(prf)
         return self._prfs
+
     @property
     def strps(self):
         if self._strps is None:
@@ -186,6 +198,7 @@ class PanelSheet(object):
                         self._strps.append(PanelStrip(self.prfs[i], self.prfs[i+1], self))
                     self._strps.append(PanelStrip(self.prfs[-1], self.sctb, self))
         return self._strps
+
     @property
     def tilt(self):
         if self._tilt is None:
@@ -193,6 +206,7 @@ class PanelSheet(object):
             dy = self.sctb.point.y - self.scta.point.y
             self._tilt = degrees(atan2(dz, dy))
         return self._tilt
+
     @property
     def area(self):
         if self._area is None:
@@ -203,6 +217,7 @@ class PanelSheet(object):
             chordb = self.sctb.chord
             self._area = (chorda+chordb)/2*brng
         return self._area
+
     def mesh_grids(self, gid: int):
         self.grds = []
         if not self.nomesh:
@@ -210,6 +225,7 @@ class PanelSheet(object):
                 gid = prf.mesh_grids(gid)
                 self.grds += prf.grds
         return gid
+
     def mesh_panels(self, pid: int):
         self.pnls = []
         if not self.nomesh:
@@ -219,6 +235,7 @@ class PanelSheet(object):
                     pnl.sht = self
                     self.pnls.append(pnl)
         return pid
+
     def inherit_controls(self):
         self.ctrls = {}
         if self.mirror:
@@ -242,6 +259,7 @@ class PanelSheet(object):
                 pntb = pnt2+crd2*IHAT.dot(ctrl.xhinge)
                 hvec = pntb-pnta
                 ctrl.set_hinge_vector(hvec)
+
     def set_control_panels(self):
         for control in self.ctrls:
             ctrl = self.ctrls[control]
@@ -262,5 +280,6 @@ class PanelSheet(object):
                 for i, pnl in enumerate(strp.pnls):
                     if i < beg or i >= end:
                         ctrl.add_panel(pnl)
+
     def __repr__(self):
         return '<PanelSheet>'

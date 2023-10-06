@@ -22,7 +22,7 @@ tol = 1e-12
 piby2 = pi/2
 fourPi = 4*pi
 
-class BoundEdge(object):
+class BoundEdge():
     pnto: Vector = None
     grda: Vector = None
     grdb: Vector = None
@@ -40,66 +40,79 @@ class BoundEdge(object):
     _pntol: Vector = None
     _grdal: Vector = None
     _grdbl: Vector = None
+
     def __init__(self, pnto: Vector, grda: Vector, grdb: Vector):
         self.pnto = pnto
         self.grda = grda
         self.grdb = grdb
+
     @property
     def vecab(self):
         if self._vecab is None:
             self._vecab = self.grdb - self.grda
         return self._vecab
+
     @property
     def lenab(self):
         if self._lenab is None:
             self._lenab = self._vecab.return_magnitude()
         return self._lenab
+
     @property
     def veca(self):
         if self._veca is None:
             self._veca = self.pnto - self.grda
         return self._veca
+
     @property
     def vecb(self):
         if self._vecb is None:
             self._vecb = self.pnto - self.grdb
         return self._vecb
+
     @property
     def vecaxb(self):
         if self._vecaxb is None:
             self._vecaxb = self.veca.cross(self.vecb)
         return self._vecaxb
+
     @property
     def area(self):
         if self._area is None:
             self._area = self._vecaxb.return_magnitude()/2
         return self._area
+
     @property
     def dirx(self):
         if self._dirx is None:
             self._dirx = self.vecab/self.lenab
         return self._dirx
+
     @property
     def dirz(self):
         if self._dirz is None:
             self._dirz = self.vecaxb.to_unit()
         return self._dirz
+
     @property
     def diry(self):
         if self._diry is None:
             self._diry = self.dirz.cross(self.dirx).to_unit()
         return self._diry
+
     @property
     def pntc(self):
         if self._pntc is None:
             lenx = self.veca.dot(self.dirx)
             self._pntc = self.grda + lenx*self.dirx
         return self._pntc
+
     @property
     def crd(self):
         if self._crd is None:
             self._crd = Coordinate(self.pntc, self.dirx, self.diry)
         return self._crd
+
     @property
     def pntol(self):
         if self._pntol is None:
@@ -107,6 +120,7 @@ class BoundEdge(object):
             self._pntol = Vector(vec.dot(self.dirx), vec.dot(self.diry),
                                  vec.dot(self.dirz))
         return self._pntol
+
     @property
     def grdal(self):
         if self._grdal is None:
@@ -114,6 +128,7 @@ class BoundEdge(object):
             self._grdal = Vector(vec.dot(self.dirx), vec.dot(self.diry),
                                  vec.dot(self.dirz))
         return self._grdal
+
     @property
     def grdbl(self):
         if self._grdbl is None:
@@ -121,23 +136,27 @@ class BoundEdge(object):
             self._grdbl = Vector(vec.dot(self.dirx), vec.dot(self.diry),
                                  vec.dot(self.dirz))
         return self._grdbl
+
     @property
     def te(self):
         if self.grda.te and self.grdb.te:
             return True
         else:
             return False
+
     def points_to_local(self, pnts: MatrixVector, betx: float=1.0):
         vecs = pnts-self.pntc
         if betx != 1.0:
             vecs.x = vecs.x/betx
         return MatrixVector(vecs.dot(self.dirx), vecs.dot(self.diry),
                             vecs.dot(self.dirz))
+
     def vectors_to_global(self, vecs: MatrixVector):
         dirx = Vector(self.dirx.x, self.diry.x, self.dirz.x)
         diry = Vector(self.dirx.y, self.diry.y, self.dirz.y)
         dirz = Vector(self.dirx.z, self.diry.z, self.dirz.z)
         return MatrixVector(vecs.dot(dirx), vecs.dot(diry), vecs.dot(dirz))
+
     def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool=False,
                                     sgnz: matrix=None, factor: bool=True,
                                     betx: float=1.0):
@@ -162,6 +181,7 @@ class BoundEdge(object):
             return phids, rls, avs, ams, bvs, bms
         else:
             return phids
+
     def doublet_influence_coefficients(self, pnts: MatrixVector,
                                        sgnz: matrix=None, factor: bool=True,
                                        betx: float=1.0):
@@ -174,6 +194,7 @@ class BoundEdge(object):
         if factor:
             phid, veld = phid/fourPi, veld/fourPi
         return phid, veld
+
     def velocity_potentials(self, pnts: MatrixVector,
                             sgnz: matrix=None, factor: bool=True, betx: float=1.0):
         phid, rl, _, am, _, bm = self.doublet_velocity_potentials(pnts, extraout=True,
@@ -184,6 +205,7 @@ class BoundEdge(object):
         if factor:
             phid, phis = phid/fourPi, phis/fourPi
         return phid, phis
+
     def influence_coefficients(self, pnts: MatrixVector,
                                sgnz: matrix=None, factor: bool=True, betx: float=1.0):
         phid, rl, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True,
@@ -198,6 +220,7 @@ class BoundEdge(object):
         if factor:
             phid, phis, veld, vels = phid/fourPi, phis/fourPi, veld/fourPi, vels/fourPi
         return phid, phis, veld, vels
+
     def __str__(self):
         outstr = ''
         outstr += f'pnto = {self.pnto}\n'

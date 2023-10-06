@@ -4,7 +4,7 @@ from pygeom.geom3d import Vector, Coordinate
 from pygeom.matrix3d import vector_to_global
 from .grid import Grid
 
-class PanelProfile(object):
+class PanelProfile():
     point: Vector = None
     chord: float = None
     twist: float = None
@@ -16,12 +16,15 @@ class PanelProfile(object):
     sctb: object = None
     grds: List[Grid] = None
     nohsv: bool = None
+
     def __init__(self, point: Vector, chord: float, twist: float):
         self.point = point
         self.chord = chord
         self.twist = twist
+
     def set_tilt(self, tilt: float):
         self._tilt = tilt
+
     def set_ruled_twist(self):
         shpa = self.scta.get_shape()
         shpb = self.sctb.get_shape()
@@ -33,11 +36,13 @@ class PanelProfile(object):
         pntte = (shp[0, 0]+shp[0, -1])/2
         dirx = (pntte-pntle).to_unit()
         self.twist = -degrees(acos(dirx.x))
+
     @property
     def tilt(self):
         if self._tilt is None:
             self._tilt = self.sctb.tilt + self.bval*(self.sctb.tilt - self.scta.tilt)
         return self._tilt
+
     @property
     def crdsys(self):
         if self._crdsys is None:
@@ -51,17 +56,20 @@ class PanelProfile(object):
             dirx = Vector(costwist, sintwist*sintilt, -sintwist*costilt)
             self._crdsys = Coordinate(self.point, dirx, diry)
         return self._crdsys
+
     def get_profile(self, offset: bool=True):
         prfa = self.scta.get_profile(offset=offset)
         prfb = self.sctb.get_profile(offset=offset)
         profiledir = prfb - prfa
         return prfa + self.bval*profiledir
     def get_shape(self):
+
         profile = self.get_profile()
         scaledprofile = profile*self.chord
         rotatedprofile = vector_to_global(self.crdsys, scaledprofile)
         translatedprofile = rotatedprofile + self.point
         return translatedprofile
+
     def mesh_grids(self, gid: int):
         shp = self.get_shape()
         num = shp.shape[1]
@@ -74,5 +82,6 @@ class PanelProfile(object):
             self.grds.append(Grid(gid, shp[0, i].x, shp[0, i].y, shp[0, i].z, te))
             gid += 1
         return gid
+
     def __repr__(self):
         return f'<PanelProfile at {self.point:}>'

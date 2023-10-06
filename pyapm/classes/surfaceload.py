@@ -4,7 +4,7 @@ from pygeom.matrix3d import zero_matrix_vector, MatrixVector
 from matplotlib.pyplot import figure
 from . import PanelResult
 
-class SurfaceLoad(object):
+class SurfaceLoad():
     pres: PanelResult = None
     strc: object = None
     sf: float = None
@@ -16,14 +16,17 @@ class SurfaceLoad(object):
     mommin: Vector = None
     frcmax: Vector = None
     mommax: Vector = None
+
     def __init__(self, pres: PanelResult, strc: object, sf: float=1.0):
         self.pres = pres
         self.strc = strc
         self.sf = sf
         self.update()
+
     @property
     def rref(self):
         return self.strc.rref
+
     def update(self):
         strpres = self.pres.strpres
         self.frctot = Vector(0.0, 0.0, 0.0)
@@ -67,6 +70,7 @@ class SurfaceLoad(object):
         self.frcmax = Vector(max(fx), max(fy), max(fz))
         self.mommin = Vector(min(mx), min(my), min(mz))
         self.mommax = Vector(max(mx), max(my), max(mz))
+
     def plot_forces(self, ax=None):
         if ax is None:
             fig = figure(figsize=(12, 8))
@@ -87,6 +91,7 @@ class SurfaceLoad(object):
             ax.plot(fz, zp, label=f'{self.pres.name:s} Fz')
         ax.legend()
         return ax
+
     def plot_moments(self, ax=None):
         if ax is None:
             fig = figure(figsize=(12, 8))
@@ -107,6 +112,7 @@ class SurfaceLoad(object):
             ax.plot(mz, zp, label=f'{self.pres.name:s} Tz')
         ax.legend()
         return ax
+
     @property
     def point_loads_table(self, file=None):
         table = MDTable()
@@ -137,6 +143,7 @@ class SurfaceLoad(object):
             Mx, Ty, Mz = mom.x, mom.y, mom.z
             table.add_row([i, x, y, z, Vx, Fy, Vz, Mx, Ty, Mz])
         return table
+
     def __str__(self):
         outstr = f'# {self.pres.name} Design Loads for ' + self.strc.srfc.name+'\n'
         table = MDTable()
@@ -209,5 +216,6 @@ class SurfaceLoad(object):
         table.add_row(['Max', Vx, Fy, Vz, Mx, Ty, Mz])
         outstr += str(table)
         return outstr
+
     def _repr_markdown_(self):
         return self.__str__()

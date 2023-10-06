@@ -24,40 +24,48 @@ class HorseshoeDoublet():
     _pnto: Vector = None
     _nrm: Vector = None
     _width: float = None
+
     def __init__(self, grda: Vector, grdb: Vector, diro: Vector, ind: int=None):
         self.grda = grda
         self.grdb = grdb
         self.diro = diro.to_unit()
         self.ind = ind
+
     def reset(self):
         for attr in self.__dict__:
             if attr[0] == '_':
                 self.__dict__[attr] = None
+
     @property
     def vecab(self):
         if self._vecab is None:
             self._vecab = self.grdb - self.grda
         return self._vecab
+
     @property
     def lenab(self):
         if self._lenab is None:
             self._lenab = self._vecab.return_magnitude()
         return self._lenab
+
     @property
     def pntc(self):
         if self._pntc is None:
             self._pntc = self.grda + self.vecab/2
         return self._pntc
+
     @property
     def pnto(self):
         if self._pnto is None:
             self._pnto = self.pntc + self.lenab*self.diro/2
         return self._pnto
+
     @property
     def nrm(self):
         if self._nrm is None:
             self._nrm = self.vecab.cross(self.diro).to_unit()
         return self._nrm
+
     @property
     def width(self):
         if self._width is None:
@@ -66,6 +74,7 @@ class HorseshoeDoublet():
             grdby = self.grdb.dot(diry)
             self._width = grdby - grday
         return self._width
+
     def relative_mach(self, pnts: MatrixVector, pnt: Vector,
                       betx: float=1.0, bety: float=1.0, betz: float=1.0):
         vecs = pnts-pnt
@@ -73,6 +82,7 @@ class HorseshoeDoublet():
         vecs.y = vecs.y/bety
         vecs.z = vecs.z/betz
         return vecs
+
     def doublet_influence_coefficients(self, pnts: MatrixVector, incvel: bool=True,
                                        betx: float=1.0, bety: float=1.0,
                                        betz: float=1.0, checktol: bool=False):
@@ -163,11 +173,13 @@ class HorseshoeDoublet():
         else:
             output = phid
         return output
+
     def doublet_velocity_potentials(self, pnts: MatrixVector,
                                     betx: float=1.0, bety: float=1.0, betz: float=1.0):
         phi = self.doublet_influence_coefficients(pnts, incvel=False,
                                                   betx=betx, bety=bety, betz=betz)
         return phi
+
     def trefftz_plane_velocities(self, pnts: MatrixVector,
                                  betx: float=1.0, bety: float=1.0, betz: float=1.0):
         # Trailing Vortex A

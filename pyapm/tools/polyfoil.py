@@ -30,6 +30,7 @@ class PolyFoil():
     _x: List[float] = None
     _y: List[float] = None
     _th: List[float] = None
+
     def __init__(self, name: str, a: List[float], b0: float, b: List[float],
                  cnum: int=80, teclosed=False):
         self.name = name
@@ -38,14 +39,17 @@ class PolyFoil():
         self.b = b
         self.teclosed = teclosed
         self.update(cnum)
+
     def update(self, cnum: int, cspc: str='full-cosine'):
         self.cnum = cnum
         self.cspc = cspc
         self.reset()
+
     def reset(self):
         for attr in self.__dict__:
             if attr[0] == '_':
                 self.__dict__[attr] = None
+
     @property
     def cdst(self):
         if self._cdst is None:
@@ -56,26 +60,31 @@ class PolyFoil():
             else:
                 raise ValueError('Incorrect distribution on NACA4')
         return self._cdst
+
     @property
     def xc(self):
         if self._xc is None:
             self._xc = array(linear_bias_left(self.cdst, 0.2), dtype=float)
         return self._xc
+
     @property
     def yc(self):
         if self._yc is None:
             self._yc = camber(self.xc, self.a)
         return self._yc
+
     @property
     def dydx(self):
         if self._dydx is None:
             self._dydx = camber_slope(self.xc, self.a)
         return self._dydx
+
     @property
     def thc(self):
         if self._thc is None:
             self._thc = arctan(self.dydx)
         return self._thc
+
     @property
     def t(self):
         if self._t is None:
@@ -84,6 +93,7 @@ class PolyFoil():
                 self.b[-1] = -sb
             self._t = thickness(self.xc, self.b0, self.b)/2
         return self._t
+
     @property
     def dtdx(self):
         if self._dtdx is None:
@@ -92,61 +102,72 @@ class PolyFoil():
                 self.b[-1] = -sb
             self._dtdx = thickness_slope(self.xc, self.b0, self.b)/2
         return self._dtdx
+
     @property
     def tht(self):
         if self._tht is None:
             self._tht = arctan(self.dtdx)
             self._tht[0] = pi/2
         return self._tht
+
     @property
     def xu(self):
         if self._xu is None:
             self._xu = [xi-ti*sin(thi) for xi, ti, thi in zip(self.xc, self.t,
                                                               self.thc)]
         return self._xu
+
     @property
     def yu(self):
         if self._yu is None:
             self._yu = [yi+ti*cos(thi) for yi, ti, thi in zip(self.yc, self.t,
                                                               self.thc)]
         return self._yu
+
     @property
     def thu(self):
         if self._thu is None:
             self._thu = [thci+thti for thci, thti in zip(self.thc, self.tht)]
         return self._thu
+
     @property
     def xl(self):
         if self._xl is None:
             self._xl = [xi+ti*sin(thi) for xi, ti, thi in zip(self.xc, self.t,
                                                               self.thc)]
         return self._xl
+
     @property
     def yl(self):
         if self._yl is None:
             self._yl = [yi-ti*cos(thi) for yi, ti, thi in zip(self.yc, self.t,
                                                               self.thc)]
         return self._yl
+
     @property
     def thl(self):
         if self._thl is None:
             self._thl = [thci-thti for thci, thti in zip(self.thc, self.tht)]
         return self._thl
+
     @property
     def x(self):
         if self._x is None:
             self._x = [xi for xi in reversed(self.xl)] + self.xu[1:]
         return self._x
+
     @property
     def y(self):
         if self._y is None:
             self._y = [yi for yi in reversed(self.yl)] + self.yu[1:]
         return self._y
+
     @property
     def th(self):
         if self._th is None:
             self._th = [thi-pi for thi in reversed(self.thl)] + self.thu[1:]
         return self._th
+
     def plot(self, ax=None):
         if ax is None:
             fig = figure(figsize=(12, 8))
@@ -155,6 +176,7 @@ class PolyFoil():
             ax.set_aspect('equal')
         ax.plot(self.x, self.y, label=f'{self.name:s}')
         return ax
+
     def __repr__(self):
         return f'<{self.name:s}>'
 

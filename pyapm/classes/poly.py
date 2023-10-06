@@ -4,25 +4,29 @@ from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from numpy.matlib import zeros, ones
 from .boundedge import BoundEdge
 
-class Poly(object):
+class Poly():
     grds: List[Vector] = None
     _num: int = None
     _pnto: Vector = None
     _edgs: List[BoundEdge] = None
     _nrm: Vector = None
     _area: float = None
+
     def __init__(self, grds: List[Vector]):
         self.grds = grds
+
     @property
     def num(self):
         if self._num is None:
             self._num = len(self.grds)
         return self._num
+
     @property
     def pnto(self) -> Vector:
         if self._pnto is None:
             self._pnto = sum(self.grds)/self.num
         return self._pnto
+
     @property
     def edgs(self):
         if self._edgs is None:
@@ -34,11 +38,13 @@ class Poly(object):
                 grdb = self.grds[b]
                 self._edgs.append(BoundEdge(self.pnto, grda, grdb))
         return self._edgs
+
     @property
     def nrm(self):
         if self._nrm is None:
             self._nrm = (sum([edg.dirz for edg in self.edgs])/self.num).to_unit()
         return self._nrm
+
     @property
     def area(self):
         if self._area is None:
@@ -46,6 +52,7 @@ class Poly(object):
             for edg in self.edgs:
                 self._area += edg.area
         return self._area
+
     def sign_local_z(self, pnts: MatrixVector, betx: float=1.0):
         vecs = pnts-self.pnto
         nrm = self.nrm
@@ -56,6 +63,7 @@ class Poly(object):
         sgnz = ones(locz.shape, dtype=float)
         sgnz[locz <= 0.0] = -1.0
         return sgnz
+
     def influence_coefficients(self, pnts: MatrixVector, betx: float=1.0):
         phiv = zeros(pnts.shape, dtype=float)
         phis = zeros(pnts.shape, dtype=float)
@@ -70,6 +78,7 @@ class Poly(object):
             velv += evelv
             vels += evels
         return phiv, phis, velv, vels
+
     def doublet_influence_coefficients(self, pnts: MatrixVector, betx: float=1.0):
         phiv = zeros(pnts.shape, dtype=float)
         velv = zero_matrix_vector(pnts.shape, dtype=float)
@@ -80,12 +89,14 @@ class Poly(object):
             phiv += ephiv
             velv += evelv
         return phiv, velv
+
     def doublet_velocity_potentials(self, pnts: MatrixVector, betx: float=1.0):
         phiv = zeros(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
             phiv += edg.doublet_velocity_potentials(pnts, sgnz=sgnz, betx=betx)
         return phiv
+
     def velocity_potentials(self, pnts: MatrixVector, betx: float=1.0):
         phiv = zeros(pnts.shape, dtype=float)
         phis = zeros(pnts.shape, dtype=float)
