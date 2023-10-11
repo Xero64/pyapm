@@ -1,5 +1,5 @@
 from math import sqrt, acos, pi
-from typing import List
+from typing import List, TYPE_CHECKING, Tuple
 from numpy.matlib import matrix, absolute, full, minimum, logical_not, ones
 from pygeom.geom3d import Vector, Coordinate, IHAT, KHAT
 from pygeom.matrix3d import MatrixVector
@@ -10,25 +10,30 @@ from .horseshoedoublet import HorseshoeDoublet
 oor2 = 1/sqrt(2.0)
 angtol = pi/4
 
+if TYPE_CHECKING:
+    from .panelsurface import PanelSurface
+    from .panelsheet import PanelSheet
+    from .panelsection import PanelSection
+
 class Panel(DirichletPoly):
     pid: int = None
     gids: List[int] = None
     ind: int = None
-    grp: object = None
-    sht: object = None
-    sct: object = None
-    srfc: object = None
+    grp: int = None
+    sht: 'PanelSheet' = None
+    sct: 'PanelSection' = None
+    srfc: 'PanelSurface' = None
     _crd: Coordinate = None
     _hsvs: List[HorseshoeDoublet] = None
     _grdlocs: List[Vector] = None
-    _edgpnls: List[object] = None
+    _edgpnls: List['Panel'] = None
     _edginds: List[List[int]] = None
     _edgpnts: List[Vector] = None
     _edgdist: List[float] = None
     _edgfacs: List[float] = None
     _edgpntl: List[Vector] = None
     _edglens: List[float] = None
-    _grdpnls: List[List[object]] = None
+    _grdpnls: List[List['Panel']] = None
     _grdinds: List[List[int]] = None
     _grdfacs: List[List[float]] = None
 
@@ -75,7 +80,7 @@ class Panel(DirichletPoly):
                 if grda.te and grdb.te:
                     self._hsvs.append(HorseshoeDoublet(grda, grdb, diro, self.ind))
 
-    def check_panel(self, pnl):
+    def check_panel(self, pnl: 'Panel') -> Tuple[bool, bool, bool]:
         if pnl.grp is not None and self.grp is not None:
             grpchk = pnl.grp == self.grp
         else:
@@ -95,12 +100,12 @@ class Panel(DirichletPoly):
             typchk = False
         return grpchk, srfchk, typchk
 
-    def check_angle(self, pnl):
+    def check_angle(self, pnl: 'Panel') -> bool:
         ang = angle_between_vectors(pnl.crd.dirz, self.crd.dirz)
         angchk = abs(ang) < angtol
         return angchk
 
-    def check_edge(self, pnl, grda, grdb):
+    def check_edge(self, pnl: 'Panel', grda: Grid, grdb: Grid) -> bool:
         edgchk = False
         if grda in pnl.grds and grdb in pnl.grds:
             edgchk = True

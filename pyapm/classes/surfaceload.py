@@ -1,4 +1,4 @@
-from py2md.classes import MDTable
+from py2md.classes import MDTable, MDReport, MDHeading
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector, MatrixVector
 from matplotlib.pyplot import figure
@@ -144,8 +144,10 @@ class SurfaceLoad():
             table.add_row([i, x, y, z, Vx, Fy, Vz, Mx, Ty, Mz])
         return table
 
-    def __str__(self):
-        outstr = f'# {self.pres.name} Design Loads for ' + self.strc.srfc.name+'\n'
+    def to_mdobj(self) -> MDReport:
+        report = MDReport()
+        heading = MDHeading(f'{self.pres.name} Design Loads for {self.strc.srfc.name}', 1)
+        report.add_object(heading)
         table = MDTable()
         table.add_column('Reference', 's')
         table.add_column('x', '.3f')
@@ -167,7 +169,7 @@ class SurfaceLoad():
         My = self.momtot.y
         Mz = self.momtot.z
         table.add_row(['Total', x, y, z, Fx, Fy, Fz, Mx, My, Mz])
-        outstr += str(table)
+        report.add_object(table)
         table = MDTable()
         table.add_column('Reaction', 'd')
         table.add_column('x', '.3f')
@@ -183,7 +185,7 @@ class SurfaceLoad():
             rfrc = self.rfrc[i]
             rmom = self.rmom[i]
             table.add_row([i+1, rpnt.x, rpnt.y, rpnt.z, rfrc.x, rfrc.y, rfrc.z, rmom.x, rmom.y, rmom.z])
-        outstr += str(table)
+        report.add_object(table)
         table = MDTable()
         table.add_column('Value', 's')
         if self.strc.axis == 'y':
@@ -214,8 +216,11 @@ class SurfaceLoad():
         Ty = self.mommax.y
         Mz = self.mommax.z
         table.add_row(['Max', Vx, Fy, Vz, Mx, Ty, Mz])
-        outstr += str(table)
-        return outstr
+        report.add_object(table)
+        return report
+
+    def __str__(self):
+        return self.to_mdobj().__str__()
 
     def _repr_markdown_(self):
-        return self.__str__()
+        return self.to_mdobj()._repr_markdown_()

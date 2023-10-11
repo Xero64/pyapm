@@ -1,11 +1,15 @@
-from typing import List
+from typing import List, TYPE_CHECKING
 from pygeom.geom3d import Vector
+
+if TYPE_CHECKING:
+    from .panel import Panel
+
 
 class Grid(Vector):
     gid: int = None
     te: float = None
     ind: int = None
-    pnls: List[object] = None
+    pnls: List['Panel'] = None
 
     def __init__(self, gid: int, x: float, y: float, z: float, te: bool=False):
         self.gid = gid

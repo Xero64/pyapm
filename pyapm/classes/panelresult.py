@@ -1,5 +1,5 @@
 from math import cos, sin, radians, pi
-from typing import Dict
+from typing import Dict, TYPE_CHECKING
 from pygeom.geom3d import Vector, Coordinate
 from pygeom.matrix3d import MatrixVector, zero_matrix_vector
 from pygeom.matrix3d.matrixvector import elementwise_multiply, elementwise_cross_product
@@ -12,9 +12,12 @@ from py2md.classes import MDTable, MDReport, MDHeading
 
 tol = 1e-12
 
+if TYPE_CHECKING:
+    from .panelsystem import PanelSystem
+
 class PanelResult():
     name: str = None
-    sys: object = None
+    sys: 'PanelSystem' = None
     rho: float = None
     mach: float = None
     speed: float = None
@@ -40,12 +43,12 @@ class PanelResult():
     _qloc: MatrixVector2D = None
     _qs: matrix = None
     _cp: matrix = None
-    _nfres = None
-    _strpres = None
-    _ffres = None
-    _stres = None
-    _ctresp = None
-    _ctresn = None
+    _nfres: 'NearFieldResult' = None
+    _strpres: 'StripResult' = None
+    _ffres: 'FarFieldResult' = None
+    _stres: 'StabilityResult' = None
+    _ctresp: 'NearFieldResult' = None
+    _ctresn: 'NearFieldResult' = None
     _vfsg: MatrixVector = None
     _vfsl: MatrixVector = None
 
@@ -275,45 +278,45 @@ class PanelResult():
         return MatrixVector2D(vl + ql, vt + qt)
 
     @property
-    def qloc(self):
+    def qloc(self) -> float:
         if self._qloc is None:
             self._qloc = self.calc_qloc(self.mu, vfs=self.vfs, ofs=self.ofs)
         return self._qloc
 
     @property
-    def qs(self):
+    def qs(self) -> float:
         if self._qs is None:
             self._qs = self.qloc.return_magnitude()
         return self._qs
 
     @property
-    def cp(self):
+    def cp(self) -> float:
         if self._cp is None:
             self._cp = 1.0 - square(self.qs)/self.speed**2
         return self._cp
 
     @property
-    def nfres(self):
+    def nfres(self) -> 'NearFieldResult':
         if self._nfres is None:
             self._nfres = NearFieldResult(self, self.cp)
         return self._nfres
 
     @property
-    def strpres(self):
+    def strpres(self) -> 'StripResult':
         if self._strpres is None:
             if self.sys.srfcs is not None:
                 self._strpres = StripResult(self.nfres)
         return self._strpres
 
     @property
-    def ffres(self):
+    def ffres(self) -> 'FarFieldResult':
         if self._ffres is None:
             if self.sys.srfcs is not None:
                 self._ffres = FarFieldResult(self)
         return self._ffres
 
     @property
-    def stres(self):
+    def stres(self) -> 'StabilityResult':
         if self._stres is None:
             self._stres = StabilityResult(self)
         return self._stres
@@ -810,33 +813,36 @@ class PanelResult():
             report.add_object(table2)
             return report
 
-    def __str__(self):
+    def to_mdobj(self) -> MDReport:
         from . import cfrm, dfrm, efrm
-        outstr = '# Panel Result '+self.name+' for '+self.sys.name+'\n'
+
+        report = MDReport()
+        heading = MDHeading(f'Panel Result {self.name} for {self.sys.name}', 1)
+        report.add_object(heading)
         table = MDTable()
         table.add_column('Alpha (deg)', cfrm, data=[self.alpha])
         table.add_column('Beta (deg)', cfrm, data=[self.beta])
         table.add_column('Speed', cfrm, data=[self.speed])
         table.add_column('Rho', cfrm, data=[self.rho])
         table.add_column('Mach', efrm, data=[self.mach])
-        outstr += table._repr_markdown_()
+        report.add_object(table)
         table = MDTable()
         table.add_column('pb/2V (rad)', cfrm, data=[self.pbo2V])
         table.add_column('qc/2V (rad)', cfrm, data=[self.qco2V])
         table.add_column('rb/2V (rad)', cfrm, data=[self.rbo2V])
-        outstr += table._repr_markdown_()
+        report.add_object(table)
         table = MDTable()
         table.add_column('xcg', '.5f', data=[self.rcg.x])
         table.add_column('ycg', '.5f', data=[self.rcg.y])
         table.add_column('zcg', '.5f', data=[self.rcg.z])
-        outstr += table._repr_markdown_()
+        report.add_object(table)
         if len(self.ctrls) > 0:
             table = MDTable()
             for control in self.ctrls:
                 ctrl = self.ctrls[control]
                 control = control.capitalize()
                 table.add_column(f'{control} (deg)', cfrm, data=[ctrl])
-            outstr += str(table)
+            report.add_object(table)
         # if self.sys.cdo != 0.0:
         #     table = MDTable()
         #     table.add_column('CDo', dfrm, data=[self.pdres.CDo])
@@ -851,7 +857,7 @@ class PanelResult():
             table.add_column('Cx', cfrm, data=[self.nfres.Cx])
             table.add_column('Cy', cfrm, data=[self.nfres.Cy])
             table.add_column('Cz', cfrm, data=[self.nfres.Cz])
-            outstr += table._repr_markdown_()
+            report.add_object(table)
             table = MDTable()
             table.add_column('CDi', dfrm, data=[self.nfres.CDi])
             table.add_column('CY', cfrm, data=[self.nfres.CY])
@@ -862,7 +868,7 @@ class PanelResult():
             # if self.sys.cdo != 0.0:
             #     lod = self.nfres.CL/(self.pdres.CDo+self.nfres.CDi)
             #     table.add_column('L/D', '.5g', data=[lod])
-            outstr += table._repr_markdown_()
+            report.add_object(table)
         if self.ffres is not None:
             table = MDTable()
             table.add_column('CDi_ff', dfrm, data=[self.ffres.CDi])
@@ -872,14 +878,18 @@ class PanelResult():
             # if self.sys.cdo != 0.0:
             #     lod_ff = self.ffres.CL/(self.pdres.CDo+self.ffres.CDi)
             #     table.add_column('L/D_ff', '.5g', data=[lod_ff])
-            outstr += table._repr_markdown_()
-        return outstr
+            report.add_object(table)
+
+        return report
 
     def __repr__(self):
         return f'<PanelResult: {self.name}>'
 
+    def __str__(self) -> str:
+        return self.to_mdobj().__str__()
+
     def _repr_markdown_(self):
-        return self.__str__()
+        return self.to_mdobj()._repr_markdown_()
 
 def trig_angle(angle: float):
     '''Calculates cos(angle) and sin(angle) with angle in degrees.'''
@@ -1662,18 +1672,18 @@ class StabilityResult():
         report.add_object(table)
         return report
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.stability_derivatives._repr_markdown_()
 
-    def _repr_markdown_(self):
+    def _repr_markdown_(self) -> str:
         return self.__str__()
 
-def fix_zero(value: float, tol: float=1e-8):
+def fix_zero(value: float, tol: float=1e-8) -> float:
     if abs(value) < tol:
         value = 0.0
     return value
 
-def panelresult_from_dict(psys: object, resdata: dict):
+def panelresult_from_dict(psys: 'PanelSystem', resdata: dict) -> PanelResult:
     name = resdata['name']
     if 'inherit' in resdata:
         inherit = resdata['inherit']

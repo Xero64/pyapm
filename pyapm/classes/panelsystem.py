@@ -1,7 +1,7 @@
 from json import load
 from os.path import dirname, exists, join
 from time import perf_counter
-from typing import Dict, List, Tuple
+from typing import Dict, List, Tuple, TYPE_CHECKING
 
 from matplotlib.pyplot import figure
 from numpy.matlib import matrix, zeros
@@ -23,6 +23,11 @@ from .panelsurface import PanelSurface, panelsurface_from_json
 from .paneltrim import paneltrim_from_dict
 
 
+if TYPE_CHECKING:
+    from .panelresult import PanelResult
+    from .panelsurface import PanelSurface
+    from .panelstrip import PanelStrip
+
 class PanelSystem():
     name: str = None
     grds: Dict[int, Grid] = None
@@ -32,8 +37,8 @@ class PanelSystem():
     sref: float = None
     rref: float = None
     ctrls: Dict[str, Tuple[int]] = None
-    srfcs: List[object] = None
-    results: List[object] = None
+    srfcs: List['PanelSurface'] = None
+    results: Dict[str, 'PanelResult'] = None
     masses = None
     source: str = None
     _hsvs: List[HorseshoeDoublet] = None
@@ -71,7 +76,7 @@ class PanelSystem():
     _alh: matrix = None
     _ar: float = None
     _area: float = None
-    _strps: List[object] = None
+    _strps: List['PanelStrip'] = None
     _phind: Dict[int, List[int]] = None
 
     def __init__(self, name: str, bref: float, cref: float, sref: float, rref: Vector):
@@ -771,7 +776,7 @@ class PanelSystem():
     def _repr_markdown_(self):
         return self.__str__()
 
-def panelsystem_from_json(jsonfilepath: str):
+def panelsystem_from_json(jsonfilepath: str) -> PanelSystem:
 
     with open(jsonfilepath, 'rt') as jsonfile:
         sysdct = load(jsonfile)
@@ -797,7 +802,7 @@ def panelsystem_from_json(jsonfilepath: str):
 
     return psys
 
-def panelsystem_from_mesh(sysdct: Dict[str, any]):
+def panelsystem_from_mesh(sysdct: Dict[str, any]) -> PanelSystem:
 
     name = sysdct['name']
     bref = sysdct['bref']
@@ -866,7 +871,7 @@ def panelsystem_from_mesh(sysdct: Dict[str, any]):
 
     return psys
 
-def panelsystem_from_geom(sysdct: Dict[str, any]):
+def panelsystem_from_geom(sysdct: Dict[str, any]) -> PanelSystem:
 
     if 'source' in sysdct:
         path = dirname(sysdct['source'])
