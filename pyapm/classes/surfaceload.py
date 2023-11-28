@@ -1,15 +1,24 @@
-from py2md.classes import MDTable, MDReport, MDHeading
-from pygeom.geom3d import Vector
-from pygeom.matrix3d import zero_matrix_vector, MatrixVector
+from typing import TYPE_CHECKING, Optional
+
 from matplotlib.pyplot import figure
+from py2md.classes import MDHeading, MDReport, MDTable
+from pygeom.geom3d import Vector
+from pygeom.matrix3d import zero_matrix_vector
+
 from . import PanelResult
+
+if TYPE_CHECKING:
+    from matplotlib.axes import Axes
+    from pygeom.matrix3d import MatrixVector
+
+    from .surfacestructure import SurfaceStructure
 
 class SurfaceLoad():
     pres: PanelResult = None
-    strc: object = None
+    strc: 'SurfaceStructure' = None
     sf: float = None
-    ptfrc: MatrixVector = None
-    ptmom: MatrixVector = None
+    ptfrc: 'MatrixVector' = None
+    ptmom: 'MatrixVector' = None
     frctot: Vector = None
     momtot: Vector = None
     frcmin: Vector = None
@@ -17,17 +26,18 @@ class SurfaceLoad():
     frcmax: Vector = None
     mommax: Vector = None
 
-    def __init__(self, pres: PanelResult, strc: object, sf: float=1.0):
+    def __init__(self, pres: PanelResult, strc: 'SurfaceStructure',
+                 sf: float=1.0) -> None:
         self.pres = pres
         self.strc = strc
         self.sf = sf
         self.update()
 
     @property
-    def rref(self):
+    def rref(self) -> Vector:
         return self.strc.rref
 
-    def update(self):
+    def update(self) -> None:
         strpres = self.pres.strpres
         self.frctot = Vector(0.0, 0.0, 0.0)
         self.momtot = Vector(0.0, 0.0, 0.0)
@@ -54,7 +64,7 @@ class SurfaceLoad():
             ptmomb = ptmoma - strpres.stmom[ind, 0]
             rrel = strp.point - self.strc.pnts[indb, 0]
             ptmomb -= rrel.cross(strpres.stfrc[ind, 0])
-            rrel = self.strc.pnts[indb, 0]-self.strc.pnts[inda, 0]
+            rrel = self.strc.pnts[indb, 0] - self.strc.pnts[inda, 0]
             ptmomb -= rrel.cross(ptfrca)
             self.ptfrc[inda, 0] = ptfrca
             self.ptfrc[indb, 0] = ptfrcb
@@ -71,7 +81,7 @@ class SurfaceLoad():
         self.mommin = Vector(min(mx), min(my), min(mz))
         self.mommax = Vector(max(mx), max(my), max(mz))
 
-    def plot_forces(self, ax=None):
+    def plot_forces(self, ax: Optional['Axes']=None) -> 'Axes':
         if ax is None:
             fig = figure(figsize=(12, 8))
             ax = fig.gca()
@@ -92,7 +102,7 @@ class SurfaceLoad():
         ax.legend()
         return ax
 
-    def plot_moments(self, ax=None):
+    def plot_moments(self, ax: Optional['Axes']=None) -> 'Axes':
         if ax is None:
             fig = figure(figsize=(12, 8))
             ax = fig.gca()
@@ -114,7 +124,7 @@ class SurfaceLoad():
         return ax
 
     @property
-    def point_loads_table(self, file=None):
+    def point_loads_table(self) -> MDTable:
         table = MDTable()
         table.add_column('#', 'd')
         table.add_column('x', '.3f')
@@ -219,8 +229,8 @@ class SurfaceLoad():
         report.add_object(table)
         return report
 
-    def __str__(self):
+    def __str__(self) -> str:
         return self.to_mdobj().__str__()
 
-    def _repr_markdown_(self):
+    def _repr_markdown_(self) -> str:
         return self.to_mdobj()._repr_markdown_()

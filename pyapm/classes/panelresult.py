@@ -1059,14 +1059,16 @@ class NearFieldResult():
         return self._e
 
 class StripResult():
-    nfres = None
-    _stfrc = None
-    _stmom = None
+    nfres: 'NearFieldResult' = None
+    _stfrc: 'MatrixVector' = None
+    _stmom: 'MatrixVector' = None
+    _stcp = None
     _lift = None
     _side = None
     _drag = None
+    _cp = None
 
-    def __init__(self, nfres: NearFieldResult):
+    def __init__(self, nfres: NearFieldResult) -> None:
         self.nfres = nfres
 
     @property
@@ -1095,6 +1097,18 @@ class StripResult():
                     rref = pnl.pnto - strp.point
                     self._stmom[i, 0] += rref.cross(self.nfres.nffrc[j, 0])
         return self._stmom
+
+    @property
+    def stcp(self):
+        if self._stcp is None:
+            sys = self.nfres.res.sys
+            num = len(sys.strps)
+            self._stcp = zeros((num, 1), dtype=float)
+            for strp in sys.strps:
+                i = strp.ind
+                if abs(self.stfrc[i, 0].z) > 1e-12:
+                    self._stcp[i, 0] = -self.stmom[i, 0].y/self.stfrc[i, 0].z/strp.chord
+        return self._stcp
 
     @property
     def drag(self):

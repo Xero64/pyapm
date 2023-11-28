@@ -1,8 +1,15 @@
-from math import radians, sin, cos, acos, degrees
-from typing import List
-from pygeom.geom3d import Vector, Coordinate
+from math import acos, cos, degrees, radians, sin
+from typing import TYPE_CHECKING, List
+
+from pygeom.geom3d import Coordinate, Vector
 from pygeom.matrix3d import vector_to_global
+
 from .grid import Grid
+
+if TYPE_CHECKING:
+    from pygeom.matrix3d import MatrixVector
+
+    from .panelsection import PanelSection
 
 class PanelProfile():
     point: Vector = None
@@ -12,20 +19,20 @@ class PanelProfile():
     _crdsys: Coordinate = None
     bval: float = None
     bpos: float = None
-    scta: object = None
-    sctb: object = None
+    scta: 'PanelSection' = None
+    sctb: 'PanelSection' = None
     grds: List[Grid] = None
     nohsv: bool = None
 
-    def __init__(self, point: Vector, chord: float, twist: float):
+    def __init__(self, point: Vector, chord: float, twist: float) -> None:
         self.point = point
         self.chord = chord
         self.twist = twist
 
-    def set_tilt(self, tilt: float):
+    def set_tilt(self, tilt: float) -> None:
         self._tilt = tilt
 
-    def set_ruled_twist(self):
+    def set_ruled_twist(self) -> None:
         shpa = self.scta.get_shape()
         shpb = self.sctb.get_shape()
         shapedir = shpb - shpa
@@ -38,13 +45,13 @@ class PanelProfile():
         self.twist = -degrees(acos(dirx.x))
 
     @property
-    def tilt(self):
+    def tilt(self) -> float:
         if self._tilt is None:
             self._tilt = self.sctb.tilt + self.bval*(self.sctb.tilt - self.scta.tilt)
         return self._tilt
 
     @property
-    def crdsys(self):
+    def crdsys(self) -> Coordinate:
         if self._crdsys is None:
             tilt = radians(self.tilt)
             sintilt = sin(tilt)
@@ -57,20 +64,20 @@ class PanelProfile():
             self._crdsys = Coordinate(self.point, dirx, diry)
         return self._crdsys
 
-    def get_profile(self, offset: bool=True):
+    def get_profile(self, offset: bool=True) -> 'MatrixVector':
         prfa = self.scta.get_profile(offset=offset)
         prfb = self.sctb.get_profile(offset=offset)
         profiledir = prfb - prfa
         return prfa + self.bval*profiledir
-    def get_shape(self):
 
+    def get_shape(self) -> 'MatrixVector':
         profile = self.get_profile()
         scaledprofile = profile*self.chord
         rotatedprofile = vector_to_global(self.crdsys, scaledprofile)
         translatedprofile = rotatedprofile + self.point
         return translatedprofile
 
-    def mesh_grids(self, gid: int):
+    def mesh_grids(self, gid: int) -> int:
         shp = self.get_shape()
         num = shp.shape[1]
         self.grds = []
@@ -83,5 +90,5 @@ class PanelProfile():
             gid += 1
         return gid
 
-    def __repr__(self):
+    def __repr__(self) -> str:
         return f'<PanelProfile at {self.point:}>'
