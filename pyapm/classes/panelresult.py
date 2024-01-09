@@ -166,7 +166,7 @@ class PanelResult():
     @property
     def vfsg(self):
         if self._vfsg is None:
-            self._vfsg = self.vfs-self.ofs.cross(self.sys.rrel)
+            self._vfsg = self.vfs - self.ofs.cross(self.sys.rrel)
         return self._vfsg
 
     @property
