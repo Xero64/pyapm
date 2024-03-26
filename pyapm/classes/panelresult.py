@@ -484,6 +484,51 @@ class PanelResult():
             ax.legend()
         return ax
 
+
+
+    def plot_strip_pitch_moment_distribution(self, ax=None, axis: str='b',
+                                             surfaces: list=None, normalise: bool=False,
+                                             label: str=None):
+        if self.sys.srfcs is not None:
+            if ax is None:
+                fig = figure(figsize=(12, 8))
+                ax = fig.gca()
+                ax.grid(True)
+            if surfaces is None:
+                srfcs = self.sys.srfcs
+            else:
+                srfcs = []
+                for srfc in self.sys.srfcs:
+                    if srfc.name in surfaces:
+                        srfcs.append(srfc)
+            onesrfc = len(srfcs) == 1
+            for srfc in srfcs:
+                if normalise:
+                    l = [self.strpres.stmom.y[strp.ind, 0]/strp.area/strp.chord/self.qfs for strp in srfc.strps]
+                else:
+                    l = [self.strpres.stmom.y[strp.ind, 0]/strp.width/strp.chord for strp in srfc.strps]
+                if label is None:
+                    thislabel = self.name + ' for ' + srfc.name
+                else:
+                    if not onesrfc:
+                        thislabel = label + ' for ' + srfc.name
+                    else:
+                        thislabel = label
+                if axis == 'b':
+                    b = srfc.strpb
+                    if max(b) > min(b):
+                        ax.plot(b, l, label=thislabel)
+                elif axis == 'y':
+                    y = srfc.strpy
+                    if max(y) > min(y):
+                        ax.plot(y, l, label=thislabel)
+                elif axis == 'z':
+                    z = srfc.strpz
+                    if max(z) > min(z):
+                        ax.plot(l, z, label=thislabel)
+            ax.legend()
+        return ax
+
     def plot_trefftz_lift_force_distribution(self, ax=None, axis: str='b',
                                              surfaces: list=None, normalise: bool=False,
                                              label: str=None):
@@ -1133,6 +1178,50 @@ class StripResult():
             for i in range(self.stfrc.shape[0]):
                 self._lift[i, 0] = self.nfres.res.acs.dirz.dot(self.stfrc[i, 0])
         return self._lift
+
+    def to_mdobj(self) -> MDReport:
+
+        res = self.nfres.res
+        resname = res.name
+        sys = res.sys
+        sysname = sys.name
+        ind = [strp.ind for strp in sys.strps]
+        pntx = [strp.point.x for strp in sys.strps]
+        pnty = [strp.point.y for strp in sys.strps]
+        pntz = [strp.point.z for strp in sys.strps]
+        frcx = self.stfrc.x[ind].transpose().tolist()[0]
+        frcy = self.stfrc.y[ind].transpose().tolist()[0]
+        frcz = self.stfrc.z[ind].transpose().tolist()[0]
+        momx = self.stmom.x[ind].transpose().tolist()[0]
+        momy = self.stmom.y[ind].transpose().tolist()[0]
+        momz = self.stmom.z[ind].transpose().tolist()[0]
+
+        report = MDReport()
+        heading = MDHeading(f'Strip Results {resname} for {sysname}', 1)
+        report.add_object(heading)
+        table = MDTable()
+        table.add_column('Strip', 'd', data=ind)
+        table.add_column('Point X', '.3f', data=pntx)
+        table.add_column('Point Y', '.3f', data=pnty)
+        table.add_column('Point X', '.3f', data=pntz)
+        table.add_column('Force X', '.3f', data=frcx)
+        table.add_column('Force Y', '.3f', data=frcy)
+        table.add_column('Force X', '.3f', data=frcz)
+        table.add_column('Moment X', '.3f', data=momx)
+        table.add_column('Moment Y', '.3f', data=momy)
+        table.add_column('Moment Z', '.3f', data=momz)
+        report.add_object(table)
+
+        return report
+
+    def __repr__(self):
+        return f'<StripResult: {self.nfres.res.name}>'
+
+    def __str__(self) -> str:
+        return self.to_mdobj().__str__()
+
+    def _repr_markdown_(self):
+        return self.to_mdobj()._repr_markdown_()
 
 class FarFieldResult():
     res = None
