@@ -81,13 +81,17 @@ class PanelProfile():
         shp = self.get_shape()
         num = shp.shape[1]
         self.grds = []
+        te = False
         for i in range(num):
-            te = False
-            if i == 0 or i == num-1:
-                if not self.nohsv:
-                    te = True
+            # te = False
+            # if i == 0 or i == num-1:
+            #     if not self.nohsv:
+            #         te = True
             self.grds.append(Grid(gid, shp[0, i].x, shp[0, i].y, shp[0, i].z, te))
             gid += 1
+        if not self.nohsv:
+            self.grds[0].te = True
+            self.grds[-1].te = True
         return gid
 
     def __repr__(self) -> str:

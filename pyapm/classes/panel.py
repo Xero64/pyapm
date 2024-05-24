@@ -17,6 +17,7 @@ if TYPE_CHECKING:
 
 class Panel(DirichletPoly):
     pid: int = None
+    grds: List[Grid] = None
     gids: List[int] = None
     ind: int = None
     grp: int = None
@@ -41,7 +42,7 @@ class Panel(DirichletPoly):
         super().__init__(grds)
         self.pid = pid
         for grd in self.grds:
-            grd.pnls.append(self)
+            grd.pnls.add(self)
 
     def set_index(self, ind: int):
         self.ind = ind
@@ -154,27 +155,31 @@ class Panel(DirichletPoly):
             for i in range(self.num):
                 grda = self.grds[i-1]
                 grdb = self.grds[i]
-                self._edgpnls.append([])
-                for pnl in grda.pnls:
-                    if pnl is not self:
-                        edgchk = self.check_edge(pnl, grda, grdb)
-                        if edgchk:
-                            _, srfchk, _ = self.check_panel(pnl)
-                            if srfchk:
-                                if not grda.te and not grdb.te:
-                                    angchk = self.check_angle(pnl)
-                                    if angchk:
-                                        self._edgpnls[i].append(pnl)
-                                else:
-                                    self._edgpnls[i].append(pnl)
-                            else:
-                                angchk = self.check_angle(pnl)
-                                if angchk:
-                                    self._edgpnls[i].append(pnl)
-                if grda.te and grdb.te:
-                    self._edgpnls[i].append(self)
-                elif len(self._edgpnls[i]) > 0:
-                    self._edgpnls[i].append(self)
+                pnls = grda.pnls & grdb.pnls
+                pnllst = list(pnls)
+                self._edgpnls.append(pnllst)
+                # pnls.remove(self)
+                # pnllst = list(pnls)
+                # pnls.clear()
+                # if len(pnllst) > 0:
+                #     pnlb = pnllst[0]
+                #     _, srfchk, _ = self.check_panel(pnlb)
+                #     if srfchk:
+                #         if not grda.te and not grdb.te:
+                #             angchk = self.check_angle(pnlb)
+                #             if angchk:
+                #                 pnls.add(pnlb)
+                #         else:
+                #             pnls.add(pnlb)
+                #     else:
+                #         angchk = self.check_angle(pnlb)
+                #         if angchk:
+                #             pnls.add(pnlb)
+                # if grda.te and grdb.te:
+                #     pnls.add(self)
+                # elif len(self._edgpnls[i]) > 0:
+                #     pnls.add(self)
+                # self._edgpnls.append(list(pnls))
         return self._edgpnls
 
     @property
@@ -240,8 +245,11 @@ class Panel(DirichletPoly):
                     ValueError(f'Too many panels associated to edge {i:d} of panel {self.pid:d}.')
         return self._edgfacs
 
-    def edge_mu(self, mu: matrix):
+    def edge_mu(self, mu: matrix, display: bool = False):
         edgmu = []
+        if display:
+            print(f'edgpnls = {self.edgpnls}')
+            print(f'edginds = {self.edginds}')
         for i in range(self.num):
             if len(self.edginds[i]) == 0:
                 edgmu.append(None)
@@ -257,9 +265,13 @@ class Panel(DirichletPoly):
             self._edgpntl = [self.crd.point_to_local(pnt) for pnt in self.edgpnts]
         return self._edgpntl
 
-    def diff_mu(self, mu: matrix):
+    def diff_mu(self, mu: matrix, display: bool = False):
         pnlmu = mu[self.ind, 0]
+        if display:
+            print(f'pnlmu = {pnlmu}')
         edgmu = self.edge_mu(mu)
+        if display:
+            print(f'edgmu = {edgmu}')
         edgx = [pnt.x for pnt in self.edgpntl]
         edgy = [pnt.y for pnt in self.edgpntl]
         Js = 0.0

@@ -1,4 +1,4 @@
-from typing import List, TYPE_CHECKING
+from typing import Set, TYPE_CHECKING
 from pygeom.geom3d import Vector
 
 if TYPE_CHECKING:
@@ -7,15 +7,15 @@ if TYPE_CHECKING:
 
 class Grid(Vector):
     gid: int = None
-    te: float = None
+    te: bool = None
     ind: int = None
-    pnls: List['Panel'] = None
+    pnls: Set['Panel'] = None
 
     def __init__(self, gid: int, x: float, y: float, z: float, te: bool=False):
         self.gid = gid
         self.te = te
         super().__init__(x, y, z)
-        self.pnls = []
+        self.pnls = set()
 
     def set_index(self, ind: int):
         self.ind = ind

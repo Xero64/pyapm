@@ -3,6 +3,7 @@ from typing import List, Dict
 from numpy.matlib import absolute
 from pygeom.geom3d import Vector
 from pygeom.matrix3d import zero_matrix_vector
+from .grid import Grid
 from .panel import Panel
 from .panelprofile import PanelProfile
 from .panelcontrol import PanelControl, panelcontrol_from_dict
@@ -21,6 +22,7 @@ class PanelSection(PanelProfile):
     zoc: float = None
     shta: object = None
     shtb: object = None
+    grds: List[Grid] = None
     pnls: List[Panel] = None
     ruled: bool = None
     noload: bool = None
@@ -141,6 +143,27 @@ class PanelSection(PanelProfile):
             offvec = Vector(self.xoc, 0.0, self.zoc)
             profile = profile-offvec
         return profile
+
+    def mesh_grids(self, gid: int) -> int:
+        shp = self.get_shape()
+        num = shp.shape[1]
+        tip_te_closed = False
+        if self.scttyp == 'begtip' or self.scttyp == 'endtip':
+            vec = shp[0, -1] - shp[0, 0]
+            if vec.return_magnitude() < 1e-12:
+                tip_te_closed = True
+                num -= 1
+        self.grds = []
+        te = False
+        for i in range(num):
+            self.grds.append(Grid(gid, shp[0, i].x, shp[0, i].y, shp[0, i].z, te))
+            gid += 1
+        if tip_te_closed:
+            self.grds.append(self.grds[0])
+        if not self.nohsv:
+            self.grds[0].te = True
+            self.grds[-1].te = True
+        return gid
 
     def mesh_panels(self, pid: int):
         mesh = False

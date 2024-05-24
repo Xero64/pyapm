@@ -1,11 +1,16 @@
-from typing import List, Dict
+from typing import List, Dict, TYPE_CHECKING
 from time import perf_counter
-from math import degrees, radians
+from numpy import degrees, radians
 from numpy.matlib import zeros
 from numpy.linalg import norm, inv
 from .panelresult import PanelResult, NearFieldResult
 from ..tools.trim import LoadTrim, LoopingTrim, TurningTrim
 from ..tools.mass import Mass
+
+ANGTOL = 30.0
+
+if TYPE_CHECKING:
+    from .panelsystem import PanelSystem
 
 class PanelTrim(PanelResult):
     CLt: float = None
@@ -13,8 +18,8 @@ class PanelTrim(PanelResult):
     Clt: float = None
     Cmt: float = None
     Cnt: float = None
-    initstate: Dict['str', 'float'] = None
-    initctrls: Dict['str', 'float'] = None
+    initstate: Dict[str, float] = None
+    initctrls: Dict[str, float] = None
     _tgtlst: List[str] = None
     _numtgt: int = None
     _trmmom: bool = None
@@ -37,7 +42,7 @@ class PanelTrim(PanelResult):
         self._numtgt = None
         self._trmmom = None
 
-    def set_initial_state(self, initstate: Dict['str', 'float']):
+    def set_initial_state(self, initstate: Dict[str, float]):
         self.initstate = initstate
         # if 'alpha' not in self.initstate:
         #     self.initstate['alpha'] = 0.0
@@ -45,7 +50,7 @@ class PanelTrim(PanelResult):
         #     self.initstate['beta'] = 0.0
         self.set_state(**self.initstate)
 
-    def set_initial_controls(self, initctrls: Dict['str', 'float']):
+    def set_initial_controls(self, initctrls: Dict[str, float]):
         self.initctrls = initctrls
         self.set_controls(**self.initctrls)
 
@@ -344,34 +349,43 @@ class PanelTrim(PanelResult):
                 print(f'Ctgt = \n{Ctgt}\n')
                 print(f'Ccur = \n{Ccur}\n')
                 print(f'Cdff = \n{Cdff}\n')
-                print(f'alpha = {self.alpha} deg')
-                print(f'beta = {self.beta} deg')
+                print(f'alpha = {self.alpha:.6f} deg')
+                print(f'beta = {self.beta:.6f} deg')
                 print(f'pbo2V = {self.pbo2V}')
                 print(f'qco2V = {self.qco2V}')
                 print(f'rbo2V = {self.rbo2V}')
-                # for var in self.initstate:
-                #     if var == 'alpha' or var == 'beta':
-                #         print(f'{var:s} = {getattr(self, var):.6f} deg')
-                #     else:
-                #         print(f'{var:s} = {getattr(self, var):.6f}')
                 for ctrl in self.ctrls:
                     print(f'{ctrl} = {self.ctrls[ctrl]:.6f} deg')
                 print(f'normC = {nrmC}\n')
+
+            check = False
+            if abs(self.alpha) > ANGTOL:
+                check = True
+            elif abs(self.beta) > ANGTOL:
+                check = True
+            else:
+                 for ctrl in self.ctrls:
+                     if abs(self.ctrls[ctrl]) > ANGTOL:
+                         check = True
+                         break
+
             iter += 1
-            if iter >= imax:
+            if iter >= imax or check:
                 print(f'Ctgt = \n{Ctgt}\n')
                 print(f'Ccur = \n{Ccur}\n')
                 print(f'Cdff = \n{Cdff}\n')
-                print(f'alpha = {self.alpha} deg')
-                print(f'beta = {self.beta} deg')
+                print(f'alpha = {self.alpha:.6f} deg')
+                print(f'beta = {self.beta:.6f} deg')
                 print(f'pbo2V = {self.pbo2V}')
                 print(f'qco2V = {self.qco2V}')
                 print(f'rbo2V = {self.rbo2V}')
+                for ctrl in self.ctrls:
+                    print(f'{ctrl} = {self.ctrls[ctrl]:.6f} deg')
                 print(f'Convergence failed for {self.name:s}.')
                 return False
         print(f'Converged {self.name:s} in {iter:d} iterations.')
 
-def paneltrim_from_dict(psys: object, resdata: dict):
+def paneltrim_from_dict(psys: 'PanelSystem', resdata: dict):
     name = resdata['name']
 
     if resdata['trim'] == 'Load Trim':

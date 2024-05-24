@@ -18,8 +18,8 @@ class LoopingTrim():
     _CL = None
     _prate = None
     _qco2V = None
-    initstate: Dict['str', 'float'] = None
-    initctrls: Dict['str', 'float'] = None
+    initstate: Dict[str, float] = None
+    initctrls: Dict[str, float] = None
 
     def __init__(self, name: str, sys: object):
         self.name = name
@@ -54,7 +54,7 @@ class LoopingTrim():
         self.loadfac = loadfac
         self.reset()
 
-    def set_initial_state(self, initstate: Dict['str', 'float']):
+    def set_initial_state(self, initstate: Dict[str, float]):
         self.initstate = initstate
         if 'alpha' not in self.initstate:
             self.initstate['alpha'] = 0.0
@@ -63,7 +63,7 @@ class LoopingTrim():
         # if 'qco2V' not in self.initstate:
         #     self.initstate['qco2V'] = self.qco2V
 
-    def set_initial_controls(self, initctrls: Dict['str', 'float']):
+    def set_initial_controls(self, initctrls: Dict[str, float]):
         self.initctrls = initctrls
         for control in self.sys.ctrls:
             if control not in self.initctrls:
@@ -180,8 +180,8 @@ class TurningTrim():
     _rrate = None
     _qco2V = None
     _rbo2V = None
-    initstate: Dict['str', 'float'] = None
-    initctrls: Dict['str', 'float'] = None
+    initstate: Dict[str, float] = None
+    initctrls: Dict[str, float] = None
 
     def __init__(self, name: str, sys: object):
         self.name = name
@@ -216,7 +216,7 @@ class TurningTrim():
         self.bankang = bankang
         self.reset()
 
-    def set_initial_state(self, initstate: Dict['str', 'float']):
+    def set_initial_state(self, initstate: Dict[str, float]):
         self.initstate = initstate
         if 'alpha' not in self.initstate:
             self.initstate['alpha'] = 0.0
@@ -227,7 +227,7 @@ class TurningTrim():
         # if 'rbo2V' not in self.initstate:
         #     self.initstate['rbo2V'] = self.rbo2V
 
-    def set_initial_controls(self, initctrls: Dict['str', 'float']):
+    def set_initial_controls(self, initctrls: Dict[str, float]):
         self.initctrls = initctrls
         for control in self.sys.ctrls:
             if control not in self.initctrls:
@@ -364,8 +364,8 @@ class LevelTrim():
     _lift = None
     _dynpres = None
     _CL = None
-    initstate: Dict['str', 'float'] = None
-    initctrls: Dict['str', 'float'] = None
+    initstate: Dict[str, float] = None
+    initctrls: Dict[str, float] = None
 
     def __init__(self, name: str, sys: object):
         self.name = name
@@ -399,10 +399,10 @@ class LevelTrim():
             self.mass = mass
         self.reset()
 
-    def set_initial_state(self, initstate: Dict['str', 'float']):
+    def set_initial_state(self, initstate: Dict[str, float]):
         self.initstate = initstate
 
-    def set_initial_controls(self, initctrls: Dict['str', 'float']):
+    def set_initial_controls(self, initctrls: Dict[str, float]):
         self.initctrls = initctrls
 
     def create_trim_result(self):
@@ -477,8 +477,8 @@ class LoadTrim():
     l: float = None
     m: float = None
     n: float = None
-    initstate: Dict['str', 'float'] = None
-    initctrls: Dict['str', 'float'] = None
+    initstate: Dict[str, float] = None
+    initctrls: Dict[str, float] = None
     _dynpres: float = None
     _CL: float = None
     _CY: float = None
@@ -508,10 +508,10 @@ class LoadTrim():
         self.m = m
         self.n = n
 
-    def set_initial_state(self, initstate: Dict['str', 'float']):
+    def set_initial_state(self, initstate: Dict[str, float]):
         self.initstate = initstate
 
-    def set_initial_controls(self, initctrls: Dict['str', 'float']):
+    def set_initial_controls(self, initctrls: Dict[str, float]):
         self.initctrls = initctrls
 
     def create_trim_result(self):
