@@ -1,8 +1,8 @@
 from math import sqrt, acos, pi
 from typing import List, TYPE_CHECKING, Tuple
-from numpy.matlib import matrix, absolute, full, minimum, logical_not, ones
+from numpy import ndarray, absolute, full, minimum, logical_not, ones
 from pygeom.geom3d import Vector, Coordinate, IHAT, KHAT
-from pygeom.matrix3d import MatrixVector
+from pygeom.array3d import ArrayVector
 from .grid import Grid
 from .dirichletpoly import DirichletPoly
 from .horseshoedoublet import HorseshoeDoublet
@@ -245,7 +245,7 @@ class Panel(DirichletPoly):
                     ValueError(f'Too many panels associated to edge {i:d} of panel {self.pid:d}.')
         return self._edgfacs
 
-    def edge_mu(self, mu: matrix, display: bool = False):
+    def edge_mu(self, mu: ndarray, display: bool = False):
         edgmu = []
         if display:
             print(f'edgpnls = {self.edgpnls}')
@@ -256,7 +256,7 @@ class Panel(DirichletPoly):
             else:
                 edgmu.append(0.0)
                 for ind, fac in zip(self.edginds[i], self.edgfacs[i]):
-                    edgmu[i] += mu[ind, 0]*fac
+                    edgmu[i] += mu[ind]*fac
         return edgmu
 
     @property
@@ -265,8 +265,8 @@ class Panel(DirichletPoly):
             self._edgpntl = [self.crd.point_to_local(pnt) for pnt in self.edgpnts]
         return self._edgpntl
 
-    def diff_mu(self, mu: matrix, display: bool = False):
-        pnlmu = mu[self.ind, 0]
+    def diff_mu(self, mu: ndarray, display: bool = False):
+        pnlmu = mu[self.ind]
         if display:
             print(f'pnlmu = {pnlmu}')
         edgmu = self.edge_mu(mu)
@@ -377,15 +377,15 @@ class Panel(DirichletPoly):
                 self._grdfacs.append([invd/suminvd for invd in pnlinvd])
         return self._grdfacs
 
-    def grid_res(self, pnlres: matrix):
+    def grid_res(self, pnlres: ndarray):
         grdres = []
         for i in range(self.num):
             grdres.append(0.0)
             for ind, fac in zip(self.grdinds[i], self.grdfacs[i]):
-                grdres[i] += pnlres[ind, 0]*fac
+                grdres[i] += pnlres[ind]*fac
         return grdres
 
-    def within_and_absz_ttol(self, pnts: MatrixVector, ttol: float=0.1):
+    def within_and_absz_ttol(self, pnts: ArrayVector, ttol: float=0.1):
         shp = pnts.shape
         pnts = pnts.reshape((-1, 1))
         rgcs = pnts-self.pnto
@@ -409,10 +409,10 @@ class Panel(DirichletPoly):
         absz = absz.reshape(shp)
         return wint, absz
 
-    def point_res(self, pnlres: matrix, pnt: Vector, ttol: float=0.1):
+    def point_res(self, pnlres: ndarray, pnt: Vector, ttol: float=0.1):
         vecg = pnt - self.pnto
         gres = self.grid_res(pnlres)
-        pres = pnlres[self.ind, 0]
+        pres = pnlres[self.ind]
         r = 0.0
         for i in range(self.num):
             dirx = self.dirxab[0, i]
@@ -420,7 +420,7 @@ class Panel(DirichletPoly):
             dirz = self.dirzab[0, i]
             vecl = Vector(vecg.dot(dirx), vecg.dot(diry), vecg.dot(dirz))
             ainv = self.baryinv[i]
-            bmat = matrix([[1.0], [vecl.x], [vecl.y]])
+            bmat = ndarray([[1.0], [vecl.x], [vecl.y]])
             tmat = ainv*bmat
             to, ta, tb = tmat[0, 0], tmat[1, 0], tmat[2, 0]
             mint = min(to, ta, tb)

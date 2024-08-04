@@ -1,6 +1,6 @@
 from math import degrees, atan2
 from typing import List, Dict
-from numpy.matlib import matrix
+from numpy import ndarray
 from pygeom.geom3d import Vector, IHAT
 from .panelsection import PanelSection
 from .panelstrip import PanelStrip
@@ -128,7 +128,7 @@ class PanelSheet():
         return self._bspc
 
     @property
-    def bdst(self) -> matrix:
+    def bdst(self) -> ndarray:
         if self._bdst is None:
             if self.bspc == 'equal':
                 bdst = equal_spacing(self.bnum)

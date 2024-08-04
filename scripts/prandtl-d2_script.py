@@ -5,9 +5,8 @@ from pyapm import panelsystem_from_json
 from pyapm.classes.horseshoevortex2d import HorseshoeVortex2D, Vector2D
 from pyapm.outputs.msh import panelresult_to_msh
 from matplotlib.pyplot import figure
-from pygeom.matrix2d import zero_matrix_vector
-from pygeom.matrix2d.matrixvector2d import elementwise_dot_product
-from numpy.matlib import zeros
+from pygeom.array2d import zero_arrayvector2d
+from numpy import zeros
 
 #%%
 # Create Panel Mesh
@@ -26,9 +25,9 @@ _ = axt2.set_xlabel('Span-Wise Coordinate - b (m)')
 axt = psys.plot_chord_distribution()
 _ = axt.set_ylabel('Chord (m)')
 _ = axt.set_xlabel('Span-Wise Coordinate - b (m)')
-# axw = psys.plot_strip_width_distribution()
-# _ = axw.set_ylabel('Strip Width (m)')
-# _ = axw.set_xlabel('Span-Wise Coordinate - b (m)')
+axw = psys.plot_strip_width_distribution()
+_ = axw.set_ylabel('Strip Width (m)')
+_ = axw.set_xlabel('Span-Wise Coordinate - b (m)')
 
 #%%
 # Assembly and Solution
@@ -139,20 +138,20 @@ _ = ax.plot(ypos, wash)
 # Horseshoe Vortex 2D
 num = len(hsv2ds)
 
-hsvpnts = zero_matrix_vector((num, 1), dtype=float)
-hsvnrms = zero_matrix_vector((num, 1), dtype=float)
+hsvpnts = zero_arrayvector2d(num, dtype=float)
+hsvnrms = zero_arrayvector2d(num, dtype=float)
 for i, hsv in enumerate(hsv2ds):
-    hsvpnts[i, 0] = hsv.pnt
-    hsvnrms[i, 0] = hsv.nrm
+    hsvpnts[i] = hsv.pnt
+    hsvnrms[i] = hsv.nrm
 
 awh2d = zeros((num, num), dtype=float)
 
 for i, hsv in enumerate(hsv2ds):
     avh = hsv.induced_velocity(hsvpnts)
-    awh2d[:, i] = elementwise_dot_product(hsvnrms, avh)
+    awh2d[:, i] = hsvnrms.dot(avh)
     # awh2d[:, i] = avh.y
 
-wash2d = awh2d*pres.ffres.circ
+wash2d = awh2d@pres.ffres.circ
 
 wash2d = wash2d.transpose().tolist()[0]
 

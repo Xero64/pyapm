@@ -1,8 +1,8 @@
-from pygeom.matrix3d import MatrixVector
-from numpy.matlib import zeros, argmin, array, arange, logical_not, matrix
+from pygeom.array3d import ArrayVector
+from numpy import zeros, argmin, array, arange, logical_not, ndarray
 from ..classes.panelsystem import PanelSystem
 
-def fetch_pids_ttol(pnts: MatrixVector, psys: PanelSystem, ztol: float=0.01, ttol: float=0.1):
+def fetch_pids_ttol(pnts: ArrayVector, psys: PanelSystem, ztol: float=0.01, ttol: float=0.1):
     shp = pnts.shape
     pnts = pnts.reshape((-1, 1))
     numpnt = pnts.shape[0]
@@ -23,18 +23,18 @@ def fetch_pids_ttol(pnts: MatrixVector, psys: PanelSystem, ztol: float=0.01, tto
     minm = array(minm).flatten()
     pidm = array(pidm).flatten()
     pids = pidm[minm]
-    pids = matrix([pids], dtype=int).transpose()
+    pids = ndarray([pids], dtype=int).transpose()
     indp = arange(numpnt)
     minz = array(abszm[indp, minm]).flatten()
-    minz = matrix([minz], dtype=float).transpose()
+    minz = ndarray([minz], dtype=float).transpose()
     chkz = minz < ztol
     pids[logical_not(chkz)] = 0
     pids = pids.reshape(shp)
     chkz = chkz.reshape(shp)
     return pids, chkz
 
-def point_results(pnts: MatrixVector, psys: PanelSystem, pids: array, chkz: array,
-                  pnlres: matrix, ttol: float=0.1):
+def point_results(pnts: ArrayVector, psys: PanelSystem, pids: array, chkz: array,
+                  pnlres: ndarray, ttol: float=0.1):
     res = zeros(pnts.shape, dtype=float)
     for i in range(pnts.shape[0]):
         for j in range(pnts.shape[1]):

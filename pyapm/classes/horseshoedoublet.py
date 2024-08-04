@@ -1,10 +1,9 @@
 from math import pi
 
-from pygeom.matrix3d.matrixvector import elementwise_multiply
 from pygeom.geom3d import Vector
-from pygeom.matrix3d import MatrixVector, zero_matrix_vector
-from numpy.matlib import matrix, zeros, multiply, divide, arctan, ones, absolute, square
-from .dirichletpoly import phi_doublet_matrix, vel_doublet_matrix
+from pygeom.array3d import ArrayVector, zero_arrayvector
+from numpy import ndarray, zeros, multiply, divide, arctan, ones, absolute, square
+from .dirichletpoly import phi_doublet_array, vel_doublet_array
 from numpy import logical_not, reciprocal, seterr
 
 seterr(divide='ignore')
@@ -75,7 +74,7 @@ class HorseshoeDoublet():
             self._width = grdby - grday
         return self._width
 
-    def relative_mach(self, pnts: MatrixVector, pnt: Vector,
+    def relative_mach(self, pnts: ArrayVector, pnt: Vector,
                       betx: float=1.0, bety: float=1.0, betz: float=1.0):
         vecs = pnts-pnt
         vecs.x = vecs.x/betx
@@ -83,7 +82,7 @@ class HorseshoeDoublet():
         vecs.z = vecs.z/betz
         return vecs
 
-    def doublet_influence_coefficients(self, pnts: MatrixVector, incvel: bool=True,
+    def doublet_influence_coefficients(self, pnts: ArrayVector, incvel: bool=True,
                                        betx: float=1.0, bety: float=1.0,
                                        betz: float=1.0, checktol: bool=False):
         vecab = Vector(self.vecab.x/betx, self.vecab.y/bety, self.vecab.z/betz)
@@ -97,74 +96,74 @@ class HorseshoeDoublet():
         sgnz[locz <= 0.0] = -1.0
         phid = zeros(pnts.shape, dtype=float)
         if incvel:
-            veld = zero_matrix_vector(pnts.shape, dtype=float)
+            veld = zero_arrayvector(pnts.shape, dtype=float)
         # Vector A in Local Coordinate System
-        alcs = MatrixVector(agcs.dot(dirxab), agcs.dot(diryab), agcs.dot(dirzab))
+        alcs = ArrayVector(agcs.dot(dirxab), agcs.dot(diryab), agcs.dot(dirzab))
         if checktol:
             alcs.x[absolute(alcs.x) < tol] = 0.0
             alcs.y[absolute(alcs.y) < tol] = 0.0
             alcs.z[absolute(alcs.z) < tol] = 0.0
         # Vector A Doublet Velocity Potentials
-        phida, amag = phi_doublet_matrix(alcs, sgnz)
+        phida, amag = phi_doublet_array(alcs, sgnz)
         # Vector B in Local Coordinate System
-        blcs = MatrixVector(bgcs.dot(dirxab), bgcs.dot(diryab), bgcs.dot(dirzab))
+        blcs = ArrayVector(bgcs.dot(dirxab), bgcs.dot(diryab), bgcs.dot(dirzab))
         if checktol:
             blcs.x[absolute(blcs.x) < tol] = 0.0
             blcs.y[absolute(blcs.y) < tol] = 0.0
             blcs.z[absolute(blcs.z) < tol] = 0.0
         # Vector B Doublet Velocity Potentials
-        phidb, bmag = phi_doublet_matrix(blcs, sgnz)
+        phidb, bmag = phi_doublet_array(blcs, sgnz)
         # Edge Doublet Velocity Potentials
         phidi = phida - phidb
         # Add Edge Velocity Potentials
         phid += phidi
         if incvel:
             # Bound Edge Velocities in Local Coordinate System
-            veldi = vel_doublet_matrix(alcs, amag, blcs, bmag)
+            veldi = vel_doublet_array(alcs, amag, blcs, bmag)
             # Transform to Global Coordinate System and Add
             dirxi = Vector(dirxab.x, diryab.x, dirzab.x)
             diryi = Vector(dirxab.y, diryab.y, dirzab.y)
             dirzi = Vector(dirxab.z, diryab.z, dirzab.z)
-            veld += MatrixVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
+            veld += ArrayVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
         # Trailing Edge A Coordinate Transformation
         dirxa = self.diro
         dirza = self.nrm
         dirya = -dirza.cross(dirxa)
-        alcs = MatrixVector(agcs.dot(dirxa), agcs.dot(dirya), agcs.dot(dirza))
+        alcs = ArrayVector(agcs.dot(dirxa), agcs.dot(dirya), agcs.dot(dirza))
         # Trailing Edge A Velocity Potential
-        phida, amag = phi_doublet_matrix(alcs, sgnz)
-        phidt = phi_trailing_doublet_matrix(alcs, sgnz)
+        phida, amag = phi_doublet_array(alcs, sgnz)
+        phidt = phi_trailing_doublet_array(alcs, sgnz)
         phidi = phida + phidt
         # Add Trailing Edge A Velocity Potentials
         phid += phidi
         # Trailing Edge B Coordinate Transformation
         if incvel:
             # Trailing Edge A Velocities in Local Coordinate System
-            veldi = vel_trailing_doublet_matrix(alcs, amag, 1.0)
+            veldi = vel_trailing_doublet_array(alcs, amag, 1.0)
             # Transform to Global Coordinate System and Add
             dirxi = Vector(dirxa.x, dirya.x, dirza.x)
             diryi = Vector(dirxa.y, dirya.y, dirza.y)
             dirzi = Vector(dirxa.z, dirya.z, dirza.z)
-            veld += MatrixVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
+            veld += ArrayVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
         # Trailing Edge B Coordinate Transformation
         dirxb = self.diro
         dirzb = self.nrm
         diryb = dirzb.cross(dirxb)
-        blcs = MatrixVector(bgcs.dot(dirxb), bgcs.dot(diryb), bgcs.dot(dirzb))
+        blcs = ArrayVector(bgcs.dot(dirxb), bgcs.dot(diryb), bgcs.dot(dirzb))
         # Trailing Edge B Velocity Potential
-        phidb, bmag = phi_doublet_matrix(blcs, sgnz)
-        phidt = phi_trailing_doublet_matrix(blcs, sgnz)
+        phidb, bmag = phi_doublet_array(blcs, sgnz)
+        phidt = phi_trailing_doublet_array(blcs, sgnz)
         phidi = phidb + phidt
         # Add Trailing Edge B Velocity Potentials
         phid += phidi
         if incvel:
             # Trailing Edge B Velocities in Local Coordinate System
-            veldi = vel_trailing_doublet_matrix(blcs, bmag, 1.0)
+            veldi = vel_trailing_doublet_array(blcs, bmag, 1.0)
             # Transform to Global Coordinate System and Add
             dirxi = Vector(dirxb.x, diryb.x, dirzb.x)
             diryi = Vector(dirxb.y, diryb.y, dirzb.y)
             dirzi = Vector(dirxb.z, diryb.z, dirzb.z)
-            veld += MatrixVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
+            veld += ArrayVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
         # Factors and Outputs
         phid = phid/fourPi
         if incvel:
@@ -174,76 +173,76 @@ class HorseshoeDoublet():
             output = phid
         return output
 
-    def doublet_velocity_potentials(self, pnts: MatrixVector,
+    def doublet_velocity_potentials(self, pnts: ArrayVector,
                                     betx: float=1.0, bety: float=1.0, betz: float=1.0):
         phi = self.doublet_influence_coefficients(pnts, incvel=False,
                                                   betx=betx, bety=bety, betz=betz)
         return phi
 
-    def trefftz_plane_velocities(self, pnts: MatrixVector,
+    def trefftz_plane_velocities(self, pnts: ArrayVector,
                                  betx: float=1.0, bety: float=1.0, betz: float=1.0):
         # Trailing Vortex A
         agcs = self.relative_mach(pnts, self.grda, betx=betx, bety=bety, betz=betz)
         dirxa = -self.diro
         dirza = self.nrm
         dirya = dirza.cross(dirxa)
-        alcs = MatrixVector(agcs.dot(dirxa), agcs.dot(dirya), agcs.dot(dirza))
+        alcs = ArrayVector(agcs.dot(dirxa), agcs.dot(dirya), agcs.dot(dirza))
         alcs.x = zeros(alcs.shape, dtype=float)
-        axx = MatrixVector(alcs.x, -alcs.z, alcs.y)
+        axx = ArrayVector(alcs.x, -alcs.z, alcs.y)
         am2 = square(alcs.y) + square(alcs.z)
         chkam2 = absolute(am2) < tol
         am2r = zeros(pnts.shape, dtype=float)
         reciprocal(am2, where=logical_not(chkam2), out=am2r)
         faca = -1.0
-        veldl = elementwise_multiply(axx, am2r)*faca
+        veldl = axx*am2r*faca
         veldl.x[chkam2] = 0.0
         veldl.y[chkam2] = 0.0
         veldl.z[chkam2] = 0.0
         dirxi = Vector(dirxa.x, dirya.x, dirza.x)
         diryi = Vector(dirxa.y, dirya.y, dirza.y)
         dirzi = Vector(dirxa.z, dirya.z, dirza.z)
-        velda = MatrixVector(veldl.dot(dirxi), veldl.dot(diryi), veldl.dot(dirzi))*faca
+        velda = ArrayVector(veldl.dot(dirxi), veldl.dot(diryi), veldl.dot(dirzi))*faca
         # Trailing Vortex B
         bgcs = self.relative_mach(pnts, self.grdb, betx=betx, bety=bety, betz=betz)
         dirxb = self.diro
         dirzb = self.nrm
         diryb = dirzb.cross(dirxb)
-        blcs = MatrixVector(bgcs.dot(dirxb), bgcs.dot(diryb), bgcs.dot(dirzb))
+        blcs = ArrayVector(bgcs.dot(dirxb), bgcs.dot(diryb), bgcs.dot(dirzb))
         blcs.x = zeros(blcs.shape, dtype=float)
-        bxx = MatrixVector(blcs.x, -blcs.z, blcs.y)
+        bxx = ArrayVector(blcs.x, -blcs.z, blcs.y)
         bm2 = square(blcs.y) + square(blcs.z)
         chkbm2 = absolute(bm2) < tol
         bm2r = zeros(pnts.shape, dtype=float)
         reciprocal(bm2, where=logical_not(chkbm2), out=bm2r)
         facb = 1.0
-        veldl = elementwise_multiply(bxx, bm2r)*facb
+        veldl = bxx*bm2r*facb
         veldl.x[chkbm2] = 0.0
         veldl.y[chkbm2] = 0.0
         veldl.z[chkbm2] = 0.0
         dirxi = Vector(dirxb.x, diryb.x, dirzb.x)
         diryi = Vector(dirxb.y, diryb.y, dirzb.y)
         dirzi = Vector(dirxb.z, diryb.z, dirzb.z)
-        veldb = MatrixVector(veldl.dot(dirxi), veldl.dot(diryi), veldl.dot(dirzi))*facb
+        veldb = ArrayVector(veldl.dot(dirxi), veldl.dot(diryi), veldl.dot(dirzi))*facb
         # Add Together
         veld = velda + veldb
         return veld/twoPi
 
-def vel_trailing_doublet_matrix(ov, om, faco):
-    ov: MatrixVector = faco*ov
-    oxx = MatrixVector(zeros(ov.shape), -ov.z, ov.y)
+def vel_trailing_doublet_array(ov, om, faco):
+    ov: ArrayVector = faco*ov
+    oxx = ArrayVector(zeros(ov.shape), -ov.z, ov.y)
     oxxm = oxx.return_magnitude()
     chko = absolute(oxxm) < tol
     den = multiply(om, om-ov.x)
     chkd = absolute(den) < tol
     denr = zeros(ov.shape, dtype=float)
     reciprocal(den, where=logical_not(chkd), out=denr)
-    velol = elementwise_multiply(oxx, denr)
+    velol = oxx*denr
     velol.x[chko] = 0.0
     velol.y[chko] = 0.0
     velol.z[chko] = 0.0
     return velol
 
-def phi_trailing_doublet_matrix(rls: MatrixVector, sgnz: matrix):
+def phi_trailing_doublet_array(rls: ArrayVector, sgnz: ndarray):
     ths = zeros(rls.shape, dtype=float)
     chky = absolute(rls.y) < tol
     ths[rls.y > 0.0] = piby2

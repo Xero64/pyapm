@@ -3,7 +3,7 @@
 from pyapm.classes import Grid, Panel, PanelSystem, PanelResult
 from pyapm.outputs.msh import panelresult_to_msh
 from pyfoil.airfoil import naca_to_xyt
-from numpy.matlib import zeros
+from numpy import zeros
 from pyvlm.tools import full_cosine_spacing
 from pygeom.geom3d import Vector
 

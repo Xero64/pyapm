@@ -1,22 +1,17 @@
 from math import pi
 
-from numpy.matlib import (
+from numpy import (
     absolute,
     arctan,
     divide,
     log,
     logical_and,
-    matrix,
+    ndarray,
     multiply,
     ones,
 )
 from pygeom.geom3d import Coordinate, Vector
-from pygeom.matrix3d import MatrixVector, zero_matrix_vector
-from pygeom.matrix3d.matrixvector import (
-    elementwise_cross_product,
-    elementwise_dot_product,
-    elementwise_multiply,
-)
+from pygeom.array3d import ArrayVector, zero_arrayvector
 
 tol = 1e-12
 piby2 = pi/2
@@ -144,21 +139,21 @@ class BoundEdge():
         else:
             return False
 
-    def points_to_local(self, pnts: MatrixVector, betx: float=1.0):
+    def points_to_local(self, pnts: ArrayVector, betx: float=1.0):
         vecs = pnts-self.pntc
         if betx != 1.0:
             vecs.x = vecs.x/betx
-        return MatrixVector(vecs.dot(self.dirx), vecs.dot(self.diry),
+        return ArrayVector(vecs.dot(self.dirx), vecs.dot(self.diry),
                             vecs.dot(self.dirz))
 
-    def vectors_to_global(self, vecs: MatrixVector):
+    def vectors_to_global(self, vecs: ArrayVector):
         dirx = Vector(self.dirx.x, self.diry.x, self.dirz.x)
         diry = Vector(self.dirx.y, self.diry.y, self.dirz.y)
         dirz = Vector(self.dirx.z, self.diry.z, self.dirz.z)
-        return MatrixVector(vecs.dot(dirx), vecs.dot(diry), vecs.dot(dirz))
+        return ArrayVector(vecs.dot(dirx), vecs.dot(diry), vecs.dot(dirz))
 
-    def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool=False,
-                                    sgnz: matrix=None, factor: bool=True,
+    def doublet_velocity_potentials(self, pnts: ArrayVector, extraout: bool=False,
+                                    sgnz: ndarray=None, factor: bool=True,
                                     betx: float=1.0):
         rls = self.points_to_local(pnts, betx=betx)
         absx = absolute(rls.x)
@@ -171,9 +166,9 @@ class BoundEdge():
             sgnz = ones(rls.shape, float)
             sgnz[rls.z <= 0.0] = -1.0
         avs = rls-self.grdal
-        phida, ams = phi_doublet_matrix(avs, rls, sgnz)
+        phida, ams = phi_doublet_array(avs, rls, sgnz)
         bvs = rls-self.grdbl
-        phidb, bms = phi_doublet_matrix(bvs, rls, sgnz)
+        phidb, bms = phi_doublet_array(bvs, rls, sgnz)
         phids = phida-phidb
         if factor:
             phids = phids/fourPi
@@ -182,40 +177,40 @@ class BoundEdge():
         else:
             return phids
 
-    def doublet_influence_coefficients(self, pnts: MatrixVector,
-                                       sgnz: matrix=None, factor: bool=True,
+    def doublet_influence_coefficients(self, pnts: ArrayVector,
+                                       sgnz: ndarray=None, factor: bool=True,
                                        betx: float=1.0):
         phid, _, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True,
                                                                    sgnz=sgnz,
                                                                    factor=False,
                                                                    betx=betx)
-        veldl = vel_doublet_matrix(av, am, bv, bm)
+        veldl = vel_doublet_array(av, am, bv, bm)
         veld = self.vectors_to_global(veldl)
         if factor:
             phid, veld = phid/fourPi, veld/fourPi
         return phid, veld
 
-    def velocity_potentials(self, pnts: MatrixVector,
-                            sgnz: matrix=None, factor: bool=True, betx: float=1.0):
+    def velocity_potentials(self, pnts: ArrayVector,
+                            sgnz: ndarray=None, factor: bool=True, betx: float=1.0):
         phid, rl, _, am, _, bm = self.doublet_velocity_potentials(pnts, extraout=True,
                                                                   sgnz=sgnz,
                                                                   factor=False,
                                                                   betx=betx)
-        phis, _ = phi_source_matrix(am, bm, self.lenab, rl, phid)
+        phis, _ = phi_source_array(am, bm, self.lenab, rl, phid)
         if factor:
             phid, phis = phid/fourPi, phis/fourPi
         return phid, phis
 
-    def influence_coefficients(self, pnts: MatrixVector,
-                               sgnz: matrix=None, factor: bool=True, betx: float=1.0):
+    def influence_coefficients(self, pnts: ArrayVector,
+                               sgnz: ndarray=None, factor: bool=True, betx: float=1.0):
         phid, rl, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True,
                                                                     sgnz=sgnz,
                                                                     factor=False,
                                                                     betx=betx)
-        phis, Qab = phi_source_matrix(am, bm, self.lenab, rl, phid)
-        velsl = vel_source_matrix(Qab, rl, phid)
+        phis, Qab = phi_source_array(am, bm, self.lenab, rl, phid)
+        velsl = vel_source_array(Qab, rl, phid)
         vels = self.vectors_to_global(velsl)
-        veldl = vel_doublet_matrix(av, am, bv, bm)
+        veldl = vel_doublet_array(av, am, bv, bm)
         veld = self.vectors_to_global(veldl)
         if factor:
             phid, phis, veld, vels = phid/fourPi, phis/fourPi, veld/fourPi, vels/fourPi
@@ -235,7 +230,7 @@ class BoundEdge():
         outstr += f'grdbl = {self.grdbl}\n'
         return outstr
 
-def phi_doublet_matrix(vecs: MatrixVector, rls: MatrixVector, sgnz: matrix):
+def phi_doublet_array(vecs: ArrayVector, rls: ArrayVector, sgnz: ndarray):
     mags = vecs.return_magnitude()
     ms = divide(vecs.x, rls.y)
     ths = arctan(ms)
@@ -246,7 +241,7 @@ def phi_doublet_matrix(vecs: MatrixVector, rls: MatrixVector, sgnz: matrix):
     phids = Js - multiply(sgnz, ths)
     return phids, mags
 
-def phi_source_matrix(am, bm, dab, rl, phid):
+def phi_source_array(am, bm, dab, rl: ArrayVector, phid):
     numrab = am+bm+dab
     denrab = am+bm-dab
     Pab = divide(numrab, denrab)
@@ -256,22 +251,22 @@ def phi_source_matrix(am, bm, dab, rl, phid):
     phis = -multiply(rl.z, phid) - tmps
     return phis, Qab
 
-def vel_doublet_matrix(av, am, bv, bm):
-    adb = elementwise_dot_product(av, bv)
+def vel_doublet_array(av: ArrayVector, am, bv: ArrayVector, bm):
+    adb = av.dot(bv)
     abm = multiply(am, bm)
     dm = multiply(abm, abm+adb)
-    axb = elementwise_cross_product(av, bv)
+    axb = av.cross(bv)
     axbm = axb.return_magnitude()
     chki = (axbm == 0.0)
     chki = logical_and(axbm >= -tol, axbm <= tol)
-    velvl = elementwise_multiply(axb, divide(am+bm, dm))
+    velvl = axb*divide(am+bm, dm)
     velvl.x[chki] = 0.0
     velvl.y[chki] = 0.0
     velvl.z[chki] = 0.0
     return velvl
 
-def vel_source_matrix(Qab, rl, phid):
-    velsl = zero_matrix_vector(Qab.shape, dtype=float)
+def vel_source_array(Qab, rl, phid):
+    velsl = zero_arrayvector(Qab.shape, dtype=float)
     velsl.y = -Qab
     # velsl.z = -phid
     faco = ones(Qab.shape, dtype=float)

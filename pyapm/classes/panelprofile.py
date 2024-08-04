@@ -2,12 +2,11 @@ from math import acos, cos, degrees, radians, sin
 from typing import TYPE_CHECKING, List
 
 from pygeom.geom3d import Coordinate, Vector
-from pygeom.matrix3d import vector_to_global
 
 from .grid import Grid
 
 if TYPE_CHECKING:
-    from pygeom.matrix3d import MatrixVector
+    from pygeom.array3d import ArrayVector
 
     from .panelsection import PanelSection
 
@@ -64,16 +63,16 @@ class PanelProfile():
             self._crdsys = Coordinate(self.point, dirx, diry)
         return self._crdsys
 
-    def get_profile(self, offset: bool=True) -> 'MatrixVector':
+    def get_profile(self, offset: bool=True) -> 'ArrayVector':
         prfa = self.scta.get_profile(offset=offset)
         prfb = self.sctb.get_profile(offset=offset)
         profiledir = prfb - prfa
         return prfa + self.bval*profiledir
 
-    def get_shape(self) -> 'MatrixVector':
+    def get_shape(self) -> 'ArrayVector':
         profile = self.get_profile()
         scaledprofile = profile*self.chord
-        rotatedprofile = vector_to_global(self.crdsys, scaledprofile)
+        rotatedprofile = self.crdsys.vector_to_global(scaledprofile)
         translatedprofile = rotatedprofile + self.point
         return translatedprofile
 

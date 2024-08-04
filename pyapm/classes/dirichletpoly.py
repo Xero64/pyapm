@@ -3,25 +3,21 @@ from typing import List
 
 from numpy import seterr
 from numpy.linalg import inv
-from numpy.matlib import (
+from numpy import (
     absolute,
     arctan,
     divide,
     log,
     logical_and,
     logical_not,
-    matrix,
+    ndarray,
     multiply,
     ones,
     zeros,
 )
 from pygeom.geom3d import Vector
-from pygeom.matrix3d import MatrixVector, zero_matrix_vector
-from pygeom.matrix3d.matrixvector import (
-    elementwise_cross_product,
-    elementwise_dot_product,
-    elementwise_multiply,
-)
+from pygeom.array3d import ArrayVector, zero_arrayvector
+
 
 seterr(divide='ignore')
 
@@ -34,16 +30,16 @@ class DirichletPoly():
     grds: List[Vector] = None
     _num: int = None
     _pnto: Vector = None
-    _grdr: MatrixVector = None
-    _vecab: MatrixVector = None
-    _vecaxb: MatrixVector = None
+    _grdr: ArrayVector = None
+    _vecab: ArrayVector = None
+    _vecaxb: ArrayVector = None
     _sumaxb: Vector = None
     _nrm: Vector = None
     _area: float = None
-    _dirxab: MatrixVector = None
-    _diryab: MatrixVector = None
-    _dirzab: MatrixVector = None
-    _baryinv: List[matrix] = None
+    _dirxab: ArrayVector = None
+    _diryab: ArrayVector = None
+    _dirzab: ArrayVector = None
+    _baryinv: List[ndarray] = None
 
     def __init__(self, grds: List[Vector]):
         self.grds = grds
@@ -63,7 +59,7 @@ class DirichletPoly():
     @property
     def grdr(self):
         if self._grdr is None:
-            self._grdr = zero_matrix_vector((1, self.num), dtype=float)
+            self._grdr = zero_arrayvector((1, self.num), dtype=float)
             for i in range(self.num):
                 self._grdr[0, i] = self.grds[i] - self.pnto
         return self._grdr
@@ -75,16 +71,16 @@ class DirichletPoly():
         grdm.z = grdm.z/betz
         return grdm
 
-    def edge_cross(self, grds: MatrixVector):
-        vecaxb = zero_matrix_vector((1, self.num), dtype=float)
+    def edge_cross(self, grds: ArrayVector):
+        vecaxb = zero_arrayvector((1, self.num), dtype=float)
         for i in range(self.num):
             veca = grds[0, i-1]
             vecb = grds[0, i]
             vecaxb[0, i] = veca.cross(vecb)
         return vecaxb
 
-    def edge_vector(self, grds: MatrixVector):
-        vecab = zero_matrix_vector((1, self.num), dtype=float)
+    def edge_vector(self, grds: ArrayVector):
+        vecab = zero_arrayvector((1, self.num), dtype=float)
         for i in range(self.num):
             veca = grds[0, i-1]
             vecb = grds[0, i]
@@ -130,7 +126,7 @@ class DirichletPoly():
     @property
     def diryab(self):
         if self._diryab is None:
-            self._diryab = elementwise_cross_product(self.dirzab, self.dirxab)
+            self._diryab = self.dirzab.cross(self.dirxab)
         return self._diryab
 
     @property
@@ -160,7 +156,7 @@ class DirichletPoly():
                 self._baryinv.append(inv(amat))
         return self._baryinv
 
-    def relative_mach(self, pnts: MatrixVector, pnt: Vector,
+    def relative_mach(self, pnts: ArrayVector, pnt: Vector,
                       betx: float=1.0, bety: float=1.0, betz: float=1.0):
         vecs = pnts-pnt
         vecs.x = vecs.x/betx
@@ -168,7 +164,7 @@ class DirichletPoly():
         vecs.z = vecs.z/betz
         return vecs
 
-    def influence_coefficients(self, pnts: MatrixVector, incvel: bool=True,
+    def influence_coefficients(self, pnts: ArrayVector, incvel: bool=True,
                                betx: float=1.0, bety: float=1.0, betz: float=1.0,
                                checktol: bool=False):
         grdm = self.mach_grids(betx=betx, bety=bety, betz=betz)
@@ -176,7 +172,7 @@ class DirichletPoly():
         vecaxb = self.edge_cross(grdm)
         dirxab = vecab.to_unit()
         dirzab = vecaxb.to_unit()
-        diryab = elementwise_cross_product(dirzab, dirxab)
+        diryab = dirzab.cross(dirxab)
         nrm = vecaxb.sum().to_unit()
         rgcs = self.relative_mach(pnts, self.pnto, betx=betx, bety=bety, betz=betz)
         locz = rgcs.dot(nrm)
@@ -189,8 +185,8 @@ class DirichletPoly():
         phid = zeros(pnts.shape, dtype=float)
         phis = zeros(pnts.shape, dtype=float)
         if incvel:
-            veld = zero_matrix_vector(pnts.shape, dtype=float)
-            vels = zero_matrix_vector(pnts.shape, dtype=float)
+            veld = zero_arrayvector(pnts.shape, dtype=float)
+            vels = zero_arrayvector(pnts.shape, dtype=float)
         for i in range(self.num):
             # Edge Length
             dab = vecab[0, i].return_magnitude()
@@ -200,40 +196,40 @@ class DirichletPoly():
             dirz = dirzab[0, i]
             # Vector A in Local Coordinate System
             veca = vecgcs[i-1]
-            alcs = MatrixVector(veca.dot(dirx), veca.dot(diry), veca.dot(dirz))
+            alcs = ArrayVector(veca.dot(dirx), veca.dot(diry), veca.dot(dirz))
             if checktol:
                 alcs.x[absolute(alcs.x) < tol] = 0.0
                 alcs.y[absolute(alcs.y) < tol] = 0.0
                 alcs.z[absolute(alcs.z) < tol] = 0.0
             # Vector A Doublet Velocity Potentials
-            phida, amag = phi_doublet_matrix(alcs, sgnz)
+            phida, amag = phi_doublet_array(alcs, sgnz)
             # Vector B in Local Coordinate System
             vecb = vecgcs[i]
-            blcs = MatrixVector(vecb.dot(dirx), vecb.dot(diry), vecb.dot(dirz))
+            blcs = ArrayVector(vecb.dot(dirx), vecb.dot(diry), vecb.dot(dirz))
             if checktol:
                 blcs.x[absolute(blcs.x) < tol] = 0.0
                 blcs.y[absolute(blcs.y) < tol] = 0.0
                 blcs.z[absolute(blcs.z) < tol] = 0.0
             # Vector B Doublet Velocity Potentials
-            phidb, bmag = phi_doublet_matrix(blcs, sgnz)
+            phidb, bmag = phi_doublet_array(blcs, sgnz)
             # Edge Doublet Velocity Potentials
             phidi = phida - phidb
             # Edge Source Velocity Potentials
-            phisi, Qab = phi_source_matrix(amag, bmag, dab, alcs, phidi)
+            phisi, Qab = phi_source_array(amag, bmag, dab, alcs, phidi)
             # Add Edge Velocity Potentials
             phid += phidi
             phis += phisi
             # Calculate Edge Velocities
             if incvel:
                 # Velocities in Local Coordinate System
-                veldi = vel_doublet_matrix(alcs, amag, blcs, bmag)
-                velsi = vel_source_matrix(Qab, alcs, phidi)
+                veldi = vel_doublet_array(alcs, amag, blcs, bmag)
+                velsi = vel_source_array(Qab, alcs, phidi)
                 # Transform to Global Coordinate System and Add
                 dirxi = Vector(dirx.x, diry.x, dirz.x)
                 diryi = Vector(dirx.y, diry.y, dirz.y)
                 dirzi = Vector(dirx.z, diry.z, dirz.z)
-                veld += MatrixVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
-                vels += MatrixVector(velsi.dot(dirxi), velsi.dot(diryi), velsi.dot(dirzi))
+                veld += ArrayVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
+                vels += ArrayVector(velsi.dot(dirxi), velsi.dot(diryi), velsi.dot(dirzi))
         phid = phid/fourPi
         phis = phis/fourPi
         if incvel:
@@ -244,13 +240,13 @@ class DirichletPoly():
             output = phid, phis
         return output
 
-    def velocity_potentials(self, pnts: MatrixVector,
+    def velocity_potentials(self, pnts: ArrayVector,
                             betx: float=1.0, bety: float=1.0, betz: float=1.0):
         phi = self.influence_coefficients(pnts, incvel=False,
                                           betx=betx, bety=bety, betz=betz)
         return phi[0], phi[1]
 
-def phi_doublet_matrix(vecs: MatrixVector, sgnz: matrix):
+def phi_doublet_array(vecs: ArrayVector, sgnz: ndarray):
     mags = vecs.return_magnitude()
     chkm = mags < tol
     chky = absolute(vecs.y) < tol
@@ -267,7 +263,7 @@ def phi_doublet_matrix(vecs: MatrixVector, sgnz: matrix):
     phids = Js - multiply(sgnz, ths)
     return phids, mags
 
-def phi_source_matrix(am, bm, dab, rl, phid):
+def phi_source_array(am, bm, dab, rl, phid):
     numrab = am+bm+dab
     denrab = am+bm-dab
     Pab = divide(numrab, denrab)
@@ -278,25 +274,25 @@ def phi_source_matrix(am, bm, dab, rl, phid):
     phis = -multiply(rl.z, phid) - tmps
     return phis, Qab
 
-def vel_doublet_matrix(av, am, bv, bm):
-    adb = elementwise_dot_product(av, bv)
+def vel_doublet_array(av, am, bv, bm):
+    adb = av.dot(bv)
     abm = multiply(am, bm)
     dm = multiply(abm, abm+adb)
-    axb = elementwise_cross_product(av, bv)
+    axb = av.cross(bv)
     axbm = axb.return_magnitude()
     chki = (axbm == 0.0)
     chki = logical_and(axbm >= -tol, axbm <= tol)
     chkd = absolute(dm) < tol
     fac = zeros(axbm.shape, dtype=float)
     divide(am+bm, dm, where=logical_not(chkd), out=fac)
-    velvl = elementwise_multiply(axb, fac)
+    velvl = axb*fac
     velvl.x[chki] = 0.0
     velvl.y[chki] = 0.0
     velvl.z[chki] = 0.0
     return velvl
 
-def vel_source_matrix(Qab, rl, phid):
-    velsl = zero_matrix_vector(Qab.shape, dtype=float)
+def vel_source_array(Qab, rl, phid):
+    velsl = zero_arrayvector(Qab.shape, dtype=float)
     velsl.y = -Qab
     faco = ones(Qab.shape, dtype=float)
     faco[rl.z != 0.0] = -1.0

@@ -1,7 +1,7 @@
 from typing import List, Dict, TYPE_CHECKING
 from time import perf_counter
 from numpy import degrees, radians
-from numpy.matlib import zeros
+from numpy import zeros
 from numpy.linalg import norm, inv
 from .panelresult import PanelResult, NearFieldResult
 from ..tools.trim import LoadTrim, LoopingTrim, TurningTrim

@@ -2,12 +2,12 @@
 # Import Dependencies
 from time import perf_counter
 from pygeom.geom3d import Vector
-from pygeom.matrix3d import zero_matrix_vector
+from pygeom.array3d import zero_arrayvector
 from pyapm.classes.poly import Poly
 from pyapm.classes.horseshoe import HorseShoe
 from pyapm.tools.functions import mean, derivative
 from matplotlib.pyplot import figure
-from numpy.matlib import absolute
+from numpy import absolute
 
 #%%
 # Create Trailing Edge Vortex
@@ -38,7 +38,7 @@ yamp = 2.0
 xint = 2*xamp/(numx-1)
 yint = 2*yamp/(numy-1)
 
-pnts = zero_matrix_vector((numy, numx))
+pnts = zero_arrayvector((numy, numx))
 for i in range(numy):
     for j in range(numx):
         x = xorg-xamp+xint*j
@@ -156,7 +156,7 @@ zamp = 2.0
 xint = 2*xamp/(numx-1)
 zint = 2*zamp/(numz-1)
 
-pnts = zero_matrix_vector((numy, numx))
+pnts = zero_arrayvector((numy, numx))
 for i in range(numz):
     for j in range(numx):
         x = xorg-xamp+xint*j
@@ -250,7 +250,7 @@ zamp = 2.0
 yint = 2*yamp/(numy-1)
 zint = 2*zamp/(numz-1)
 
-pnts = zero_matrix_vector((numy, numy))
+pnts = zero_arrayvector((numy, numy))
 for i in range(numz):
     for j in range(numy):
         y = yorg-yamp+yint*j

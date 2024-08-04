@@ -2,14 +2,14 @@ from typing import TYPE_CHECKING, Dict, List
 
 from py2md.classes import MDTable
 from pygeom.geom3d import Vector
-from pygeom.matrix3d import zero_matrix_vector
+from pygeom.array3d import zero_arrayvector
 
 from ..tools.rigidbody import RigidBody
 from .panelresult import PanelResult
 from .surfaceload import SurfaceLoad
 
 if TYPE_CHECKING:
-    from pygeom.matrix3d import MatrixVector
+    from pygeom.array3d import ArrayVector
 
     from .panelstrip import PanelStrip
     from .panelsurface import PanelSurface
@@ -24,7 +24,7 @@ class SurfaceStructure():
     rpnts: List[Vector] = None
     ks: List[Vector] = None
     gs: List[Vector] = None
-    _pnts: 'MatrixVector' = None
+    _pnts: 'ArrayVector' = None
     _ypos: List[float] = None
     _zpos: List[float] = None
     _rbdy: RigidBody = None
@@ -49,10 +49,10 @@ class SurfaceStructure():
         return self.srfc.strps
 
     @property
-    def pnts(self) -> 'MatrixVector':
+    def pnts(self) -> 'ArrayVector':
         if self._pnts is None:
             numstrp = len(self.srfc.strps)
-            self._pnts = zero_matrix_vector((2*numstrp, 1), dtype=float)
+            self._pnts = zero_arrayvector((2*numstrp, 1), dtype=float)
             for i, strp in enumerate(self.srfc.strps):
                 inda = 2*i
                 indb = inda + 1

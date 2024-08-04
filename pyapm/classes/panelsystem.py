@@ -4,12 +4,10 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from matplotlib.pyplot import figure
-from numpy.matlib import zeros
+from numpy import zeros
 from py2md.classes import MDTable
+from pygeom.array3d import solve_arrayvector, zero_arrayvector
 from pygeom.geom3d import Vector
-from pygeom.matrix3d import solve_matrix_vector, zero_matrix_vector
-from pygeom.matrix3d.matrixvector import (elementwise_cross_product,
-                                          elementwise_dot_product)
 
 from ..tools import betm_from_mach
 from ..tools.mass import masses_from_json
@@ -21,8 +19,8 @@ from .paneltrim import paneltrim_from_dict
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
-    from numpy.matlib import matrix
-    from pygeom.matrix3d import MatrixVector
+    from numpy import ndarray
+    from pygeom.array3d import ArrayVector
 
     from .horseshoedoublet import HorseshoeDoublet
     from .panelresult import PanelResult
@@ -47,34 +45,34 @@ class PanelSystem():
     _numpnl: int = None
     _numhsv: int = None
     _numctrl: int = None
-    _pnts: 'MatrixVector' = None
-    _pnla: 'matrix' = None
-    _nrms: 'MatrixVector' = None
-    _rrel: 'MatrixVector' = None
-    _apd: Dict[float, 'matrix'] = None
-    _aps: Dict[float, 'matrix'] = None
-    _aph: Dict[float, 'matrix'] = None
-    _apm: Dict[float, 'matrix'] = None
-    _bps: Dict[float, 'MatrixVector'] = None
-    _avd: Dict[float, 'MatrixVector'] = None
-    _avs: Dict[float, 'MatrixVector'] = None
-    _avh: Dict[float, 'MatrixVector'] = None
-    _avm: Dict[float, 'MatrixVector'] = None
-    _ans: Dict[float, 'matrix'] = None
-    _anm: Dict[float, 'matrix'] = None
-    _bnm: Dict[float, 'matrix'] = None
-    _unsig: Dict[float, 'MatrixVector'] = None
-    _unmu: Dict[float, 'MatrixVector'] = None
-    _unphi: Dict[float, 'MatrixVector'] = None
-    _unnvg: Dict[float, 'MatrixVector'] = None
-    _hsvpnts: 'MatrixVector' = None
-    _hsvnrms: 'MatrixVector' = None
-    _awd: 'matrix' = None
-    _aws: 'matrix' = None
-    _awh: 'matrix' = None
-    _adh: 'matrix' = None
-    _ash: 'matrix' = None
-    _alh: 'matrix' = None
+    _pnts: 'ArrayVector' = None
+    _pnla: 'ndarray' = None
+    _nrms: 'ArrayVector' = None
+    _rrel: 'ArrayVector' = None
+    _apd: 'ndarray' = None
+    _aps: 'ndarray' = None
+    _aph: 'ndarray' = None
+    _apm: 'ndarray' = None
+    _bps: Dict[float, 'ArrayVector'] = None
+    _avd: Dict[float, 'ArrayVector'] = None
+    _avs: Dict[float, 'ArrayVector'] = None
+    _avh: Dict[float, 'ArrayVector'] = None
+    _avm: Dict[float, 'ArrayVector'] = None
+    _ans: 'ndarray' = None
+    _anm: 'ndarray' = None
+    _bnm: 'ndarray' = None
+    _unsig: Dict[float, 'ArrayVector'] = None
+    _unmu: Dict[float, 'ArrayVector'] = None
+    _unphi: Dict[float, 'ArrayVector'] = None
+    _unnvg: Dict[float, 'ArrayVector'] = None
+    _hsvpnts: 'ArrayVector' = None
+    _hsvnrms: 'ArrayVector' = None
+    _awd: 'ndarray' = None
+    _aws: 'ndarray' = None
+    _awh: 'ndarray' = None
+    _adh: 'ndarray' = None
+    _ash: 'ndarray' = None
+    _alh: 'ndarray' = None
     _ar: float = None
     _area: float = None
     _strps: List['PanelStrip'] = None
@@ -172,31 +170,31 @@ class PanelSystem():
     @property
     def pnts(self) -> int:
         if self._pnts is None:
-            self._pnts = zero_matrix_vector((self.numpnl, 1), dtype=float)
+            self._pnts = zero_arrayvector(self.numpnl, dtype=float)
             for pnl in self.pnls.values():
-                self._pnts[pnl.ind, 0] = pnl.pnto
+                self._pnts[pnl.ind] = pnl.pnto
         return self._pnts
 
     @property
-    def rrel(self) -> 'MatrixVector':
+    def rrel(self) -> 'ArrayVector':
         if self._rrel is None:
             self._rrel = self.pnts - self.rref
         return self._rrel
 
     @property
-    def nrms(self) -> 'MatrixVector':
+    def nrms(self) -> 'ArrayVector':
         if self._nrms is None:
-            self._nrms = zero_matrix_vector((self.numpnl, 1), dtype=float)
+            self._nrms = zero_arrayvector(self.numpnl, dtype=float)
             for pnl in self.pnls.values():
-                self._nrms[pnl.ind, 0] = pnl.nrm
+                self._nrms[pnl.ind] = pnl.nrm
         return self._nrms
 
     @property
-    def pnla(self) -> 'matrix':
+    def pnla(self) -> 'ndarray':
         if self._pnla is None:
-            self._pnla = zeros((self.numpnl, 1), dtype=float)
+            self._pnla = zeros(self.numpnl, dtype=float)
             for pnl in self.pnls.values():
-                self._pnla[pnl.ind, 0] = pnl.area
+                self._pnla[pnl.ind] = pnl.area
         return self._pnla
 
     @property
@@ -219,63 +217,63 @@ class PanelSystem():
                     self._phind[pind] = [i]
         return self._phind
 
-    def bps(self, mach: float=0.0) -> Dict[float, 'MatrixVector']:
+    def bps(self, mach: float=0.0) -> 'ArrayVector':
         if self._bps is None:
             self._bps = {}
         if mach not in self._bps:
-            self._bps[mach] = -1.0*self.aps(mach)*self.unsig(mach)
+            self._bps[mach] = self.unsig(mach).rmatmul(-self.aps(mach))
         return self._bps[mach]
 
-    def bnm(self, mach: float=0.0) -> Dict[float, 'MatrixVector']:
+    def bnm(self, mach: float=0.0) -> 'ArrayVector':
         if self._bnm is None:
             self._bnm = {}
         if mach not in self._bnm:
-            self._bnm[mach] = -self.nrms - self.ans(mach)*self.unsig(mach)
+            self._bnm[mach] = -self.nrms - self.unsig(mach).rmatmul(self.ans(mach))
         return self._bnm[mach]
 
-    def apd(self, mach: float=0.0) -> Dict[float, 'matrix']:
+    def apd(self, mach: float=0.0) -> 'ndarray':
         if self._apd is None:
             self._apd = {}
         if mach not in self._apd:
             self.assemble_panels(False, mach=mach)
         return self._apd[mach]
 
-    def avd(self, mach: float=0.0) -> Dict[float, 'matrix']:
+    def avd(self, mach: float=0.0) -> 'ndarray':
         if self._avd is None:
             self._avd = {}
         if mach not in self._avd:
             self.assemble_panels_full(False, mach=mach)
         return self._avd[mach]
 
-    def aps(self, mach: float=0.0) -> Dict[float, 'matrix']:
+    def aps(self, mach: float=0.0) -> 'ndarray':
         if self._aps is None:
             self._aps = {}
         if mach not in self._aps:
             self.assemble_panels(False, mach=mach)
         return self._aps[mach]
 
-    def avs(self, mach: float=0.0) -> Dict[float, 'matrix']:
+    def avs(self, mach: float=0.0) -> 'ndarray':
         if self._avs is None:
             self._avs = {}
         if mach not in self._avs:
             self.assemble_panels_full(False, mach=mach)
         return self._avs[mach]
 
-    def aph(self, mach: float=0.0) -> Dict[float, 'matrix']:
+    def aph(self, mach: float=0.0) -> 'ndarray':
         if self._aph is None:
             self._aph = {}
         if mach not in self._aph:
             self.assemble_horseshoes(False, mach=mach)
         return self._aph[mach]
 
-    def avh(self, mach: float=0.0) -> Dict[float, 'matrix']:
+    def avh(self, mach: float=0.0) -> 'ndarray':
         if self._avh is None:
             self._avh = {}
         if mach not in self._avh:
             self.assemble_horseshoes_full(False, mach=mach)
         return self._avh[mach]
 
-    def apm(self, mach: float=0.0) -> Dict[float, 'matrix']:
+    def apm(self, mach: float=0.0) -> 'ndarray':
         if self._apm is None:
             self._apm = {}
         if mach not in self._apm:
@@ -287,7 +285,7 @@ class PanelSystem():
             self._apm[mach] = apm
         return self._apm[mach]
 
-    def avm(self, mach: float=0.0) -> Dict[float, 'matrix']:
+    def avm(self, mach: float=0.0) -> 'ndarray':
         if self._avm is None:
             self._avm = {}
         if self._avm is None:
@@ -299,36 +297,36 @@ class PanelSystem():
             self._avm[mach] = avm
         return self._avm[mach]
 
-    def ans(self, mach: float=0.0) -> Dict[float, 'matrix']:
+    def ans(self, mach: float=0.0) -> 'ndarray':
         if self._ans is None:
             self._ans = {}
         if mach not in self._ans:
             nrms = self.nrms.repeat(self.numpnl, axis=1)
-            self._ans[mach] = elementwise_dot_product(nrms, self.avs(mach))
+            self._ans[mach] = nrms.dot(self.avs(mach))
         return self._ans[mach]
 
-    def anm(self, mach: float=0.0) -> Dict[float, 'matrix']:
+    def anm(self, mach: float=0.0) -> 'ndarray':
         if self._anm is None:
             self._anm = {}
         if mach not in self._anm:
             nrms = self.nrms.repeat(self.numpnl, axis=1)
-            self._anm[mach] = elementwise_dot_product(nrms, self.avm(mach))
+            self._anm[mach] = nrms.dot(self.avm(mach))
         return self._anm[mach]
 
     @property
-    def hsvpnts(self) -> 'MatrixVector':
+    def hsvpnts(self) -> 'ArrayVector':
         if self._hsvpnts is None:
-            self._hsvpnts = zero_matrix_vector((self.numhsv, 1), dtype=float)
+            self._hsvpnts = zero_arrayvector(self.numhsv, dtype=float)
             for i, hsv in enumerate(self.hsvs):
-                self._hsvpnts[i, 0] = hsv.pnto
+                self._hsvpnts[i] = hsv.pnto
         return self._hsvpnts
 
     @property
-    def hsvnrms(self) -> 'MatrixVector':
+    def hsvnrms(self) -> 'ArrayVector':
         if self._hsvnrms is None:
-            self._hsvnrms = zero_matrix_vector((self.numhsv, 1), dtype=float)
+            self._hsvnrms = zero_arrayvector(self.numhsv, dtype=float)
             for i, hsv in enumerate(self.hsvs):
-                self._hsvnrms[i, 0] = hsv.nrm
+                self._hsvnrms[i] = hsv.nrm
         return self._hsvnrms
 
     @property
@@ -353,12 +351,12 @@ class PanelSystem():
         for pnl in self.pnls.values():
             ind = pnl.ind
             _, _, avd, avs = pnl.influence_coefficients(self.hsvpnts)
-            self._awd[:, ind] = elementwise_dot_product(avd, self.hsvnrms)
-            self._aws[:, ind] = elementwise_dot_product(avs, self.hsvnrms)
+            self._awd[:, ind] = avd.dot(self.hsvnrms)
+            self._aws[:, ind] = avs.dot(self.hsvnrms)
         if time:
             finish = perf_counter()
             elapsed = finish - start
-            print(f'Wash matrix assembly time is {elapsed:.3f} seconds.')
+            print(f'Wash ndarray assembly time is {elapsed:.3f} seconds.')
 
     def assemble_horseshoes_wash(self, time: bool=True) -> None:
         if time:
@@ -367,32 +365,32 @@ class PanelSystem():
         self._awh = zeros(shp, dtype=float)
         for i, hsv in enumerate(self.hsvs):
             avh = hsv.trefftz_plane_velocities(self.hsvpnts)
-            self._awh[:, i] = elementwise_dot_product(avh, self.hsvnrms)
+            self._awh[:, i] = avh.dot(self.hsvnrms)
         if time:
             finish = perf_counter()
             elapsed = finish - start
             print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
 
     @property
-    def awh(self) -> 'matrix':
+    def awh(self) -> 'ndarray':
         if self._awh is None:
             self.assemble_horseshoes_wash(time=False)
         return self._awh
 
     @property
-    def awd(self) -> 'matrix':
+    def awd(self) -> 'ndarray':
         if self._awd is None:
             self.assemble_panels_wash(time=False)
         return self._awd
 
     @property
-    def aws(self) -> 'matrix':
+    def aws(self) -> 'ndarray':
         if self._aws is None:
             self.assemble_panels_wash(time=False)
         return self._aws
 
     @property
-    def adh(self) -> 'matrix':
+    def adh(self) -> 'ndarray':
         if self._adh is None:
             self._adh = zeros(self.awh.shape, dtype=float)
             for i, hsv in enumerate(self.hsvs):
@@ -400,28 +398,28 @@ class PanelSystem():
         return self._adh
 
     @property
-    def ash(self) -> 'matrix':
+    def ash(self) -> 'ndarray':
         if self._ash is None:
-            self._ash = zeros((self.numhsv, 1), dtype=float)
+            self._ash = zeros(self.numhsv, dtype=float)
             for i, hsv in enumerate(self.hsvs):
-                self._ash[i, 0] = -hsv.vecab.z
+                self._ash[i] = -hsv.vecab.z
         return self._ash
 
     @property
-    def alh(self) -> 'matrix':
+    def alh(self) -> 'ndarray':
         if self._alh is None:
-            self._alh = zeros((self.numhsv, 1), dtype=float)
+            self._alh = zeros(self.numhsv, dtype=float)
             for i, hsv in enumerate(self.hsvs):
-                self._alh[i, 0] = hsv.vecab.y
+                self._alh[i] = hsv.vecab.y
         return self._alh
 
-    def unsig(self, mach: float=0.0) -> Dict[float, 'MatrixVector']:
+    def unsig(self, mach: float=0.0) -> 'ArrayVector':
         if self._unsig is None:
             self._unsig = {}
         if mach not in self._unsig:
-            unsig = zero_matrix_vector((self.numpnl, 2+4*self.numctrl), dtype=float)
+            unsig = zero_arrayvector((self.numpnl, 2+4*self.numctrl), dtype=float)
             unsig[:, 0] = -self.nrms
-            unsig[:, 1] = elementwise_cross_product(self.rrel, self.nrms)
+            unsig[:, 1] = self.rrel.cross(self.nrms)
             if self.srfcs is not None:
                 for srfc in self.srfcs:
                     for sht in srfc.shts:
@@ -430,7 +428,7 @@ class PanelSystem():
                             ctup = self.ctrls[control]
                             for pnl in ctrl.pnls:
                                 ind = pnl.ind
-                                rrel = self.rrel[ind, 0]
+                                rrel = self.rrel[ind]
                                 dndlp = pnl.dndl(ctrl.posgain, ctrl.uhvec)
                                 unsig[ind, ctup[0]] = -dndlp
                                 unsig[ind, ctup[1]] = -rrel.cross(dndlp)
@@ -440,14 +438,14 @@ class PanelSystem():
             self._unsig[mach] = unsig
         return self._unsig[mach]
 
-    def unmu(self, mach: float=0.0) -> Dict[float, 'MatrixVector']:
+    def unmu(self, mach: float=0.0) -> 'ArrayVector':
         if self._unmu is None:
             self._unmu = {}
         if mach not in self._unmu:
             self.solve_dirichlet_system(time=False, mach=mach)
         return self._unmu[mach]
 
-    def unphi(self, mach: float=0.0) -> Dict[float, 'MatrixVector']:
+    def unphi(self, mach: float=0.0) -> 'ArrayVector':
         if self._unphi is None:
             self._unphi = {}
         if mach not in self._unphi:
@@ -481,8 +479,8 @@ class PanelSystem():
         shp = (self.numpnl, self.numpnl)
         apd = zeros(shp, dtype=float)
         aps = zeros(shp, dtype=float)
-        avd = zero_matrix_vector(shp, dtype=float)
-        avs = zero_matrix_vector(shp, dtype=float)
+        avd = zero_arrayvector(shp, dtype=float)
+        avs = zero_arrayvector(shp, dtype=float)
         betm = betm_from_mach(mach)
         for pnl in self.pnls.values():
             ind = pnl.ind
@@ -525,7 +523,7 @@ class PanelSystem():
             start = perf_counter()
         shp = (self.numpnl, self.numpnl)
         aph = zeros(shp, dtype=float)
-        avh = zero_matrix_vector(shp, dtype=float)
+        avh = zero_arrayvector(shp, dtype=float)
         betm = betm_from_mach(mach)
         for i, hsv in enumerate(self.hsvs):
             aph[:, i], avh[:, i] = hsv.doublet_influence_coefficients(self.pnts, betx=betm)
@@ -554,10 +552,10 @@ class PanelSystem():
             start = perf_counter()
         if self._unmu is None:
             self._unmu = {}
-        self._unmu[mach] = solve_matrix_vector(self.apm(mach), self.bps(mach))
+        self._unmu[mach] = solve_arrayvector(self.apm(mach), self.bps(mach))
         if self._unphi is None:
             self._unphi = {}
-        self._unphi[mach] = self.apm(mach)*self.unmu(mach) + self.bps(mach)
+        self._unphi[mach] = self.unmu(mach).rmatmul(self.apm(mach)) + self.bps(mach)
         if time:
             finish = perf_counter()
             elapsed = finish - start
@@ -568,10 +566,10 @@ class PanelSystem():
             start = perf_counter()
         if self._unmu is None:
             self._unmu = {}
-        self._unmu[mach] = solve_matrix_vector(self.anm(mach), self.bnm(mach))
+        self._unmu[mach] = solve_arrayvector(self.anm(mach), self.bnm(mach))
         if self._unnvg is None:
             self._unnvg = {}
-        self._unnvg[mach] = self.anm(mach)*self.unmu(mach) + self.bnm(mach)
+        self._unnvg[mach] = self.unmu(mach).rmatmul(self.anm(mach)) + self.bnm(mach)
         if time:
             finish = perf_counter()
             elapsed = finish - start

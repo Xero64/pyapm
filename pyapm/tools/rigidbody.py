@@ -1,5 +1,5 @@
 from typing import List
-from numpy.matlib import zeros, matrix
+from numpy import zeros, ndarray
 from numpy.linalg import inv
 from pygeom.geom3d import Vector
 
@@ -10,8 +10,8 @@ class RigidBody():
     gs: List[Vector] = None
     _numpnt: int = None
     _rrel: List[Vector] = None
-    _amat: matrix = None
-    _ainv: matrix = None
+    _amat: ndarray = None
+    _ainv: ndarray = None
 
     def __init__(self, pnt: Vector, pnts: List[Vector], ks: List[Vector], gs: List[Vector]):
         self.pnt = pnt

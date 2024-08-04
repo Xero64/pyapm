@@ -1,8 +1,8 @@
 from math import pi
-from numpy.matlib import matrix, ones, zeros, absolute, divide, multiply, arctan, square
+from numpy import ndarray, ones, zeros, absolute, divide, multiply, arctan, square
 from pygeom.geom3d import Vector, Coordinate
-from pygeom.matrix3d.matrixvector import MatrixVector, elementwise_divide
-from .boundedge import phi_doublet_matrix
+from pygeom.array3d.arrayvector import ArrayVector
+from .boundedge import phi_doublet_array
 
 tol = 1e-12
 piby2 = pi/2
@@ -81,21 +81,21 @@ class TrailingEdge():
                                  vec.dot(self.dirz))
         return self._grdol
 
-    def points_to_local(self, pnts: MatrixVector, betx: float=1.0):
+    def points_to_local(self, pnts: ArrayVector, betx: float=1.0):
         vecs = pnts-self.pntc
         if betx != 1.0:
             vecs.x = vecs.x/betx
-        return MatrixVector(vecs.dot(self.dirx), vecs.dot(self.diry),
+        return ArrayVector(vecs.dot(self.dirx), vecs.dot(self.diry),
                             vecs.dot(self.dirz))
 
-    def vectors_to_global(self, vecs: MatrixVector):
+    def vectors_to_global(self, vecs: ArrayVector):
         dirx = Vector(self.dirx.x, self.diry.x, self.dirz.x)
         diry = Vector(self.dirx.y, self.diry.y, self.dirz.y)
         dirz = Vector(self.dirx.z, self.diry.z, self.dirz.z)
-        return MatrixVector(vecs.dot(dirx), vecs.dot(diry), vecs.dot(dirz))
+        return ArrayVector(vecs.dot(dirx), vecs.dot(diry), vecs.dot(dirz))
 
-    def doublet_velocity_potentials(self, pnts: MatrixVector, extraout: bool=False,
-                                    sgnz: matrix=None, factor: bool=True,
+    def doublet_velocity_potentials(self, pnts: ArrayVector, extraout: bool=False,
+                                    sgnz: ndarray=None, factor: bool=True,
                                     betx: float=1.0):
         rls = self.points_to_local(pnts, betx=betx)
         absx = absolute(rls.x)
@@ -108,8 +108,8 @@ class TrailingEdge():
             sgnz = ones(rls.shape, float)
             sgnz[rls.z <= 0.0] = -1.0
         ovs = rls-self.grdol
-        phido, oms = phi_doublet_matrix(ovs, rls, sgnz)
-        phidt = phi_trailing_doublet_matrix(rls, sgnz, self.faco)
+        phido, oms = phi_doublet_array(ovs, rls, sgnz)
+        phidt = phi_trailing_doublet_array(rls, sgnz, self.faco)
         phid = phido*self.faco+phidt
         if factor:
             phid = phid/fourPi
@@ -119,26 +119,26 @@ class TrailingEdge():
             output = phid
         return output
 
-    def doublet_influence_coefficients(self, pnts: MatrixVector,
-                                       sgnz: matrix=None, factor: bool=True,
+    def doublet_influence_coefficients(self, pnts: ArrayVector,
+                                       sgnz: ndarray=None, factor: bool=True,
                                        betx: float=1.0):
         phid, _, ov, om = self.doublet_velocity_potentials(pnts, extraout=True,
                                                            sgnz=sgnz, factor=False,
                                                            betx=betx)
-        veldl = vel_doublet_matrix(ov, om, self.faco)
+        veldl = vel_doublet_array(ov, om, self.faco)
         veld = self.vectors_to_global(veldl)*self.faco
         if factor:
             phid, veld = phid/fourPi, veld/fourPi
         return phid, veld
-    def trefftz_plane_velocities(self, pnts: MatrixVector):
+    def trefftz_plane_velocities(self, pnts: ArrayVector):
         rls = self.points_to_local(pnts)
         rls.x = zeros(rls.shape, dtype=float)
         # ro = Vector(0.0, self.grdo.y, self.grdo.z)
         # o = rls-ro
-        oxx = MatrixVector(rls.x, -rls.z, rls.y)
+        oxx = ArrayVector(rls.x, -rls.z, rls.y)
         om2 = square(rls.y) + square(rls.z)
         chkom2 = (absolute(om2) < tol)
-        veldl = elementwise_divide(oxx, om2)*self.faco
+        veldl = oxx/om2*self.faco
         veldl.x[chkom2] = 0.0
         veldl.y[chkom2] = 0.0
         veldl.z[chkom2] = 0.0
@@ -157,18 +157,18 @@ class TrailingEdge():
         outstr += f'grdol = {self.grdol}\n'
         return outstr
 
-def vel_doublet_matrix(ov, om, faco):
+def vel_doublet_array(ov, om, faco):
     ov = faco*ov
-    oxx = MatrixVector(zeros(ov.shape), -ov.z, ov.y)
+    oxx = ArrayVector(zeros(ov.shape), -ov.z, ov.y)
     oxxm = oxx.return_magnitude()
     chko = (oxxm == 0.0)
-    velol = elementwise_divide(oxx, multiply(om, om-ov.x))
+    velol = oxx, multiply(om/om-ov.x)
     velol.x[chko] = 0.0
     velol.y[chko] = 0.0
     velol.z[chko] = 0.0
     return velol
 
-def phi_trailing_doublet_matrix(rls: MatrixVector, sgnz: matrix, faco: float):
+def phi_trailing_doublet_array(rls: ArrayVector, sgnz: ndarray, faco: float):
     ths = zeros(rls.shape, dtype=float)
     ths[rls.y > 0.0] = piby2
     ths[rls.y == 0.0] = -piby2*faco

@@ -1,7 +1,7 @@
 from math import pi
 from pygeom.geom2d import Vector2D
-from pygeom.matrix2d.matrixvector2d import MatrixVector2D, elementwise_divide
-from numpy.matlib import square
+from pygeom.array2d.arrayvector2d import ArrayVector2D
+from numpy import square
 
 twoPi = 2*pi
 
@@ -34,12 +34,12 @@ class HorseshoeVortex2D():
             self._pnt = (self.grdb+self.grda)/2
         return self._pnt
 
-    def induced_velocity(self, pnts: MatrixVector2D):
+    def induced_velocity(self, pnts: ArrayVector2D):
         agcs = pnts-self.grda
         amag = agcs.return_magnitude()
-        vela = elementwise_divide(MatrixVector2D(-agcs.y, agcs.x), square(amag))
+        vela = ArrayVector2D(-agcs.y, agcs.x)/square(amag)
         bgcs = pnts-self.grdb
         bmag = bgcs.return_magnitude()
-        velb = elementwise_divide(MatrixVector2D(-bgcs.y, bgcs.x), square(bmag))
+        velb = ArrayVector2D(-bgcs.y, bgcs.x)/square(bmag)
         vel = (vela-velb)/twoPi
         return vel

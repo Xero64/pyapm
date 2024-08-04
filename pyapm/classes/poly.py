@@ -1,7 +1,7 @@
 from typing import List
 from pygeom.geom3d import Vector
-from pygeom.matrix3d import MatrixVector, zero_matrix_vector
-from numpy.matlib import zeros, ones
+from pygeom.array3d import ArrayVector, zero_arrayvector
+from numpy import zeros, ones
 from .boundedge import BoundEdge
 
 class Poly():
@@ -53,7 +53,7 @@ class Poly():
                 self._area += edg.area
         return self._area
 
-    def sign_local_z(self, pnts: MatrixVector, betx: float=1.0):
+    def sign_local_z(self, pnts: ArrayVector, betx: float=1.0):
         vecs = pnts-self.pnto
         nrm = self.nrm
         if betx != 1.0:
@@ -64,11 +64,11 @@ class Poly():
         sgnz[locz <= 0.0] = -1.0
         return sgnz
 
-    def influence_coefficients(self, pnts: MatrixVector, betx: float=1.0):
+    def influence_coefficients(self, pnts: ArrayVector, betx: float=1.0):
         phiv = zeros(pnts.shape, dtype=float)
         phis = zeros(pnts.shape, dtype=float)
-        velv = zero_matrix_vector(pnts.shape, dtype=float)
-        vels = zero_matrix_vector(pnts.shape, dtype=float)
+        velv = zero_arrayvector(pnts.shape, dtype=float)
+        vels = zero_arrayvector(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
             ephiv, ephis, evelv, evels = edg.influence_coefficients(pnts, sgnz=sgnz,
@@ -79,9 +79,9 @@ class Poly():
             vels += evels
         return phiv, phis, velv, vels
 
-    def doublet_influence_coefficients(self, pnts: MatrixVector, betx: float=1.0):
+    def doublet_influence_coefficients(self, pnts: ArrayVector, betx: float=1.0):
         phiv = zeros(pnts.shape, dtype=float)
-        velv = zero_matrix_vector(pnts.shape, dtype=float)
+        velv = zero_arrayvector(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
             ephiv, evelv = edg.doublet_influence_coefficients(pnts, sgnz=sgnz,
@@ -90,14 +90,14 @@ class Poly():
             velv += evelv
         return phiv, velv
 
-    def doublet_velocity_potentials(self, pnts: MatrixVector, betx: float=1.0):
+    def doublet_velocity_potentials(self, pnts: ArrayVector, betx: float=1.0):
         phiv = zeros(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
             phiv += edg.doublet_velocity_potentials(pnts, sgnz=sgnz, betx=betx)
         return phiv
 
-    def velocity_potentials(self, pnts: MatrixVector, betx: float=1.0):
+    def velocity_potentials(self, pnts: ArrayVector, betx: float=1.0):
         phiv = zeros(pnts.shape, dtype=float)
         phis = zeros(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)

@@ -93,7 +93,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         frmstr = '{:d} {:}\n'
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.sig[pnl.ind, 0]))
+            mshfile.write(frmstr.format(pnl.pid, pres.sig[pnl.ind]))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
         optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
@@ -113,7 +113,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         frmstr = '{:d} {:}\n'
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.mu[pnl.ind, 0]))
+            mshfile.write(frmstr.format(pnl.pid, pres.mu[pnl.ind]))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
         optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
@@ -133,7 +133,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         frmstr = '{:d} {:}\n'
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.phi[pnl.ind, 0]))
+            mshfile.write(frmstr.format(pnl.pid, pres.phi[pnl.ind]))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
         optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
@@ -155,7 +155,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            val = pres.qloc.x[pnl.ind, 0]
+            val = pres.qloc.x[pnl.ind]
             if pnl.sct is None:
                 if val < minval:
                     minval = val
@@ -185,7 +185,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            val = pres.qloc.y[pnl.ind, 0]
+            val = pres.qloc.y[pnl.ind]
             if pnl.sct is None:
                 if val < minval:
                     minval = val
@@ -215,7 +215,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            val = pres.qs[pnl.ind, 0]
+            val = pres.qs[pnl.ind]
             if pnl.sct is None:
                 if val < minval:
                     minval = val
@@ -245,7 +245,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            val = pres.nfres.nfcp[pnl.ind, 0]
+            val = pres.nfres.nfcp[pnl.ind]
             if pnl.sct is None:
                 if val < minval:
                     minval = val
@@ -275,7 +275,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         minval = float('+inf')
         for pid in pidlst:
             pnl = psys.pnls[pid]
-            val = pres.nfres.nfprs[pnl.ind, 0]
+            val = pres.nfres.nfprs[pnl.ind]
             if pnl.sct is None:
                 if val < minval:
                     minval = val
