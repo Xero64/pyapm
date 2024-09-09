@@ -6,7 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 from matplotlib.pyplot import figure
 from numpy import zeros
 from py2md.classes import MDTable
-from pygeom.array3d import solve_arrayvector, zero_arrayvector
+from pygeom.geom3d import solve_vector, zero_vector
 from pygeom.geom3d import Vector
 
 from ..tools import betm_from_mach
@@ -20,7 +20,7 @@ from .paneltrim import paneltrim_from_dict
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from numpy import ndarray
-    from pygeom.array3d import ArrayVector
+    from pygeom.geom3d import Vector
 
     from .horseshoedoublet import HorseshoeDoublet
     from .panelresult import PanelResult
@@ -45,28 +45,28 @@ class PanelSystem():
     _numpnl: int = None
     _numhsv: int = None
     _numctrl: int = None
-    _pnts: 'ArrayVector' = None
+    _pnts: 'Vector' = None
     _pnla: 'ndarray' = None
-    _nrms: 'ArrayVector' = None
-    _rrel: 'ArrayVector' = None
+    _nrms: 'Vector' = None
+    _rrel: 'Vector' = None
     _apd: 'ndarray' = None
     _aps: 'ndarray' = None
     _aph: 'ndarray' = None
     _apm: 'ndarray' = None
-    _bps: Dict[float, 'ArrayVector'] = None
-    _avd: Dict[float, 'ArrayVector'] = None
-    _avs: Dict[float, 'ArrayVector'] = None
-    _avh: Dict[float, 'ArrayVector'] = None
-    _avm: Dict[float, 'ArrayVector'] = None
+    _bps: Dict[float, 'Vector'] = None
+    _avd: Dict[float, 'Vector'] = None
+    _avs: Dict[float, 'Vector'] = None
+    _avh: Dict[float, 'Vector'] = None
+    _avm: Dict[float, 'Vector'] = None
     _ans: 'ndarray' = None
     _anm: 'ndarray' = None
     _bnm: 'ndarray' = None
-    _unsig: Dict[float, 'ArrayVector'] = None
-    _unmu: Dict[float, 'ArrayVector'] = None
-    _unphi: Dict[float, 'ArrayVector'] = None
-    _unnvg: Dict[float, 'ArrayVector'] = None
-    _hsvpnts: 'ArrayVector' = None
-    _hsvnrms: 'ArrayVector' = None
+    _unsig: Dict[float, 'Vector'] = None
+    _unmu: Dict[float, 'Vector'] = None
+    _unphi: Dict[float, 'Vector'] = None
+    _unnvg: Dict[float, 'Vector'] = None
+    _hsvpnts: 'Vector' = None
+    _hsvnrms: 'Vector' = None
     _awd: 'ndarray' = None
     _aws: 'ndarray' = None
     _awh: 'ndarray' = None
@@ -170,21 +170,21 @@ class PanelSystem():
     @property
     def pnts(self) -> int:
         if self._pnts is None:
-            self._pnts = zero_arrayvector(self.numpnl, dtype=float)
+            self._pnts = zero_vector(self.numpnl, dtype=float)
             for pnl in self.pnls.values():
                 self._pnts[pnl.ind] = pnl.pnto
         return self._pnts
 
     @property
-    def rrel(self) -> 'ArrayVector':
+    def rrel(self) -> 'Vector':
         if self._rrel is None:
             self._rrel = self.pnts - self.rref
         return self._rrel
 
     @property
-    def nrms(self) -> 'ArrayVector':
+    def nrms(self) -> 'Vector':
         if self._nrms is None:
-            self._nrms = zero_arrayvector(self.numpnl, dtype=float)
+            self._nrms = zero_vector(self.numpnl, dtype=float)
             for pnl in self.pnls.values():
                 self._nrms[pnl.ind] = pnl.nrm
         return self._nrms
@@ -217,14 +217,14 @@ class PanelSystem():
                     self._phind[pind] = [i]
         return self._phind
 
-    def bps(self, mach: float=0.0) -> 'ArrayVector':
+    def bps(self, mach: float=0.0) -> 'Vector':
         if self._bps is None:
             self._bps = {}
         if mach not in self._bps:
             self._bps[mach] = self.unsig(mach).rmatmul(-self.aps(mach))
         return self._bps[mach]
 
-    def bnm(self, mach: float=0.0) -> 'ArrayVector':
+    def bnm(self, mach: float=0.0) -> 'Vector':
         if self._bnm is None:
             self._bnm = {}
         if mach not in self._bnm:
@@ -314,17 +314,17 @@ class PanelSystem():
         return self._anm[mach]
 
     @property
-    def hsvpnts(self) -> 'ArrayVector':
+    def hsvpnts(self) -> 'Vector':
         if self._hsvpnts is None:
-            self._hsvpnts = zero_arrayvector(self.numhsv, dtype=float)
+            self._hsvpnts = zero_vector(self.numhsv, dtype=float)
             for i, hsv in enumerate(self.hsvs):
                 self._hsvpnts[i] = hsv.pnto
         return self._hsvpnts
 
     @property
-    def hsvnrms(self) -> 'ArrayVector':
+    def hsvnrms(self) -> 'Vector':
         if self._hsvnrms is None:
-            self._hsvnrms = zero_arrayvector(self.numhsv, dtype=float)
+            self._hsvnrms = zero_vector(self.numhsv, dtype=float)
             for i, hsv in enumerate(self.hsvs):
                 self._hsvnrms[i] = hsv.nrm
         return self._hsvnrms
@@ -413,11 +413,11 @@ class PanelSystem():
                 self._alh[i] = hsv.vecab.y
         return self._alh
 
-    def unsig(self, mach: float=0.0) -> 'ArrayVector':
+    def unsig(self, mach: float=0.0) -> 'Vector':
         if self._unsig is None:
             self._unsig = {}
         if mach not in self._unsig:
-            unsig = zero_arrayvector((self.numpnl, 2+4*self.numctrl), dtype=float)
+            unsig = zero_vector((self.numpnl, 2+4*self.numctrl), dtype=float)
             unsig[:, 0] = -self.nrms
             unsig[:, 1] = self.rrel.cross(self.nrms)
             if self.srfcs is not None:
@@ -438,14 +438,14 @@ class PanelSystem():
             self._unsig[mach] = unsig
         return self._unsig[mach]
 
-    def unmu(self, mach: float=0.0) -> 'ArrayVector':
+    def unmu(self, mach: float=0.0) -> 'Vector':
         if self._unmu is None:
             self._unmu = {}
         if mach not in self._unmu:
             self.solve_dirichlet_system(time=False, mach=mach)
         return self._unmu[mach]
 
-    def unphi(self, mach: float=0.0) -> 'ArrayVector':
+    def unphi(self, mach: float=0.0) -> 'Vector':
         if self._unphi is None:
             self._unphi = {}
         if mach not in self._unphi:
@@ -479,8 +479,8 @@ class PanelSystem():
         shp = (self.numpnl, self.numpnl)
         apd = zeros(shp, dtype=float)
         aps = zeros(shp, dtype=float)
-        avd = zero_arrayvector(shp, dtype=float)
-        avs = zero_arrayvector(shp, dtype=float)
+        avd = zero_vector(shp, dtype=float)
+        avs = zero_vector(shp, dtype=float)
         betm = betm_from_mach(mach)
         for pnl in self.pnls.values():
             ind = pnl.ind
@@ -523,7 +523,7 @@ class PanelSystem():
             start = perf_counter()
         shp = (self.numpnl, self.numpnl)
         aph = zeros(shp, dtype=float)
-        avh = zero_arrayvector(shp, dtype=float)
+        avh = zero_vector(shp, dtype=float)
         betm = betm_from_mach(mach)
         for i, hsv in enumerate(self.hsvs):
             aph[:, i], avh[:, i] = hsv.doublet_influence_coefficients(self.pnts, betx=betm)
@@ -552,7 +552,7 @@ class PanelSystem():
             start = perf_counter()
         if self._unmu is None:
             self._unmu = {}
-        self._unmu[mach] = solve_arrayvector(self.apm(mach), self.bps(mach))
+        self._unmu[mach] = solve_vector(self.apm(mach), self.bps(mach))
         if self._unphi is None:
             self._unphi = {}
         self._unphi[mach] = self.unmu(mach).rmatmul(self.apm(mach)) + self.bps(mach)
@@ -566,7 +566,7 @@ class PanelSystem():
             start = perf_counter()
         if self._unmu is None:
             self._unmu = {}
-        self._unmu[mach] = solve_arrayvector(self.anm(mach), self.bnm(mach))
+        self._unmu[mach] = solve_vector(self.anm(mach), self.bnm(mach))
         if self._unnvg is None:
             self._unnvg = {}
         self._unnvg[mach] = self.unmu(mach).rmatmul(self.anm(mach)) + self.bnm(mach)

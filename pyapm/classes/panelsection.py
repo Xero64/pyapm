@@ -2,7 +2,7 @@ from math import cos, radians
 from typing import List, Dict
 from numpy import absolute
 from pygeom.geom3d import Vector
-from pygeom.array3d import zero_arrayvector
+from pygeom.geom3d import zero_vector
 from .grid import Grid
 from .panel import Panel
 from .panelprofile import PanelProfile
@@ -131,7 +131,7 @@ class PanelSection(PanelProfile):
 
     def get_profile(self, offset: bool=True):
         num = self.cnum*2+1
-        profile = zero_arrayvector((1, num), dtype=float)
+        profile = zero_vector((1, num), dtype=float)
         for i in range(self.cnum+1):
             n = num-i-1
             j = n-num

@@ -2,7 +2,7 @@ from math import sqrt, acos, pi
 from typing import List, TYPE_CHECKING, Tuple
 from numpy import ndarray, absolute, full, minimum, logical_not, ones
 from pygeom.geom3d import Vector, Coordinate, IHAT, KHAT
-from pygeom.array3d import ArrayVector
+from pygeom.geom3d import Vector
 from .grid import Grid
 from .dirichletpoly import DirichletPoly
 from .horseshoedoublet import HorseshoeDoublet
@@ -385,7 +385,7 @@ class Panel(DirichletPoly):
                 grdres[i] += pnlres[ind]*fac
         return grdres
 
-    def within_and_absz_ttol(self, pnts: ArrayVector, ttol: float=0.1):
+    def within_and_absz_ttol(self, pnts: Vector, ttol: float=0.1):
         shp = pnts.shape
         pnts = pnts.reshape((-1, 1))
         rgcs = pnts-self.pnto

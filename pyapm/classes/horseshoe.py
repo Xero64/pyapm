@@ -1,6 +1,6 @@
 from math import pi
 from numpy import zeros, ones
-from pygeom.array3d import ArrayVector, zero_arrayvector
+from pygeom.geom3d import Vector, zero_vector
 from pygeom.geom3d import Vector
 from .boundedge import BoundEdge
 from .trailingedge import TrailingEdge
@@ -90,7 +90,7 @@ class HorseShoe():
             self._width = grdby - grday
         return self._width
 
-    def sign_local_z(self, pnts: ArrayVector, betx: float=1.0):
+    def sign_local_z(self, pnts: Vector, betx: float=1.0):
         vecs = pnts-self.pnto
         nrm = self.nrm
         if betx != 1.0:
@@ -101,9 +101,9 @@ class HorseShoe():
         sgnz[locz <= 0.0] = -1.0
         return sgnz
 
-    def doublet_influence_coefficients(self, pnts: ArrayVector, betx: float=1.0):
+    def doublet_influence_coefficients(self, pnts: Vector, betx: float=1.0):
         phid = zeros(pnts.shape, dtype=float)
-        veld = zero_arrayvector(pnts.shape, dtype=float)
+        veld = zero_vector(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         phida, velda = self.tva.doublet_influence_coefficients(pnts, sgnz=sgnz, betx=betx)
         phidb, veldb = self.tvb.doublet_influence_coefficients(pnts, sgnz=sgnz, betx=betx)
@@ -112,7 +112,7 @@ class HorseShoe():
         veld = velda + veldb + veldab
         return phid, veld
 
-    def doublet_velocity_potentials(self, pnts: ArrayVector, betx: float=1.0):
+    def doublet_velocity_potentials(self, pnts: Vector, betx: float=1.0):
         phid = zeros(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         phida = self.tva.doublet_velocity_potentials(pnts, sgnz=sgnz, betx=betx)
@@ -121,7 +121,7 @@ class HorseShoe():
         phid = phida + phidb + phidab
         return phid
 
-    def trefftz_plane_velocities(self, pnts: ArrayVector):
+    def trefftz_plane_velocities(self, pnts: Vector):
         velda = self.tva.trefftz_plane_velocities(pnts)
         veldb = self.tvb.trefftz_plane_velocities(pnts)
         veld = velda + veldb

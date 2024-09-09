@@ -1,8 +1,8 @@
-from pygeom.array3d import ArrayVector
+from pygeom.geom3d import Vector
 from numpy import zeros, argmin, array, arange, logical_not, ndarray
 from ..classes.panelsystem import PanelSystem
 
-def fetch_pids_ttol(pnts: ArrayVector, psys: PanelSystem, ztol: float=0.01, ttol: float=0.1):
+def fetch_pids_ttol(pnts: Vector, psys: PanelSystem, ztol: float=0.01, ttol: float=0.1):
     shp = pnts.shape
     pnts = pnts.reshape((-1, 1))
     numpnt = pnts.shape[0]
@@ -33,7 +33,7 @@ def fetch_pids_ttol(pnts: ArrayVector, psys: PanelSystem, ztol: float=0.01, ttol
     chkz = chkz.reshape(shp)
     return pids, chkz
 
-def point_results(pnts: ArrayVector, psys: PanelSystem, pids: array, chkz: array,
+def point_results(pnts: Vector, psys: PanelSystem, pids: array, chkz: array,
                   pnlres: ndarray, ttol: float=0.1):
     res = zeros(pnts.shape, dtype=float)
     for i in range(pnts.shape[0]):

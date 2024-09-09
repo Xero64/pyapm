@@ -3,7 +3,7 @@
 from time import perf_counter
 from math import pi, cos, sin
 from pygeom.geom3d import Vector
-from pygeom.array3d import zero_arrayvector
+from pygeom.geom3d import zero_vector
 from pyapm.classes.poly import Poly
 from pyapm.tools.functions import mean, derivative
 from matplotlib.pyplot import figure
@@ -50,7 +50,7 @@ yamp = 2.0
 xint = 2*xamp/(numx-1)
 yint = 2*yamp/(numy-1)
 
-pnts = zero_arrayvector((numy, numx))
+pnts = zero_vector((numy, numx))
 for i in range(numy):
     for j in range(numx):
         x = xorg-xamp+xint*j
@@ -201,7 +201,7 @@ zamp = 2.0
 xint = 2*xamp/(numx-1)
 zint = 2*zamp/(numz-1)
 
-pnts = zero_arrayvector((numy, numx))
+pnts = zero_vector((numy, numx))
 for i in range(numz):
     for j in range(numx):
         x = xorg-xamp+xint*j

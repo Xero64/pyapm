@@ -5,7 +5,7 @@ from pyapm.classes import panelsystem_from_json
 from pyapm.outputs.msh import panelresult_to_msh
 from pyapm.tools.points import fetch_pids_ttol, point_results
 from pygeom.geom3d import Vector
-from pygeom.array3d import zero_arrayvector
+from pygeom.geom3d import zero_vector
 
 #%%
 # Create Panel System
@@ -20,7 +20,7 @@ display_markdown(pres)
 
 #%%
 # Determine Point Pressures
-pnts = zero_arrayvector((7, 2), dtype=float)
+pnts = zero_vector((7, 2), dtype=float)
 pnts[0, 0] = Vector(0.25, 0.05, 0.05)
 pnts[1, 0] = Vector(0.25, 0.05, -0.05)
 pnts[2, 0] = Vector(0.25, 4.5, 0.05)

@@ -16,7 +16,7 @@ from numpy import (
     zeros,
 )
 from pygeom.geom3d import Vector
-from pygeom.array3d import ArrayVector, zero_arrayvector
+from pygeom.geom3d import Vector, zero_vector
 
 
 seterr(divide='ignore')
@@ -30,15 +30,15 @@ class DirichletPoly():
     grds: List[Vector] = None
     _num: int = None
     _pnto: Vector = None
-    _grdr: ArrayVector = None
-    _vecab: ArrayVector = None
-    _vecaxb: ArrayVector = None
+    _grdr: Vector = None
+    _vecab: Vector = None
+    _vecaxb: Vector = None
     _sumaxb: Vector = None
     _nrm: Vector = None
     _area: float = None
-    _dirxab: ArrayVector = None
-    _diryab: ArrayVector = None
-    _dirzab: ArrayVector = None
+    _dirxab: Vector = None
+    _diryab: Vector = None
+    _dirzab: Vector = None
     _baryinv: List[ndarray] = None
 
     def __init__(self, grds: List[Vector]):
@@ -59,7 +59,7 @@ class DirichletPoly():
     @property
     def grdr(self):
         if self._grdr is None:
-            self._grdr = zero_arrayvector((1, self.num), dtype=float)
+            self._grdr = zero_vector((1, self.num), dtype=float)
             for i in range(self.num):
                 self._grdr[0, i] = self.grds[i] - self.pnto
         return self._grdr
@@ -71,16 +71,16 @@ class DirichletPoly():
         grdm.z = grdm.z/betz
         return grdm
 
-    def edge_cross(self, grds: ArrayVector):
-        vecaxb = zero_arrayvector((1, self.num), dtype=float)
+    def edge_cross(self, grds: Vector):
+        vecaxb = zero_vector((1, self.num), dtype=float)
         for i in range(self.num):
             veca = grds[0, i-1]
             vecb = grds[0, i]
             vecaxb[0, i] = veca.cross(vecb)
         return vecaxb
 
-    def edge_vector(self, grds: ArrayVector):
-        vecab = zero_arrayvector((1, self.num), dtype=float)
+    def edge_vector(self, grds: Vector):
+        vecab = zero_vector((1, self.num), dtype=float)
         for i in range(self.num):
             veca = grds[0, i-1]
             vecb = grds[0, i]
@@ -156,7 +156,7 @@ class DirichletPoly():
                 self._baryinv.append(inv(amat))
         return self._baryinv
 
-    def relative_mach(self, pnts: ArrayVector, pnt: Vector,
+    def relative_mach(self, pnts: Vector, pnt: Vector,
                       betx: float=1.0, bety: float=1.0, betz: float=1.0):
         vecs = pnts-pnt
         vecs.x = vecs.x/betx
@@ -164,7 +164,7 @@ class DirichletPoly():
         vecs.z = vecs.z/betz
         return vecs
 
-    def influence_coefficients(self, pnts: ArrayVector, incvel: bool=True,
+    def influence_coefficients(self, pnts: Vector, incvel: bool=True,
                                betx: float=1.0, bety: float=1.0, betz: float=1.0,
                                checktol: bool=False):
         grdm = self.mach_grids(betx=betx, bety=bety, betz=betz)
@@ -185,8 +185,8 @@ class DirichletPoly():
         phid = zeros(pnts.shape, dtype=float)
         phis = zeros(pnts.shape, dtype=float)
         if incvel:
-            veld = zero_arrayvector(pnts.shape, dtype=float)
-            vels = zero_arrayvector(pnts.shape, dtype=float)
+            veld = zero_vector(pnts.shape, dtype=float)
+            vels = zero_vector(pnts.shape, dtype=float)
         for i in range(self.num):
             # Edge Length
             dab = vecab[0, i].return_magnitude()
@@ -196,7 +196,7 @@ class DirichletPoly():
             dirz = dirzab[0, i]
             # Vector A in Local Coordinate System
             veca = vecgcs[i-1]
-            alcs = ArrayVector(veca.dot(dirx), veca.dot(diry), veca.dot(dirz))
+            alcs = Vector(veca.dot(dirx), veca.dot(diry), veca.dot(dirz))
             if checktol:
                 alcs.x[absolute(alcs.x) < tol] = 0.0
                 alcs.y[absolute(alcs.y) < tol] = 0.0
@@ -205,7 +205,7 @@ class DirichletPoly():
             phida, amag = phi_doublet_array(alcs, sgnz)
             # Vector B in Local Coordinate System
             vecb = vecgcs[i]
-            blcs = ArrayVector(vecb.dot(dirx), vecb.dot(diry), vecb.dot(dirz))
+            blcs = Vector(vecb.dot(dirx), vecb.dot(diry), vecb.dot(dirz))
             if checktol:
                 blcs.x[absolute(blcs.x) < tol] = 0.0
                 blcs.y[absolute(blcs.y) < tol] = 0.0
@@ -228,8 +228,8 @@ class DirichletPoly():
                 dirxi = Vector(dirx.x, diry.x, dirz.x)
                 diryi = Vector(dirx.y, diry.y, dirz.y)
                 dirzi = Vector(dirx.z, diry.z, dirz.z)
-                veld += ArrayVector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
-                vels += ArrayVector(velsi.dot(dirxi), velsi.dot(diryi), velsi.dot(dirzi))
+                veld += Vector(veldi.dot(dirxi), veldi.dot(diryi), veldi.dot(dirzi))
+                vels += Vector(velsi.dot(dirxi), velsi.dot(diryi), velsi.dot(dirzi))
         phid = phid/fourPi
         phis = phis/fourPi
         if incvel:
@@ -240,13 +240,13 @@ class DirichletPoly():
             output = phid, phis
         return output
 
-    def velocity_potentials(self, pnts: ArrayVector,
+    def velocity_potentials(self, pnts: Vector,
                             betx: float=1.0, bety: float=1.0, betz: float=1.0):
         phi = self.influence_coefficients(pnts, incvel=False,
                                           betx=betx, bety=bety, betz=betz)
         return phi[0], phi[1]
 
-def phi_doublet_array(vecs: ArrayVector, sgnz: ndarray):
+def phi_doublet_array(vecs: Vector, sgnz: ndarray):
     mags = vecs.return_magnitude()
     chkm = mags < tol
     chky = absolute(vecs.y) < tol
@@ -292,7 +292,7 @@ def vel_doublet_array(av, am, bv, bm):
     return velvl
 
 def vel_source_array(Qab, rl, phid):
-    velsl = zero_arrayvector(Qab.shape, dtype=float)
+    velsl = zero_vector(Qab.shape, dtype=float)
     velsl.y = -Qab
     faco = ones(Qab.shape, dtype=float)
     faco[rl.z != 0.0] = -1.0

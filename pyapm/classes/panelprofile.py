@@ -6,7 +6,7 @@ from pygeom.geom3d import Coordinate, Vector
 from .grid import Grid
 
 if TYPE_CHECKING:
-    from pygeom.array3d import ArrayVector
+    from pygeom.geom3d import Vector
 
     from .panelsection import PanelSection
 
@@ -63,13 +63,13 @@ class PanelProfile():
             self._crdsys = Coordinate(self.point, dirx, diry)
         return self._crdsys
 
-    def get_profile(self, offset: bool=True) -> 'ArrayVector':
+    def get_profile(self, offset: bool=True) -> 'Vector':
         prfa = self.scta.get_profile(offset=offset)
         prfb = self.sctb.get_profile(offset=offset)
         profiledir = prfb - prfa
         return prfa + self.bval*profiledir
 
-    def get_shape(self) -> 'ArrayVector':
+    def get_shape(self) -> 'Vector':
         profile = self.get_profile()
         scaledprofile = profile*self.chord
         rotatedprofile = self.crdsys.vector_to_global(scaledprofile)

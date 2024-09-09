@@ -2,7 +2,7 @@
 # Import Dependencies
 from time import perf_counter
 from pygeom.geom3d import Vector
-from pygeom.array3d import zero_arrayvector
+from pygeom.geom3d import zero_vector
 from pyapm.classes.grid import Grid
 from pyapm.classes.horseshoe import HorseShoe
 from matplotlib.pyplot import figure
@@ -27,7 +27,7 @@ zamp = 2.0
 yint = 2*yamp/(numy-1)
 zint = 2*zamp/(numz-1)
 
-pnts = zero_arrayvector((numz, numy))
+pnts = zero_vector((numz, numy))
 for i in range(numz):
     for j in range(numy):
         y = yorg-yamp+yint*j

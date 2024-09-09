@@ -1,8 +1,8 @@
 from math import cos, sin, radians, pi
 from typing import Dict, TYPE_CHECKING
 from pygeom.geom3d import Vector, Coordinate
-from pygeom.array3d import ArrayVector, zero_arrayvector
-from pygeom.array2d import ArrayVector2D
+from pygeom.geom3d import Vector, zero_vector
+from pygeom.geom2d import Vector2D
 from numpy import ndarray, zeros
 from numpy import square
 from matplotlib.pyplot import figure
@@ -31,14 +31,14 @@ class PanelResult():
     _vfs: Vector = None
     _ofs: Vector = None
     _qfs: float = None
-    _arm: ArrayVector = None
+    _arm: Vector = None
     _unsig: ndarray = None
     _unmu: ndarray = None
     _unphi: ndarray = None
     _sig: ndarray = None
     _mu: ndarray = None
     _phi: ndarray = None
-    _qloc: ArrayVector2D = None
+    _qloc: Vector2D = None
     _qs: ndarray = None
     _cp: ndarray = None
     _nfres: 'NearFieldResult' = None
@@ -47,8 +47,8 @@ class PanelResult():
     _stres: 'StabilityResult' = None
     _ctresp: 'NearFieldResult' = None
     _ctresn: 'NearFieldResult' = None
-    _vfsg: ArrayVector = None
-    _vfsl: ArrayVector = None
+    _vfsg: Vector = None
+    _vfsl: Vector = None
 
     def __init__(self, name: str, sys: object):
         self.name = name
@@ -170,7 +170,7 @@ class PanelResult():
     @property
     def vfsl(self):
         if self._vfsl is None:
-            self._vfsl = zero_arrayvector(self.sys.numpnl, dtype=float)
+            self._vfsl = zero_vector(self.sys.numpnl, dtype=float)
             for pnl in self.sys.pnls.values():
                 self._vfsl[pnl.ind] = pnl.crd.vector_to_local(self.vfsg[pnl.ind])
         return self._vfsl
@@ -260,8 +260,8 @@ class PanelResult():
         return self._phi
 
     def calc_qloc(self, mu: ndarray, vfs: Vector=None,
-                  ofs: Vector=None) -> ArrayVector2D:
-        vfsg = zero_arrayvector(self.arm.shape, dtype=float)
+                  ofs: Vector=None) -> Vector2D:
+        vfsg = zero_vector(self.arm.shape, dtype=float)
         if ofs is not None:
             vfsg += self.arm.cross(ofs)
         if vfs is not None:
@@ -274,10 +274,10 @@ class PanelResult():
             vl[pnl.ind] = pnl.crd.dirx.dot(vfsg[pnl.ind])
             vt[pnl.ind] = pnl.crd.diry.dot(vfsg[pnl.ind])
             ql[pnl.ind], qt[pnl.ind] = pnl.diff_mu(mu)
-        return ArrayVector2D(vl + ql, vt + qt)
+        return Vector2D(vl + ql, vt + qt)
 
     @property
-    def qloc(self) -> ArrayVector2D:
+    def qloc(self) -> Vector2D:
         if self._qloc is None:
             self._qloc = self.calc_qloc(self.mu, vfs=self.vfs, ofs=self.ofs)
         return self._qloc
@@ -946,8 +946,8 @@ class NearFieldResult():
     res: PanelResult = None
     nfcp: ndarray = None
     _nfprs: ndarray = None
-    _nffrc: ArrayVector = None
-    _nfmom: ArrayVector = None
+    _nffrc: Vector = None
+    _nfmom: Vector = None
     _nffrctot: Vector = None
     _nfmomtot: Vector = None
     _Cx: float = None
@@ -975,7 +975,7 @@ class NearFieldResult():
         return self._nfprs
 
     @property
-    def nffrc(self) -> ArrayVector:
+    def nffrc(self) -> Vector:
         if self._nffrc is None:
             nrms = self.res.sys.nrms
             pnla = self.res.sys.pnla
@@ -983,7 +983,7 @@ class NearFieldResult():
         return self._nffrc
 
     @property
-    def nfmom(self) -> ArrayVector:
+    def nfmom(self) -> Vector:
         if self._nfmom is None:
             self._nfmom = self.res.arm.cross(self.nffrc)
         return self._nfmom
@@ -1104,8 +1104,8 @@ class NearFieldResult():
 
 class StripResult():
     nfres: 'NearFieldResult' = None
-    _stfrc: 'ArrayVector' = None
-    _stmom: 'ArrayVector' = None
+    _stfrc: 'Vector' = None
+    _stmom: 'Vector' = None
     _stcp = None
     _lift = None
     _side = None
@@ -1120,7 +1120,7 @@ class StripResult():
         if self._stfrc is None:
             sys = self.nfres.res.sys
             num = len(sys.strps)
-            self._stfrc = zero_arrayvector(num, dtype=float)
+            self._stfrc = zero_vector(num, dtype=float)
             for strp in sys.strps:
                 i = strp.ind
                 for pnl in strp.pnls:
@@ -1133,7 +1133,7 @@ class StripResult():
         if self._stmom is None:
             sys = self.nfres.res.sys
             num = len(sys.strps)
-            self._stmom = zero_arrayvector(num, dtype=float)
+            self._stmom = zero_vector(num, dtype=float)
             for strp in sys.strps:
                 i = strp.ind
                 for pnl in strp.pnls:
@@ -1268,7 +1268,7 @@ class FarFieldResult():
             x = self.res.rho*self.ffmu*self.res.sys.adh@self.ffmu
             y = self.res.rho*self.res.speed*self.ffmu*self.res.sys.ash
             z = self.res.rho*self.res.speed*self.ffmu*self.res.sys.alh
-            self._fffrc = ArrayVector(x, y, z)
+            self._fffrc = Vector(x, y, z)
         return self._fffrc
 
     @property

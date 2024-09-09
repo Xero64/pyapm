@@ -11,7 +11,7 @@ from numpy import (
     ones,
 )
 from pygeom.geom3d import Coordinate, Vector
-from pygeom.array3d import ArrayVector, zero_arrayvector
+from pygeom.geom3d import Vector, zero_vector
 
 tol = 1e-12
 piby2 = pi/2
@@ -139,20 +139,20 @@ class BoundEdge():
         else:
             return False
 
-    def points_to_local(self, pnts: ArrayVector, betx: float=1.0):
+    def points_to_local(self, pnts: Vector, betx: float=1.0):
         vecs = pnts-self.pntc
         if betx != 1.0:
             vecs.x = vecs.x/betx
-        return ArrayVector(vecs.dot(self.dirx), vecs.dot(self.diry),
+        return Vector(vecs.dot(self.dirx), vecs.dot(self.diry),
                             vecs.dot(self.dirz))
 
-    def vectors_to_global(self, vecs: ArrayVector):
+    def vectors_to_global(self, vecs: Vector):
         dirx = Vector(self.dirx.x, self.diry.x, self.dirz.x)
         diry = Vector(self.dirx.y, self.diry.y, self.dirz.y)
         dirz = Vector(self.dirx.z, self.diry.z, self.dirz.z)
-        return ArrayVector(vecs.dot(dirx), vecs.dot(diry), vecs.dot(dirz))
+        return Vector(vecs.dot(dirx), vecs.dot(diry), vecs.dot(dirz))
 
-    def doublet_velocity_potentials(self, pnts: ArrayVector, extraout: bool=False,
+    def doublet_velocity_potentials(self, pnts: Vector, extraout: bool=False,
                                     sgnz: ndarray=None, factor: bool=True,
                                     betx: float=1.0):
         rls = self.points_to_local(pnts, betx=betx)
@@ -177,7 +177,7 @@ class BoundEdge():
         else:
             return phids
 
-    def doublet_influence_coefficients(self, pnts: ArrayVector,
+    def doublet_influence_coefficients(self, pnts: Vector,
                                        sgnz: ndarray=None, factor: bool=True,
                                        betx: float=1.0):
         phid, _, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True,
@@ -190,7 +190,7 @@ class BoundEdge():
             phid, veld = phid/fourPi, veld/fourPi
         return phid, veld
 
-    def velocity_potentials(self, pnts: ArrayVector,
+    def velocity_potentials(self, pnts: Vector,
                             sgnz: ndarray=None, factor: bool=True, betx: float=1.0):
         phid, rl, _, am, _, bm = self.doublet_velocity_potentials(pnts, extraout=True,
                                                                   sgnz=sgnz,
@@ -201,7 +201,7 @@ class BoundEdge():
             phid, phis = phid/fourPi, phis/fourPi
         return phid, phis
 
-    def influence_coefficients(self, pnts: ArrayVector,
+    def influence_coefficients(self, pnts: Vector,
                                sgnz: ndarray=None, factor: bool=True, betx: float=1.0):
         phid, rl, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True,
                                                                     sgnz=sgnz,
@@ -230,7 +230,7 @@ class BoundEdge():
         outstr += f'grdbl = {self.grdbl}\n'
         return outstr
 
-def phi_doublet_array(vecs: ArrayVector, rls: ArrayVector, sgnz: ndarray):
+def phi_doublet_array(vecs: Vector, rls: Vector, sgnz: ndarray):
     mags = vecs.return_magnitude()
     ms = divide(vecs.x, rls.y)
     ths = arctan(ms)
@@ -241,7 +241,7 @@ def phi_doublet_array(vecs: ArrayVector, rls: ArrayVector, sgnz: ndarray):
     phids = Js - multiply(sgnz, ths)
     return phids, mags
 
-def phi_source_array(am, bm, dab, rl: ArrayVector, phid):
+def phi_source_array(am, bm, dab, rl: Vector, phid):
     numrab = am+bm+dab
     denrab = am+bm-dab
     Pab = divide(numrab, denrab)
@@ -251,7 +251,7 @@ def phi_source_array(am, bm, dab, rl: ArrayVector, phid):
     phis = -multiply(rl.z, phid) - tmps
     return phis, Qab
 
-def vel_doublet_array(av: ArrayVector, am, bv: ArrayVector, bm):
+def vel_doublet_array(av: Vector, am, bv: Vector, bm):
     adb = av.dot(bv)
     abm = multiply(am, bm)
     dm = multiply(abm, abm+adb)
@@ -266,7 +266,7 @@ def vel_doublet_array(av: ArrayVector, am, bv: ArrayVector, bm):
     return velvl
 
 def vel_source_array(Qab, rl, phid):
-    velsl = zero_arrayvector(Qab.shape, dtype=float)
+    velsl = zero_vector(Qab.shape, dtype=float)
     velsl.y = -Qab
     # velsl.z = -phid
     faco = ones(Qab.shape, dtype=float)
