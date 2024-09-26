@@ -1,9 +1,13 @@
-from matplotlib.pyplot import figure
-from pygeom.geom2d import Point2D
-from pygeom.geom2d.cubicspline2d import CubicSpline2D
-from . import read_dat
-from .spacing import full_cosine_spacing, equal_spacing
 from typing import List
+
+from matplotlib.pyplot import figure
+from numpy import asarray
+from pygeom.geom2d import Vector2D
+from pygeom.geom2d.cubicspline2d import CubicSpline2D
+
+from . import read_dat
+from .spacing import equal_spacing, full_cosine_spacing
+
 
 class Airfoil():
     name: str = None
@@ -121,7 +125,9 @@ class Airfoil():
     @property
     def spline(self):
         if self._spline is None:
-            pnts = [Point2D(xi, yi) for xi, yi in zip(self.xsp, self.ysp)]
+            xsp = asarray(self.xsp)
+            ysp = asarray(self.ysp)
+            pnts = Vector2D(xsp, ysp)
             self._spline = CubicSpline2D(pnts)
         return self._spline
 
@@ -137,14 +143,14 @@ class Airfoil():
         return self._cdst
 
     def interpolate_spline(self):
-        s = self.spline.arc_length()
+        s = self.spline.s
         s0 = s[0]
         s1 = s[self.ile]
         s2 = s[-1]
         s3 = [s0 + cd*(s1-s0) for cd in self.cdst]
         s4 = [s1 + cd*(s2-s1) for cd in self.cdst]
         s5 = s3 + s4[1:]
-        x, y = self.spline.interpolate_spline_points(s5)
+        x, y = self.spline.evaluate_points_at_t(asarray(s5)).to_xy()
         area = 0.0
         for i in range(len(s5)):
             xa = x[i-1]
@@ -154,8 +160,8 @@ class Airfoil():
             ai = yb*xa - xb*ya
             area += ai
         if area > 0.0:
-            x.reverse()
-            y.reverse()
+            x = x[::-1]
+            y = y[::-1]
         self._x = x
         self._y = y
 

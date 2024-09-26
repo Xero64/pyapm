@@ -1,6 +1,7 @@
-from pygeom.geom1d.linearspline import LinearSpline
-from pygeom.geom1d.cubicspline import CubicSpline
-from ..tools import equal_spacing
+from numpy import asarray, linspace
+from pygeom.geom1d.cubicspline1d import CubicSpline1D
+from pygeom.geom1d.linearspline1d import LinearSpline1D
+
 
 class PanelFunction():
     var = None
@@ -12,20 +13,20 @@ class PanelFunction():
         self.var = var
         self.spacing = spacing
         self.interp = interp
-        self.values = values
+        self.values = asarray(values)
 
     def set_spline(self, bmax: float):
         if self.spacing == 'equal':
-            num = len(self.values)
-            nspc = equal_spacing(num-1)
-            spc = [bmax*nspci for nspci in nspc]
+            num = self.values.size
+            nspc = linspace(0.0, 1.0, num)
+            spc = bmax*nspc
         if self.interp == 'linear':
-            self.spline = LinearSpline(spc, self.values)
+            self.spline = LinearSpline1D(spc, self.values)
         elif self.interp == 'cubic':
-            self.spline = CubicSpline(spc, self.values)
+            self.spline = CubicSpline1D(spc, self.values)
 
     def interpolate(self, b: float):
-        return self.spline.single_interpolate_spline(b)
+        return self.spline.evaluate_points_at_t(b)
 
 def panelfunction_from_json(funcdata: dict):
     var = funcdata["variable"]
