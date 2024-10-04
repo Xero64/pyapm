@@ -1,8 +1,8 @@
 #%%
 # Import Dependencies
-from pyapm.tools import equal_spacing, semi_cosine_spacing, full_cosine_spacing
-from pyapm.tools import linear_bias_left, linear_bias_right
 from matplotlib.pyplot import figure
+from pyapm.tools import (equal_spacing, full_cosine_spacing, linear_bias_left,
+                         linear_bias_right, semi_cosine_spacing)
 
 #%%
 # Create Spacings

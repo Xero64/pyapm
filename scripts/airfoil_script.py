@@ -1,8 +1,8 @@
 #%%
 # Import Dependencies
+from matplotlib.pyplot import figure
 from pyapm.tools.airfoil import airfoil_from_dat
 from pyapm.tools.naca4 import NACA4
-from matplotlib.pyplot import figure
 
 #%%
 # Create Airfoil

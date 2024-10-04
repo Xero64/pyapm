@@ -2,7 +2,6 @@ from typing import TYPE_CHECKING, Dict, List
 
 from py2md.classes import MDTable
 from pygeom.geom3d import Vector
-from pygeom.geom3d import zero_vector
 
 from ..tools.rigidbody import RigidBody
 from .panelresult import PanelResult
@@ -52,7 +51,7 @@ class SurfaceStructure():
     def pnts(self) -> 'Vector':
         if self._pnts is None:
             numstrp = len(self.srfc.strps)
-            self._pnts = zero_vector((2*numstrp, 1), dtype=float)
+            self._pnts = Vector.zeros((2*numstrp, 1), dtype=float)
             for i, strp in enumerate(self.srfc.strps):
                 inda = 2*i
                 indb = inda + 1

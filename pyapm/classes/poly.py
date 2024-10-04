@@ -1,8 +1,10 @@
 from typing import List
+
+from numpy import ones, zeros
 from pygeom.geom3d import Vector
-from pygeom.geom3d import Vector, zero_vector
-from numpy import zeros, ones
+
 from .boundedge import BoundEdge
+
 
 class Poly():
     grds: List[Vector] = None
@@ -67,8 +69,8 @@ class Poly():
     def influence_coefficients(self, pnts: Vector, betx: float=1.0):
         phiv = zeros(pnts.shape, dtype=float)
         phis = zeros(pnts.shape, dtype=float)
-        velv = zero_vector(pnts.shape, dtype=float)
-        vels = zero_vector(pnts.shape, dtype=float)
+        velv = Vector.zeros(pnts.shape, dtype=float)
+        vels = Vector.zeros(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
             ephiv, ephis, evelv, evels = edg.influence_coefficients(pnts, sgnz=sgnz,
@@ -81,7 +83,7 @@ class Poly():
 
     def doublet_influence_coefficients(self, pnts: Vector, betx: float=1.0):
         phiv = zeros(pnts.shape, dtype=float)
-        velv = zero_vector(pnts.shape, dtype=float)
+        velv = Vector.zeros(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         for edg in self.edgs:
             ephiv, evelv = edg.doublet_influence_coefficients(pnts, sgnz=sgnz,

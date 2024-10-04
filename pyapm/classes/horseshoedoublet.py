@@ -1,10 +1,10 @@
 from math import pi
 
+from numpy import (absolute, arctan, divide, logical_not, multiply, ndarray,
+                   ones, reciprocal, seterr, square, zeros)
 from pygeom.geom3d import Vector
-from pygeom.geom3d import Vector, zero_vector
-from numpy import ndarray, zeros, multiply, divide, arctan, ones, absolute, square
+
 from .dirichletpoly import phi_doublet_array, vel_doublet_array
-from numpy import logical_not, reciprocal, seterr
 
 seterr(divide='ignore')
 
@@ -96,7 +96,7 @@ class HorseshoeDoublet():
         sgnz[locz <= 0.0] = -1.0
         phid = zeros(pnts.shape, dtype=float)
         if incvel:
-            veld = zero_vector(pnts.shape, dtype=float)
+            veld = Vector.zeros(pnts.shape, dtype=float)
         # Vector A in Local Coordinate System
         alcs = Vector(agcs.dot(dirxab), agcs.dot(diryab), agcs.dot(dirzab))
         if checktol:

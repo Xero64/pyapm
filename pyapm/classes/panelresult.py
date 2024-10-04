@@ -1,12 +1,11 @@
-from math import cos, sin, radians, pi
-from typing import Dict, TYPE_CHECKING
-from pygeom.geom3d import Vector, Coordinate
-from pygeom.geom3d import Vector, zero_vector
-from pygeom.geom2d import Vector2D
-from numpy import ndarray, zeros
-from numpy import square
+from math import cos, pi, radians, sin
+from typing import TYPE_CHECKING, Dict
+
 from matplotlib.pyplot import figure
-from py2md.classes import MDTable, MDReport, MDHeading
+from numpy import ndarray, square, zeros
+from py2md.classes import MDHeading, MDReport, MDTable
+from pygeom.geom2d import Vector2D
+from pygeom.geom3d import Coordinate, Vector
 
 tol = 1e-12
 
@@ -170,7 +169,7 @@ class PanelResult():
     @property
     def vfsl(self):
         if self._vfsl is None:
-            self._vfsl = zero_vector(self.sys.numpnl, dtype=float)
+            self._vfsl = Vector.zeros(self.sys.numpnl, dtype=float)
             for pnl in self.sys.pnls.values():
                 self._vfsl[pnl.ind] = pnl.crd.vector_to_local(self.vfsg[pnl.ind])
         return self._vfsl
@@ -261,7 +260,7 @@ class PanelResult():
 
     def calc_qloc(self, mu: ndarray, vfs: Vector=None,
                   ofs: Vector=None) -> Vector2D:
-        vfsg = zero_vector(self.arm.shape, dtype=float)
+        vfsg = Vector.zeros(self.arm.shape, dtype=float)
         if ofs is not None:
             vfsg += self.arm.cross(ofs)
         if vfs is not None:
@@ -1120,7 +1119,7 @@ class StripResult():
         if self._stfrc is None:
             sys = self.nfres.res.sys
             num = len(sys.strps)
-            self._stfrc = zero_vector(num, dtype=float)
+            self._stfrc = Vector.zeros(num, dtype=float)
             for strp in sys.strps:
                 i = strp.ind
                 for pnl in strp.pnls:
@@ -1133,7 +1132,7 @@ class StripResult():
         if self._stmom is None:
             sys = self.nfres.res.sys
             num = len(sys.strps)
-            self._stmom = zero_vector(num, dtype=float)
+            self._stmom = Vector.zeros(num, dtype=float)
             for strp in sys.strps:
                 i = strp.ind
                 for pnl in strp.pnls:
@@ -1675,7 +1674,8 @@ class StabilityResult():
 
     @property
     def stability_derivatives(self):
-        from py2md.classes import MDTable, MDHeading, MDReport
+        from py2md.classes import MDHeading, MDReport, MDTable
+
         from . import sfrm
         report = MDReport()
         heading = MDHeading('Stability Derivatives', 2)
@@ -1719,7 +1719,8 @@ class StabilityResult():
 
     @property
     def stability_derivatives_body(self):
-        from py2md.classes import MDTable, MDHeading, MDReport
+        from py2md.classes import MDHeading, MDReport, MDTable
+
         from . import sfrm
         report = MDReport()
         heading = MDHeading('Stability Derivatives Body Axis', 2)

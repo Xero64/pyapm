@@ -3,7 +3,6 @@ from typing import TYPE_CHECKING, Optional
 from matplotlib.pyplot import figure
 from py2md.classes import MDHeading, MDReport, MDTable
 from pygeom.geom3d import Vector
-from pygeom.geom3d import zero_vector
 
 from . import PanelResult
 
@@ -47,8 +46,8 @@ class SurfaceLoad():
             self.frctot += strpres.stfrc[ind, 0]
             self.momtot += strpres.stmom[ind, 0] + rrel.cross(strpres.stfrc[ind, 0])
         self.rfrc, self.rmom = self.strc.rbdy.return_reactions(self.frctot, self.momtot)
-        self.ptfrc = zero_vector(self.strc.pnts.shape, dtype=float)
-        self.ptmom = zero_vector(self.strc.pnts.shape, dtype=float)
+        self.ptfrc = Vector.zeros(self.strc.pnts.shape, dtype=float)
+        self.ptmom = Vector.zeros(self.strc.pnts.shape, dtype=float)
         ptfrcb = Vector(0.0, 0.0, 0.0)
         ptmomb = Vector(0.0, 0.0, 0.0)
         for i, strp in enumerate(self.strc.strps):

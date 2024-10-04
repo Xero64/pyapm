@@ -1,6 +1,8 @@
+from math import atan, copysign, log, pi
 from typing import List
-from .spacing import full_cosine_spacing, equal_spacing, linear_bias_left
-from math import log, pi, copysign, atan
+
+from .spacing import equal_spacing, full_cosine_spacing, linear_bias_left
+
 
 class NACA6Series():
     code: str = None

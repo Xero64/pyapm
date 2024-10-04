@@ -1,15 +1,18 @@
-from math import degrees, atan2
-from typing import List, Dict
+from math import atan2, degrees
+from typing import Dict, List
+
 from numpy import ndarray
-from pygeom.geom3d import Vector, IHAT
-from .panelsection import PanelSection
-from .panelstrip import PanelStrip
-from .panelprofile import PanelProfile
-from .panelfunction import PanelFunction
-from .panelcontrol import PanelControl
+from pygeom.geom3d import IHAT, Vector
+
+from ..tools import equal_spacing, full_cosine_spacing, semi_cosine_spacing
 from .grid import Grid
 from .panel import Panel
-from ..tools import equal_spacing, semi_cosine_spacing, full_cosine_spacing
+from .panelcontrol import PanelControl
+from .panelfunction import PanelFunction
+from .panelprofile import PanelProfile
+from .panelsection import PanelSection
+from .panelstrip import PanelStrip
+
 
 class PanelSheet():
     scta: PanelSection = None

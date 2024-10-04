@@ -1,8 +1,8 @@
 from .grid import Grid
 from .panel import Panel
-from .panelsystem import PanelSystem
-from .panelsystem import panelsystem_from_json, panelsystem_from_mesh, panelsystem_from_geom
 from .panelresult import PanelResult
+from .panelsystem import (PanelSystem, panelsystem_from_geom,
+                          panelsystem_from_json, panelsystem_from_mesh)
 from .paneltrim import PanelTrim
 
 cfrm = '.5f'

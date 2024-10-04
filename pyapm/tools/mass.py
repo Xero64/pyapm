@@ -1,5 +1,6 @@
 from numpy import zeros
 
+
 class Mass():
     name = None
     mass = None

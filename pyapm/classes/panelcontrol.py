@@ -1,5 +1,6 @@
 from pygeom.geom3d import Vector
 
+
 class PanelControl():
     name = None
     posgain = None

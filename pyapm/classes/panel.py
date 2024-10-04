@@ -1,19 +1,20 @@
-from math import sqrt, acos, pi
-from typing import List, TYPE_CHECKING, Tuple
-from numpy import ndarray, absolute, full, minimum, logical_not, ones
-from pygeom.geom3d import Vector, Coordinate, IHAT, KHAT
-from pygeom.geom3d import Vector
-from .grid import Grid
+from math import acos, pi, sqrt
+from typing import TYPE_CHECKING, List, Tuple
+
+from numpy import absolute, full, logical_not, minimum, ndarray, ones
+from pygeom.geom3d import IHAT, KHAT, Coordinate, Vector
+
 from .dirichletpoly import DirichletPoly
+from .grid import Grid
 from .horseshoedoublet import HorseshoeDoublet
 
 oor2 = 1/sqrt(2.0)
 angtol = pi/4
 
 if TYPE_CHECKING:
-    from .panelsurface import PanelSurface
-    from .panelsheet import PanelSheet
     from .panelsection import PanelSection
+    from .panelsheet import PanelSheet
+    from .panelsurface import PanelSurface
 
 class Panel(DirichletPoly):
     pid: int = None

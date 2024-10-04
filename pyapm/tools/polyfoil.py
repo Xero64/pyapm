@@ -1,10 +1,13 @@
 from typing import List
-from .spacing import full_cosine_spacing, equal_spacing
-from .spacing import linear_bias_left
-from numpy import multiply, power, array, hstack, arctan, sin, cos, zeros, sqrt, pi
-from scipy.optimize import root, least_squares
+
 from matplotlib.pyplot import figure
+from numpy import (arctan, array, cos, hstack, multiply, pi, power, sin, sqrt,
+                   zeros)
+from scipy.optimize import least_squares, root
+
 from . import read_dat
+from .spacing import equal_spacing, full_cosine_spacing, linear_bias_left
+
 
 class PolyFoil():
     name: str = None

@@ -1,6 +1,8 @@
+from numpy import arange, argmin, array, logical_not, ndarray, zeros
 from pygeom.geom3d import Vector
-from numpy import zeros, argmin, array, arange, logical_not, ndarray
+
 from ..classes.panelsystem import PanelSystem
+
 
 def fetch_pids_ttol(pnts: Vector, psys: PanelSystem, ztol: float=0.01, ttol: float=0.1):
     shp = pnts.shape

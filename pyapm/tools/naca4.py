@@ -1,8 +1,10 @@
+from math import atan, cos, pi, sin, sqrt
 from typing import List
-from .spacing import full_cosine_spacing, equal_spacing
-from .spacing import linear_bias_left
-from math import atan, sqrt, pi, sin, cos
+
 from matplotlib.pyplot import figure
+
+from .spacing import equal_spacing, full_cosine_spacing, linear_bias_left
+
 
 class NACA4():
     code: str = None

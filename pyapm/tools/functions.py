@@ -1,4 +1,5 @@
-from numpy import ndarray, divide
+from numpy import divide, ndarray
+
 
 def diff(mat: ndarray, axis: int = 0):
     if axis == 0:

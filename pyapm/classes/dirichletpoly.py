@@ -1,23 +1,10 @@
 from math import pi
 from typing import List
 
-from numpy import seterr
+from numpy import (absolute, arctan, divide, log, logical_and, logical_not,
+                   multiply, ndarray, ones, seterr, zeros)
 from numpy.linalg import inv
-from numpy import (
-    absolute,
-    arctan,
-    divide,
-    log,
-    logical_and,
-    logical_not,
-    ndarray,
-    multiply,
-    ones,
-    zeros,
-)
 from pygeom.geom3d import Vector
-from pygeom.geom3d import Vector, zero_vector
-
 
 seterr(divide='ignore')
 
@@ -59,7 +46,7 @@ class DirichletPoly():
     @property
     def grdr(self):
         if self._grdr is None:
-            self._grdr = zero_vector((1, self.num), dtype=float)
+            self._grdr = Vector.zeros((1, self.num), dtype=float)
             for i in range(self.num):
                 self._grdr[0, i] = self.grds[i] - self.pnto
         return self._grdr
@@ -72,7 +59,7 @@ class DirichletPoly():
         return grdm
 
     def edge_cross(self, grds: Vector):
-        vecaxb = zero_vector((1, self.num), dtype=float)
+        vecaxb = Vector.zeros((1, self.num), dtype=float)
         for i in range(self.num):
             veca = grds[0, i-1]
             vecb = grds[0, i]
@@ -80,7 +67,7 @@ class DirichletPoly():
         return vecaxb
 
     def edge_vector(self, grds: Vector):
-        vecab = zero_vector((1, self.num), dtype=float)
+        vecab = Vector.zeros((1, self.num), dtype=float)
         for i in range(self.num):
             veca = grds[0, i-1]
             vecb = grds[0, i]
@@ -185,8 +172,8 @@ class DirichletPoly():
         phid = zeros(pnts.shape, dtype=float)
         phis = zeros(pnts.shape, dtype=float)
         if incvel:
-            veld = zero_vector(pnts.shape, dtype=float)
-            vels = zero_vector(pnts.shape, dtype=float)
+            veld = Vector.zeros(pnts.shape, dtype=float)
+            vels = Vector.zeros(pnts.shape, dtype=float)
         for i in range(self.num):
             # Edge Length
             dab = vecab[0, i].return_magnitude()
@@ -292,7 +279,7 @@ def vel_doublet_array(av, am, bv, bm):
     return velvl
 
 def vel_source_array(Qab, rl, phid):
-    velsl = zero_vector(Qab.shape, dtype=float)
+    velsl = Vector.zeros(Qab.shape, dtype=float)
     velsl.y = -Qab
     faco = ones(Qab.shape, dtype=float)
     faco[rl.z != 0.0] = -1.0

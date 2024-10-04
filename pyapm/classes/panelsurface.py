@@ -1,14 +1,17 @@
 from math import sqrt
-from typing import List, Dict
+from typing import Dict, List
+
 from pygeom.geom3d import Vector
+
+from ..tools.airfoil import airfoil_interpolation
 from .grid import Grid
 from .panel import Panel
-from .panelsection import PanelSection, panelsection_from_json
 from .panelfunction import PanelFunction, panelfunction_from_json
+from .panelprofile import PanelProfile
+from .panelsection import PanelSection, panelsection_from_json
 from .panelsheet import PanelSheet
 from .panelstrip import PanelStrip
-from .panelprofile import PanelProfile
-from ..tools.airfoil import airfoil_interpolation
+
 
 class PanelSurface():
     name: str = None

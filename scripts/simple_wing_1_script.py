@@ -1,11 +1,12 @@
 #%%
 # Import Dependencies
-from pyapm.classes import Grid, Panel, PanelSystem, PanelResult
+from numpy import zeros
+from pyapm.classes import Grid, Panel, PanelResult, PanelSystem
 from pyapm.outputs.msh import panelresult_to_msh
 from pyfoil.airfoil import naca_to_xyt
-from numpy import zeros
-from pyvlm.tools import full_cosine_spacing
 from pygeom.geom3d import Vector
+
+from pyvlm.tools import full_cosine_spacing
 
 #%%
 # Create Grids

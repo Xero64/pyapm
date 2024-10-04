@@ -1,17 +1,8 @@
 from math import pi
 
-from numpy import (
-    absolute,
-    arctan,
-    divide,
-    log,
-    logical_and,
-    ndarray,
-    multiply,
-    ones,
-)
+from numpy import (absolute, arctan, divide, log, logical_and, multiply,
+                   ndarray, ones)
 from pygeom.geom3d import Coordinate, Vector
-from pygeom.geom3d import Vector, zero_vector
 
 tol = 1e-12
 piby2 = pi/2
@@ -266,7 +257,7 @@ def vel_doublet_array(av: Vector, am, bv: Vector, bm):
     return velvl
 
 def vel_source_array(Qab, rl, phid):
-    velsl = zero_vector(Qab.shape, dtype=float)
+    velsl = Vector.zeros(Qab.shape, dtype=float)
     velsl.y = -Qab
     # velsl.z = -phid
     faco = ones(Qab.shape, dtype=float)

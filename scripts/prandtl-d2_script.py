@@ -1,12 +1,12 @@
 #%%
 # Import Dependencies
 from IPython.display import display_markdown
+from matplotlib.pyplot import figure
+from numpy import zeros
 from pyapm import panelsystem_from_json
 from pyapm.classes.horseshoevortex2d import HorseshoeVortex2D, Vector2D
 from pyapm.outputs.msh import panelresult_to_msh
-from matplotlib.pyplot import figure
-from pygeom.geom2d import zero_vector2d
-from numpy import zeros
+from pygeom.geom2d import Vector2D
 
 #%%
 # Create Panel Mesh
@@ -138,8 +138,8 @@ _ = ax.plot(ypos, wash)
 # Horseshoe Vortex 2D
 num = len(hsv2ds)
 
-hsvpnts = zero_vector2d(num, dtype=float)
-hsvnrms = zero_vector2d(num, dtype=float)
+hsvpnts = Vector2D.zeros(num, dtype=float)
+hsvnrms = Vector2D.zeros(num, dtype=float)
 for i, hsv in enumerate(hsv2ds):
     hsvpnts[i] = hsv.pnt
     hsvnrms[i] = hsv.nrm

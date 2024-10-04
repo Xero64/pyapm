@@ -1,5 +1,7 @@
-from numpy import array, arange, cos, pi
 from typing import List
+
+from numpy import arange, array, cos, pi
+
 
 def normalise_spacing(spacing: array):
     smin = spacing.min()

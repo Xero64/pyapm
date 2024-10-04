@@ -1,7 +1,9 @@
-from sys import argv
 from json import load
-from .classes import panelsystem_from_mesh, panelsystem_from_geom
-from .outputs import panelsystem_to_md, outputs_from_json, panelresults_to_msh
+from sys import argv
+
+from .classes import panelsystem_from_geom, panelsystem_from_mesh
+from .outputs import outputs_from_json, panelresults_to_msh, panelsystem_to_md
+
 
 def main(jsonfilepath: str='', mdfilepath: str=''):
 

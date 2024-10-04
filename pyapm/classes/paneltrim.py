@@ -1,11 +1,12 @@
-from typing import List, Dict, TYPE_CHECKING
 from time import perf_counter
-from numpy import degrees, radians
-from numpy import zeros
-from numpy.linalg import norm, inv
-from .panelresult import PanelResult, NearFieldResult
-from ..tools.trim import LoadTrim, LoopingTrim, TurningTrim
+from typing import TYPE_CHECKING, Dict, List
+
+from numpy import degrees, radians, zeros
+from numpy.linalg import inv, norm
+
 from ..tools.mass import Mass
+from ..tools.trim import LoadTrim, LoopingTrim, TurningTrim
+from .panelresult import NearFieldResult, PanelResult
 
 ANGTOL = 30.0
 

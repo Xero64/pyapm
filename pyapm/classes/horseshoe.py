@@ -1,7 +1,8 @@
 from math import pi
-from numpy import zeros, ones
-from pygeom.geom3d import Vector, zero_vector
+
+from numpy import ones, zeros
 from pygeom.geom3d import Vector
+
 from .boundedge import BoundEdge
 from .trailingedge import TrailingEdge
 
@@ -103,7 +104,7 @@ class HorseShoe():
 
     def doublet_influence_coefficients(self, pnts: Vector, betx: float=1.0):
         phid = zeros(pnts.shape, dtype=float)
-        veld = zero_vector(pnts.shape, dtype=float)
+        veld = Vector.zeros(pnts.shape, dtype=float)
         sgnz = self.sign_local_z(pnts, betx=betx)
         phida, velda = self.tva.doublet_influence_coefficients(pnts, sgnz=sgnz, betx=betx)
         phidb, veldb = self.tvb.doublet_influence_coefficients(pnts, sgnz=sgnz, betx=betx)

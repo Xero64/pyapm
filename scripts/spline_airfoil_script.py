@@ -1,8 +1,8 @@
 #%%
 # Import Dependencies
-from pygeom.geom2d import CubicSpline2D, Point2D, Vector2D
-from pyapm.tools.naca4 import NACA4
 from matplotlib.pyplot import figure
+from pyapm.tools.naca4 import NACA4
+from pygeom.geom2d import CubicSpline2D, Point2D, Vector2D
 
 #%%
 # Create NACA4

@@ -1,8 +1,11 @@
 from math import sqrt
 from typing import List
+
 from pygeom.geom3d import Vector
+
 from .panel import Panel
 from .panelprofile import PanelProfile
+
 
 class PanelStrip():
     prfa: PanelProfile = None

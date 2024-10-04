@@ -1,14 +1,15 @@
 from math import cos, radians
-from typing import List, Dict
+from typing import Dict, List
+
 from numpy import absolute
 from pygeom.geom3d import Vector
-from pygeom.geom3d import zero_vector
-from .grid import Grid
-from .panel import Panel
-from .panelprofile import PanelProfile
-from .panelcontrol import PanelControl, panelcontrol_from_dict
+
 from ..tools.airfoil import airfoil_from_dat
 from ..tools.naca4 import NACA4
+from .grid import Grid
+from .panel import Panel
+from .panelcontrol import PanelControl, panelcontrol_from_dict
+from .panelprofile import PanelProfile
 
 tol = 1e-12
 
@@ -131,7 +132,7 @@ class PanelSection(PanelProfile):
 
     def get_profile(self, offset: bool=True):
         num = self.cnum*2+1
-        profile = zero_vector((1, num), dtype=float)
+        profile = Vector.zeros((1, num), dtype=float)
         for i in range(self.cnum+1):
             n = num-i-1
             j = n-num

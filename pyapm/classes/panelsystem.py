@@ -6,8 +6,7 @@ from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 from matplotlib.pyplot import figure
 from numpy import zeros
 from py2md.classes import MDTable
-from pygeom.geom3d import solve_vector, zero_vector
-from pygeom.geom3d import Vector
+from pygeom.geom3d import Vector, solve_vector
 
 from ..tools import betm_from_mach
 from ..tools.mass import masses_from_json
@@ -170,7 +169,7 @@ class PanelSystem():
     @property
     def pnts(self) -> int:
         if self._pnts is None:
-            self._pnts = zero_vector(self.numpnl, dtype=float)
+            self._pnts = Vector.zeros(self.numpnl, dtype=float)
             for pnl in self.pnls.values():
                 self._pnts[pnl.ind] = pnl.pnto
         return self._pnts
@@ -184,7 +183,7 @@ class PanelSystem():
     @property
     def nrms(self) -> 'Vector':
         if self._nrms is None:
-            self._nrms = zero_vector(self.numpnl, dtype=float)
+            self._nrms = Vector.zeros(self.numpnl, dtype=float)
             for pnl in self.pnls.values():
                 self._nrms[pnl.ind] = pnl.nrm
         return self._nrms
@@ -316,7 +315,7 @@ class PanelSystem():
     @property
     def hsvpnts(self) -> 'Vector':
         if self._hsvpnts is None:
-            self._hsvpnts = zero_vector(self.numhsv, dtype=float)
+            self._hsvpnts = Vector.zeros(self.numhsv, dtype=float)
             for i, hsv in enumerate(self.hsvs):
                 self._hsvpnts[i] = hsv.pnto
         return self._hsvpnts
@@ -324,7 +323,7 @@ class PanelSystem():
     @property
     def hsvnrms(self) -> 'Vector':
         if self._hsvnrms is None:
-            self._hsvnrms = zero_vector(self.numhsv, dtype=float)
+            self._hsvnrms = Vector.zeros(self.numhsv, dtype=float)
             for i, hsv in enumerate(self.hsvs):
                 self._hsvnrms[i] = hsv.nrm
         return self._hsvnrms
@@ -417,7 +416,7 @@ class PanelSystem():
         if self._unsig is None:
             self._unsig = {}
         if mach not in self._unsig:
-            unsig = zero_vector((self.numpnl, 2+4*self.numctrl), dtype=float)
+            unsig = Vector.zeros((self.numpnl, 2+4*self.numctrl), dtype=float)
             unsig[:, 0] = -self.nrms
             unsig[:, 1] = self.rrel.cross(self.nrms)
             if self.srfcs is not None:
@@ -479,8 +478,8 @@ class PanelSystem():
         shp = (self.numpnl, self.numpnl)
         apd = zeros(shp, dtype=float)
         aps = zeros(shp, dtype=float)
-        avd = zero_vector(shp, dtype=float)
-        avs = zero_vector(shp, dtype=float)
+        avd = Vector.zeros(shp, dtype=float)
+        avs = Vector.zeros(shp, dtype=float)
         betm = betm_from_mach(mach)
         for pnl in self.pnls.values():
             ind = pnl.ind
@@ -523,7 +522,7 @@ class PanelSystem():
             start = perf_counter()
         shp = (self.numpnl, self.numpnl)
         aph = zeros(shp, dtype=float)
-        avh = zero_vector(shp, dtype=float)
+        avh = Vector.zeros(shp, dtype=float)
         betm = betm_from_mach(mach)
         for i, hsv in enumerate(self.hsvs):
             aph[:, i], avh[:, i] = hsv.doublet_influence_coefficients(self.pnts, betx=betm)

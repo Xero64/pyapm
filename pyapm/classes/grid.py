@@ -1,4 +1,5 @@
-from typing import Set, TYPE_CHECKING
+from typing import TYPE_CHECKING, Set
+
 from pygeom.geom3d import Vector
 
 if TYPE_CHECKING:

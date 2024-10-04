@@ -1,7 +1,9 @@
 from typing import List
-from numpy import zeros, ndarray
+
+from numpy import ndarray, zeros
 from numpy.linalg import inv
 from pygeom.geom3d import Vector
+
 
 class RigidBody():
     pnt: List[Vector] = None

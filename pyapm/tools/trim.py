@@ -1,6 +1,9 @@
 from typing import Dict
+
 from pygeom.geom3d import Vector
+
 from .mass import Mass, MassCollection
+
 
 class LoopingTrim():
     name = None
@@ -248,7 +251,7 @@ class TurningTrim():
     @property
     def loadfac(self):
         if self._loadfac is None:
-            from math import radians, cos
+            from math import cos, radians
             brad = radians(self.bankang)
             self._loadfac = 1.0/cos(brad)
         return self._loadfac

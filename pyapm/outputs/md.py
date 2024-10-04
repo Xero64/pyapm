@@ -1,5 +1,6 @@
 from ..classes import PanelSystem
 
+
 def panelsystem_to_md(psys: PanelSystem, mdfilepath: str, outputs: dict):
     with open(mdfilepath, 'wt') as mdfile:
         mdfile.write(psys.__str__())
