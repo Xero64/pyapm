@@ -4,6 +4,7 @@ from time import perf_counter
 
 from matplotlib.pyplot import figure
 from numpy import absolute
+
 from pyapm.classes.horseshoe import HorseShoe
 from pyapm.classes.poly import Poly
 from pyapm.tools.functions import derivative, mean

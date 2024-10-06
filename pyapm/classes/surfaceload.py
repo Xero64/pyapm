@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING, Optional
 
 from matplotlib.pyplot import figure
+
 from py2md.classes import MDHeading, MDReport, MDTable
 from pygeom.geom3d import Vector
 
@@ -8,6 +9,7 @@ from . import PanelResult
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
+
     from pygeom.geom3d import Vector
 
     from .surfacestructure import SurfaceStructure

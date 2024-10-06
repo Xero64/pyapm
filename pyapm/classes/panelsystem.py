@@ -5,8 +5,9 @@ from typing import TYPE_CHECKING, Any, Dict, List, Tuple
 
 from matplotlib.pyplot import figure
 from numpy import zeros
+
 from py2md.classes import MDTable
-from pygeom.geom3d import Vector, solve_vector
+from pygeom.geom3d import Vector
 
 from ..tools import betm_from_mach
 from ..tools.mass import masses_from_json
@@ -19,6 +20,7 @@ from .paneltrim import paneltrim_from_dict
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from numpy import ndarray
+
     from pygeom.geom3d import Vector
 
     from .horseshoedoublet import HorseshoeDoublet
@@ -551,7 +553,7 @@ class PanelSystem():
             start = perf_counter()
         if self._unmu is None:
             self._unmu = {}
-        self._unmu[mach] = solve_vector(self.apm(mach), self.bps(mach))
+        self._unmu[mach] = Vector.solve(self.apm(mach), self.bps(mach))
         if self._unphi is None:
             self._unphi = {}
         self._unphi[mach] = self.unmu(mach).rmatmul(self.apm(mach)) + self.bps(mach)
@@ -565,7 +567,7 @@ class PanelSystem():
             start = perf_counter()
         if self._unmu is None:
             self._unmu = {}
-        self._unmu[mach] = solve_vector(self.anm(mach), self.bnm(mach))
+        self._unmu[mach] = Vector.solve(self.anm(mach), self.bnm(mach))
         if self._unnvg is None:
             self._unnvg = {}
         self._unnvg[mach] = self.unmu(mach).rmatmul(self.anm(mach)) + self.bnm(mach)

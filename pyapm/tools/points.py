@@ -1,4 +1,5 @@
 from numpy import arange, argmin, array, logical_not, ndarray, zeros
+
 from pygeom.geom3d import Vector
 
 from ..classes.panelsystem import PanelSystem

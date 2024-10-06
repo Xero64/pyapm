@@ -2,6 +2,7 @@ from math import cos, radians
 from typing import Dict, List
 
 from numpy import absolute
+
 from pygeom.geom3d import Vector
 
 from ..tools.airfoil import airfoil_from_dat

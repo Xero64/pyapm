@@ -2,6 +2,7 @@ from typing import List
 
 from numpy import ndarray, zeros
 from numpy.linalg import inv
+
 from pygeom.geom3d import Vector
 
 

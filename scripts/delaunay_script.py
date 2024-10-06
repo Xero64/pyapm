@@ -3,6 +3,7 @@
 # import scipy.spatial.Delaunay as Delaunay
 from matplotlib.pyplot import figure
 from matplotlib.tri import Triangulation
+
 from pyapm.tools.naca4 import NACA4
 
 #%%

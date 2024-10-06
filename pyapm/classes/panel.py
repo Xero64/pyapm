@@ -2,6 +2,7 @@ from math import acos, pi, sqrt
 from typing import TYPE_CHECKING, List, Tuple
 
 from numpy import absolute, full, logical_not, minimum, ndarray, ones
+
 from pygeom.geom3d import IHAT, KHAT, Coordinate, Vector
 
 from .dirichletpoly import DirichletPoly

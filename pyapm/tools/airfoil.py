@@ -2,6 +2,7 @@ from typing import List
 
 from matplotlib.pyplot import figure
 from numpy import asarray
+
 from pygeom.geom2d import Vector2D
 from pygeom.geom2d.cubicspline2d import CubicSpline2D
 

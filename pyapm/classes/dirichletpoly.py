@@ -4,6 +4,7 @@ from typing import List
 from numpy import (absolute, arctan, divide, log, logical_and, logical_not,
                    multiply, ndarray, ones, seterr, zeros)
 from numpy.linalg import inv
+
 from pygeom.geom3d import Vector
 
 seterr(divide='ignore')

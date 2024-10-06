@@ -3,6 +3,7 @@ from typing import TYPE_CHECKING, Dict
 
 from matplotlib.pyplot import figure
 from numpy import ndarray, square, zeros
+
 from py2md.classes import MDHeading, MDReport, MDTable
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import Coordinate, Vector

@@ -2,6 +2,7 @@ from math import atan2, degrees
 from typing import Dict, List
 
 from numpy import ndarray
+
 from pygeom.geom3d import IHAT, Vector
 
 from ..tools import equal_spacing, full_cosine_spacing, semi_cosine_spacing

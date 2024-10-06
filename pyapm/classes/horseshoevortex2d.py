@@ -1,6 +1,7 @@
 from math import pi
 
 from numpy import square
+
 from pygeom.geom2d import Vector2D
 from pygeom.geom2d.vector2d import Vector2D
 

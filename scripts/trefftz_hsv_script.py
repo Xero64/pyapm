@@ -3,6 +3,7 @@
 from time import perf_counter
 
 from matplotlib.pyplot import figure
+
 from pyapm.classes.grid import Grid
 from pyapm.classes.horseshoe import HorseShoe
 from pygeom.geom3d import Vector

@@ -2,6 +2,7 @@ from math import pi
 
 from numpy import (absolute, arctan, divide, logical_not, multiply, ndarray,
                    ones, reciprocal, seterr, square, zeros)
+
 from pygeom.geom3d import Vector
 
 from .dirichletpoly import phi_doublet_array, vel_doublet_array

@@ -3,6 +3,7 @@
 from IPython.display import display_markdown
 from matplotlib.pyplot import figure
 from numpy import zeros
+
 from pyapm import panelsystem_from_json
 from pyapm.classes.horseshoevortex2d import HorseshoeVortex2D, Vector2D
 from pyapm.outputs.msh import panelresult_to_msh

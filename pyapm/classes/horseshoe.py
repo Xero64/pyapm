@@ -1,6 +1,7 @@
 from math import pi
 
 from numpy import ones, zeros
+
 from pygeom.geom3d import Vector
 
 from .boundedge import BoundEdge

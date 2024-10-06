@@ -2,6 +2,7 @@ from math import pi
 
 from numpy import (absolute, arctan, divide, log, logical_and, multiply,
                    ndarray, ones)
+
 from pygeom.geom3d import Coordinate, Vector
 
 tol = 1e-12

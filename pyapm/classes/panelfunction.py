@@ -1,4 +1,5 @@
 from numpy import asarray, linspace
+
 from pygeom.geom1d.cubicspline1d import CubicSpline1D
 from pygeom.geom1d.linearspline1d import LinearSpline1D
 

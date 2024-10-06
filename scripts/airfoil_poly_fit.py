@@ -1,8 +1,9 @@
 #%%
 # Import Dependencies
 from matplotlib.pyplot import figure
-from pyapm.tools.polyfoil import polyfoil_from_xy
 from pyfoil.airfoil.naca import naca_to_xyt
+
+from pyapm.tools.polyfoil import polyfoil_from_xy
 
 #%%
 # Create Airfoil

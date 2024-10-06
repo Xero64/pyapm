@@ -1,6 +1,7 @@
 #%%
 # Import Dependencies
 from matplotlib.pyplot import figure
+
 from pyapm.tools import (equal_spacing, full_cosine_spacing, linear_bias_left,
                          linear_bias_right, semi_cosine_spacing)
 

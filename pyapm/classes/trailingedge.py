@@ -2,6 +2,7 @@ from math import pi
 
 from numpy import (absolute, arctan, divide, multiply, ndarray, ones, square,
                    zeros)
+
 from pygeom.geom3d import Coordinate, Vector
 from pygeom.geom3d.vector import Vector
 
