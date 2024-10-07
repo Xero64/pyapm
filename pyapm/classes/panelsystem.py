@@ -553,7 +553,7 @@ class PanelSystem():
             start = perf_counter()
         if self._unmu is None:
             self._unmu = {}
-        self._unmu[mach] = Vector.solve(self.apm(mach), self.bps(mach))
+        self._unmu[mach] = self.bps(mach).solve(self.apm(mach))
         if self._unphi is None:
             self._unphi = {}
         self._unphi[mach] = self.unmu(mach).rmatmul(self.apm(mach)) + self.bps(mach)
@@ -567,7 +567,7 @@ class PanelSystem():
             start = perf_counter()
         if self._unmu is None:
             self._unmu = {}
-        self._unmu[mach] = Vector.solve(self.anm(mach), self.bnm(mach))
+        self._unmu[mach] = self.bnm(mach).solve(self.anm(mach))
         if self._unnvg is None:
             self._unnvg = {}
         self._unnvg[mach] = self.unmu(mach).rmatmul(self.anm(mach)) + self.bnm(mach)
