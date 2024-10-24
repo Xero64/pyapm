@@ -1,4 +1,4 @@
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 from py2md.classes import MDTable
 from pygeom.geom3d import Vector
@@ -8,24 +8,22 @@ from .panelresult import PanelResult
 from .surfaceload import SurfaceLoad
 
 if TYPE_CHECKING:
-    from pygeom.geom3d import Vector
-
     from .panelstrip import PanelStrip
     from .panelsurface import PanelSurface
 
 
 class SurfaceStructure():
     srfc: 'PanelSurface' = None
-    loads: Dict[str, SurfaceLoad] = None
+    loads: dict[str, SurfaceLoad] = None
     rref: Vector = None
     axis: str = None
-    pntinds: Dict[int, int] = None
-    rpnts: List[Vector] = None
-    ks: List[Vector] = None
-    gs: List[Vector] = None
-    _pnts: 'Vector' = None
-    _ypos: List[float] = None
-    _zpos: List[float] = None
+    pntinds: dict[int, int] = None
+    rpnts: list[Vector] = None
+    ks: list[Vector] = None
+    gs: list[Vector] = None
+    _pnts: Vector = None
+    _ypos: list[float] = None
+    _zpos: list[float] = None
     _rbdy: RigidBody = None
 
     def __init__(self, srfc: 'PanelSurface') -> None:
@@ -44,14 +42,14 @@ class SurfaceStructure():
         self.axis = axis
 
     @property
-    def strps(self) -> List['PanelStrip']:
+    def strps(self) -> list['PanelStrip']:
         return self.srfc.strps
 
     @property
-    def pnts(self) -> 'Vector':
+    def pnts(self) -> Vector:
         if self._pnts is None:
             numstrp = len(self.srfc.strps)
-            self._pnts = Vector.zeros((2*numstrp, 1), dtype=float)
+            self._pnts = Vector.zeros((2*numstrp, 1))
             for i, strp in enumerate(self.srfc.strps):
                 inda = 2*i
                 indb = inda + 1
@@ -60,13 +58,13 @@ class SurfaceStructure():
         return self._pnts
 
     @property
-    def ypos(self) -> List[float]:
+    def ypos(self) -> list[float]:
         if self._ypos is None:
             self._ypos = self.pnts.y.transpose().tolist()[0]
         return self._ypos
 
     @property
-    def zpos(self) -> List[float]:
+    def zpos(self) -> list[float]:
         if self._zpos is None:
             self._zpos = self.pnts.z.transpose().tolist()[0]
         return self._zpos

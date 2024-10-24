@@ -1,6 +1,4 @@
-from math import sqrt
-from typing import Dict, List
-
+from numpy import sqrt
 from pygeom.geom3d import Vector
 
 from ..tools.airfoil import airfoil_interpolation
@@ -18,21 +16,21 @@ class PanelSurface():
     point: Vector = None
     twist: float = None
     mirror: bool = None
-    scts: List[PanelSection] = None
-    fncs: Dict[str, PanelFunction] = None
+    scts: list[PanelSection] = None
+    fncs: dict[str, PanelFunction] = None
     close: bool = None
     cnum: int = None
     cspc: str = None
     twist: float = None
-    _shts: List[PanelSheet] = None
-    _strps: List[PanelStrip] = None
-    _prfs: List[PanelProfile] = None
+    _shts: list[PanelSheet] = None
+    _strps: list[PanelStrip] = None
+    _prfs: list[PanelProfile] = None
     _area: float = None
-    grds: List[Grid] = None
-    pnls: List[Panel] = None
+    grds: list[Grid] = None
+    pnls: list[Panel] = None
 
     def __init__(self, name: str, point: Vector, twist: float, mirror: bool,
-                 scts: List[PanelSection], fncs: List[PanelFunction], close: bool):
+                 scts: list[PanelSection], fncs: list[PanelFunction], close: bool):
         self.name = name
         self.point = point
         self.twist = twist

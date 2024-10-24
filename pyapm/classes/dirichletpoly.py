@@ -1,13 +1,13 @@
-from math import pi
-from typing import List
+from typing import TYPE_CHECKING
 
 from numpy import (absolute, arctan, divide, log, logical_and, logical_not,
-                   multiply, ndarray, ones, seterr, zeros)
+                   multiply, ones, pi, zeros)
 from numpy.linalg import inv
-
 from pygeom.geom3d import Vector
 
-seterr(divide='ignore')
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
 
 tol = 1e-12
 piby2 = pi/2
@@ -15,7 +15,7 @@ twoPi = 2*pi
 fourPi = 4*pi
 
 class DirichletPoly():
-    grds: List[Vector] = None
+    grds: list[Vector] = None
     _num: int = None
     _pnto: Vector = None
     _grdr: Vector = None
@@ -27,9 +27,9 @@ class DirichletPoly():
     _dirxab: Vector = None
     _diryab: Vector = None
     _dirzab: Vector = None
-    _baryinv: List[ndarray] = None
+    _baryinv: list['NDArray'] = None
 
-    def __init__(self, grds: List[Vector]):
+    def __init__(self, grds: list[Vector]):
         self.grds = grds
 
     @property
@@ -47,7 +47,7 @@ class DirichletPoly():
     @property
     def grdr(self):
         if self._grdr is None:
-            self._grdr = Vector.zeros((1, self.num), dtype=float)
+            self._grdr = Vector.zeros((1, self.num))
             for i in range(self.num):
                 self._grdr[0, i] = self.grds[i] - self.pnto
         return self._grdr
@@ -60,7 +60,7 @@ class DirichletPoly():
         return grdm
 
     def edge_cross(self, grds: Vector):
-        vecaxb = Vector.zeros((1, self.num), dtype=float)
+        vecaxb = Vector.zeros((1, self.num))
         for i in range(self.num):
             veca = grds[0, i-1]
             vecb = grds[0, i]
@@ -68,7 +68,7 @@ class DirichletPoly():
         return vecaxb
 
     def edge_vector(self, grds: Vector):
-        vecab = Vector.zeros((1, self.num), dtype=float)
+        vecab = Vector.zeros((1, self.num))
         for i in range(self.num):
             veca = grds[0, i-1]
             vecb = grds[0, i]
@@ -135,7 +135,7 @@ class DirichletPoly():
                 grdb = self.grdr[0, i]
                 grdal = Vector(grda.dot(dirx), grda.dot(diry), grda.dot(dirz))
                 grdbl = Vector(grdb.dot(dirx), grdb.dot(diry), grdb.dot(dirz))
-                amat = zeros((3, 3), dtype=float)
+                amat = zeros((3, 3))
                 amat[0, :] = 1.0
                 amat[1, 1] = grdal.x
                 amat[2, 1] = grdal.y
@@ -164,17 +164,17 @@ class DirichletPoly():
         nrm = vecaxb.sum().to_unit()
         rgcs = self.relative_mach(pnts, self.pnto, betx=betx, bety=bety, betz=betz)
         locz = rgcs.dot(nrm)
-        sgnz = ones(locz.shape, dtype=float)
+        sgnz = ones(locz.shape)
         sgnz[locz <= 0.0] = -1.0
         vecgcs = []
         for i in range(self.num):
             vecgcs.append(self.relative_mach(pnts, self.grds[i], betx=betx,
                                              bety=bety, betz=betz))
-        phid = zeros(pnts.shape, dtype=float)
-        phis = zeros(pnts.shape, dtype=float)
+        phid = zeros(pnts.shape)
+        phis = zeros(pnts.shape)
         if incvel:
-            veld = Vector.zeros(pnts.shape, dtype=float)
-            vels = Vector.zeros(pnts.shape, dtype=float)
+            veld = Vector.zeros(pnts.shape)
+            vels = Vector.zeros(pnts.shape)
         for i in range(self.num):
             # Edge Length
             dab = vecab[0, i].return_magnitude()
@@ -234,16 +234,16 @@ class DirichletPoly():
                                           betx=betx, bety=bety, betz=betz)
         return phi[0], phi[1]
 
-def phi_doublet_array(vecs: Vector, sgnz: ndarray):
+def phi_doublet_array(vecs: Vector, sgnz: 'NDArray') -> tuple['NDArray', 'NDArray']:
     mags = vecs.return_magnitude()
     chkm = mags < tol
     chky = absolute(vecs.y) < tol
     vecs.y[chky] = 0.0
-    ms = zeros(mags.shape, dtype=float)
+    ms = zeros(mags.shape)
     divide(vecs.x, vecs.y, where=logical_not(chky), out=ms)
     ths = arctan(ms)
     ths[chky] = piby2
-    ts = zeros(mags.shape, dtype=float)
+    ts = zeros(mags.shape)
     divide(vecs.z, mags, where=logical_not(chkm), out=ts)
     gs = multiply(ms, ts)
     Js = arctan(gs)
@@ -251,18 +251,20 @@ def phi_doublet_array(vecs: Vector, sgnz: ndarray):
     phids = Js - multiply(sgnz, ths)
     return phids, mags
 
-def phi_source_array(am, bm, dab, rl, phid):
-    numrab = am+bm+dab
-    denrab = am+bm-dab
-    Pab = divide(numrab, denrab)
-    chkd = absolute(denrab) < tol
-    Pab[chkd] = 1.0
+def phi_source_array(am: 'NDArray', bm: 'NDArray', dab: 'NDArray',
+                     rl: Vector, phid: 'NDArray') -> tuple['NDArray', 'NDArray']:
+    numrab = am + bm + dab
+    denrab = am + bm - dab
+    Pab = ones(numrab.shape)
+    chkd = absolute(denrab) > tol
+    divide(numrab, denrab, where=chkd, out=Pab)
     Qab = log(Pab)
     tmps = multiply(rl.y, Qab)
     phis = -multiply(rl.z, phid) - tmps
     return phis, Qab
 
-def vel_doublet_array(av, am, bv, bm):
+def vel_doublet_array(av: Vector, am: 'NDArray',
+                      bv: Vector, bm: 'NDArray') -> Vector:
     adb = av.dot(bv)
     abm = multiply(am, bm)
     dm = multiply(abm, abm+adb)
@@ -271,7 +273,7 @@ def vel_doublet_array(av, am, bv, bm):
     chki = (axbm == 0.0)
     chki = logical_and(axbm >= -tol, axbm <= tol)
     chkd = absolute(dm) < tol
-    fac = zeros(axbm.shape, dtype=float)
+    fac = zeros(axbm.shape)
     divide(am+bm, dm, where=logical_not(chkd), out=fac)
     velvl = axb*fac
     velvl.x[chki] = 0.0
@@ -279,10 +281,10 @@ def vel_doublet_array(av, am, bv, bm):
     velvl.z[chki] = 0.0
     return velvl
 
-def vel_source_array(Qab, rl, phid):
-    velsl = Vector.zeros(Qab.shape, dtype=float)
+def vel_source_array(Qab: 'NDArray', rl: Vector, phid: 'NDArray') -> Vector:
+    velsl = Vector.zeros(Qab.shape)
     velsl.y = -Qab
-    faco = ones(Qab.shape, dtype=float)
+    faco = ones(Qab.shape)
     faco[rl.z != 0.0] = -1.0
     velsl.z = multiply(faco, phid)
     return velsl

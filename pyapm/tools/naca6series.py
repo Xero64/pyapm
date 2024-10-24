@@ -1,18 +1,18 @@
 from math import atan, copysign, log, pi
-from typing import List
 
-from .spacing import equal_spacing, full_cosine_spacing, linear_bias_left
+from pygeom.tools.spacing import (equal_spacing, full_cosine_spacing,
+                                  linear_bias_left)
 
 
 class NACA6Series():
     code: str = None
     cnum: int = None
     cspc: str = None
-    _cdst: List[float] = None
-    _xc: List[float] = None
-    _yc: List[float] = None
-    _dydx: List[float] = None
-    _thc: List[float] = None
+    _cdst: list[float] = None
+    _xc: list[float] = None
+    _yc: list[float] = None
+    _dydx: list[float] = None
+    _thc: list[float] = None
     _a: float = None
     _xx: float = None
     _q: float = None

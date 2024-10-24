@@ -1,7 +1,6 @@
-from typing import TYPE_CHECKING, Optional
+from typing import TYPE_CHECKING
 
 from matplotlib.pyplot import figure
-
 from py2md.classes import MDHeading, MDReport, MDTable
 from pygeom.geom3d import Vector
 
@@ -10,16 +9,15 @@ from . import PanelResult
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
 
-    from pygeom.geom3d import Vector
-
     from .surfacestructure import SurfaceStructure
+
 
 class SurfaceLoad():
     pres: PanelResult = None
     strc: 'SurfaceStructure' = None
     sf: float = None
-    ptfrc: 'Vector' = None
-    ptmom: 'Vector' = None
+    ptfrc: Vector = None
+    ptmom: Vector = None
     frctot: Vector = None
     momtot: Vector = None
     frcmin: Vector = None
@@ -45,11 +43,11 @@ class SurfaceLoad():
         for i, strp in enumerate(self.strc.strps):
             ind = strp.ind
             rrel = strp.point - self.rref
-            self.frctot += strpres.stfrc[ind, 0]
-            self.momtot += strpres.stmom[ind, 0] + rrel.cross(strpres.stfrc[ind, 0])
+            self.frctot += strpres.stfrc[ind]
+            self.momtot += strpres.stmom[ind] + rrel.cross(strpres.stfrc[ind])
         self.rfrc, self.rmom = self.strc.rbdy.return_reactions(self.frctot, self.momtot)
-        self.ptfrc = Vector.zeros(self.strc.pnts.shape, dtype=float)
-        self.ptmom = Vector.zeros(self.strc.pnts.shape, dtype=float)
+        self.ptfrc = Vector.zeros(self.strc.pnts.shape)
+        self.ptmom = Vector.zeros(self.strc.pnts.shape)
         ptfrcb = Vector(0.0, 0.0, 0.0)
         ptmomb = Vector(0.0, 0.0, 0.0)
         for i, strp in enumerate(self.strc.strps):
@@ -61,66 +59,66 @@ class SurfaceLoad():
             if inda in self.strc.pntinds:
                 ptfrca -= self.rfrc[self.strc.pntinds[inda]]
                 ptmoma -= self.rmom[self.strc.pntinds[inda]]
-            ptfrcb = ptfrca - strpres.stfrc[ind, 0]
-            ptmomb = ptmoma - strpres.stmom[ind, 0]
-            rrel = strp.point - self.strc.pnts[indb, 0]
-            ptmomb -= rrel.cross(strpres.stfrc[ind, 0])
-            rrel = self.strc.pnts[indb, 0] - self.strc.pnts[inda, 0]
+            ptfrcb = ptfrca - strpres.stfrc[ind]
+            ptmomb = ptmoma - strpres.stmom[ind]
+            rrel = strp.point - self.strc.pnts[indb]
+            ptmomb -= rrel.cross(strpres.stfrc[ind])
+            rrel = self.strc.pnts[indb] - self.strc.pnts[inda]
             ptmomb -= rrel.cross(ptfrca)
-            self.ptfrc[inda, 0] = ptfrca
-            self.ptfrc[indb, 0] = ptfrcb
-            self.ptmom[inda, 0] = ptmoma
-            self.ptmom[indb, 0] = ptmomb
-        fx = self.ptfrc.x.transpose().tolist()[0]
-        fy = self.ptfrc.y.transpose().tolist()[0]
-        fz = self.ptfrc.z.transpose().tolist()[0]
-        mx = self.ptmom.x.transpose().tolist()[0]
-        my = self.ptmom.y.transpose().tolist()[0]
-        mz = self.ptmom.z.transpose().tolist()[0]
-        self.frcmin = Vector(min(fx), min(fy), min(fz))
-        self.frcmax = Vector(max(fx), max(fy), max(fz))
-        self.mommin = Vector(min(mx), min(my), min(mz))
-        self.mommax = Vector(max(mx), max(my), max(mz))
+            self.ptfrc[inda] = ptfrca
+            self.ptfrc[indb] = ptfrcb
+            self.ptmom[inda] = ptmoma
+            self.ptmom[indb] = ptmomb
+        minfx = self.ptfrc.x.min()
+        minfy = self.ptfrc.y.min()
+        minfz = self.ptfrc.z.min()
+        minmx = self.ptmom.x.min()
+        minmy = self.ptmom.y.min()
+        minmz = self.ptmom.z.min()
+        maxfx = self.ptfrc.x.max()
+        maxfy = self.ptfrc.y.max()
+        maxfz = self.ptfrc.z.max()
+        maxmx = self.ptmom.x.max()
+        maxmy = self.ptmom.y.max()
+        maxmz = self.ptmom.z.max()
+        self.frcmin = Vector(minfx, minfy, minfz)
+        self.frcmax = Vector(maxfx, maxfy, maxfz)
+        self.mommin = Vector(minmx, minmy, minmz)
+        self.mommax = Vector(maxmx, maxmy, maxmz)
 
-    def plot_forces(self, ax: Optional['Axes']=None) -> 'Axes':
+    def plot_forces(self, ax: 'Axes | None' = None) -> 'Axes':
         if ax is None:
             fig = figure(figsize=(12, 8))
             ax = fig.gca()
             ax.grid(True)
-        fx = self.ptfrc.x.transpose().tolist()[0]
-        fy = self.ptfrc.y.transpose().tolist()[0]
-        fz = self.ptfrc.z.transpose().tolist()[0]
         if self.strc.axis == 'y':
             yp = self.strc.ypos
-            ax.plot(yp, fx, label=f'{self.pres.name:s} Vx')
-            ax.plot(yp, fy, label=f'{self.pres.name:s} Fy')
-            ax.plot(yp, fz, label=f'{self.pres.name:s} Vz')
+            ax.plot(yp, self.ptfrc.x, label=f'{self.pres.name:s} Vx')
+            ax.plot(yp, self.ptfrc.y, label=f'{self.pres.name:s} Fy')
+            ax.plot(yp, self.ptfrc.z, label=f'{self.pres.name:s} Vz')
         elif self.strc.axis == 'z':
             zp = self.strc.zpos
-            ax.plot(fx, zp, label=f'{self.pres.name:s} Vx')
-            ax.plot(fy, zp, label=f'{self.pres.name:s} Vy')
-            ax.plot(fz, zp, label=f'{self.pres.name:s} Fz')
+            ax.plot(self.ptfrc.x, zp, label=f'{self.pres.name:s} Vx')
+            ax.plot(self.ptfrc.y, zp, label=f'{self.pres.name:s} Vy')
+            ax.plot(self.ptfrc.z, zp, label=f'{self.pres.name:s} Fz')
         ax.legend()
         return ax
 
-    def plot_moments(self, ax: Optional['Axes']=None) -> 'Axes':
+    def plot_moments(self, ax: 'Axes | None' = None) -> 'Axes':
         if ax is None:
             fig = figure(figsize=(12, 8))
             ax = fig.gca()
             ax.grid(True)
-        mx = self.ptmom.x.transpose().tolist()[0]
-        my = self.ptmom.y.transpose().tolist()[0]
-        mz = self.ptmom.z.transpose().tolist()[0]
         if self.strc.axis == 'y':
             yp = self.strc.ypos
-            ax.plot(yp, mx, label=f'{self.pres.name:s} Mx')
-            ax.plot(yp, my, label=f'{self.pres.name:s} Ty')
-            ax.plot(yp, mz, label=f'{self.pres.name:s} Mz')
+            ax.plot(yp, self.ptmom.x, label=f'{self.pres.name:s} Mx')
+            ax.plot(yp, self.ptmom.y, label=f'{self.pres.name:s} Ty')
+            ax.plot(yp, self.ptmom.z, label=f'{self.pres.name:s} Mz')
         elif self.strc.axis == 'z':
             zp = self.strc.zpos
-            ax.plot(mx, zp, label=f'{self.pres.name:s} Mx')
-            ax.plot(my, zp, label=f'{self.pres.name:s} My')
-            ax.plot(mz, zp, label=f'{self.pres.name:s} Tz')
+            ax.plot(self.ptmom.x, zp, label=f'{self.pres.name:s} Mx')
+            ax.plot(self.ptmom.y, zp, label=f'{self.pres.name:s} My')
+            ax.plot(self.ptmom.z, zp, label=f'{self.pres.name:s} Tz')
         ax.legend()
         return ax
 
@@ -145,10 +143,10 @@ class SurfaceLoad():
             table.add_column('Mx', '.0f')
             table.add_column('My', '.0f')
             table.add_column('Tz', '.0f')
-        for i in range(self.strc.pnts.shape[0]):
-            frc = self.ptfrc[i, 0]
-            mom = self.ptmom[i, 0]
-            pnt = self.strc.pnts[i, 0]
+        for i in range(self.strc.pnts.size):
+            frc = self.ptfrc[i]
+            mom = self.ptmom[i]
+            pnt = self.strc.pnts[i]
             x, y, z = pnt.x, pnt.y, pnt.z
             Vx, Fy, Vz = frc.x, frc.y, frc.z
             Mx, Ty, Mz = mom.x, mom.y, mom.z

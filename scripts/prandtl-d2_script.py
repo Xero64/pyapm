@@ -3,11 +3,11 @@
 from IPython.display import display_markdown
 from matplotlib.pyplot import figure
 from numpy import zeros
+from pygeom.geom2d import Vector2D
 
 from pyapm import panelsystem_from_json
 from pyapm.classes.horseshoevortex2d import HorseshoeVortex2D, Vector2D
 from pyapm.outputs.msh import panelresult_to_msh
-from pygeom.geom2d import Vector2D
 
 #%%
 # Create Panel Mesh
@@ -121,7 +121,7 @@ ax = fig.gca()
 ax.grid(True)
 ax.plot(ypos, lift)
 
-awh = zeros((len(hind), len(hind)), dtype=float)
+awh = zeros((len(hind), len(hind)))
 for i, hindi in enumerate(hind):
     for j, hindj in enumerate(hind):
         awh[i, j] = psys.awh[hindi, hindj]
@@ -139,13 +139,13 @@ _ = ax.plot(ypos, wash)
 # Horseshoe Vortex 2D
 num = len(hsv2ds)
 
-hsvpnts = Vector2D.zeros(num, dtype=float)
-hsvnrms = Vector2D.zeros(num, dtype=float)
+hsvpnts = Vector2D.zeros(num)
+hsvnrms = Vector2D.zeros(num)
 for i, hsv in enumerate(hsv2ds):
     hsvpnts[i] = hsv.pnt
     hsvnrms[i] = hsv.nrm
 
-awh2d = zeros((num, num), dtype=float)
+awh2d = zeros((num, num))
 
 for i, hsv in enumerate(hsv2ds):
     avh = hsv.induced_velocity(hsvpnts)

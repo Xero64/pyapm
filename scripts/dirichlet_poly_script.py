@@ -4,11 +4,11 @@ from time import perf_counter
 
 from matplotlib.pyplot import figure
 from numpy import absolute
+# from math import pi, cos, sin
+from pygeom.geom3d import Vector
 
 from pyapm.classes.dirichletpoly import DirichletPoly
 from pyapm.classes.poly import Poly
-# from math import pi, cos, sin
-from pygeom.geom3d import Vector
 
 #%%
 # Create Poly

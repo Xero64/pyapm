@@ -1,9 +1,8 @@
 from math import atan, cos, pi, sin, sqrt
-from typing import List
 
 from matplotlib.pyplot import figure
-
-from .spacing import equal_spacing, full_cosine_spacing, linear_bias_left
+from pygeom.tools.spacing import (equal_spacing, full_cosine_spacing,
+                                  linear_bias_left)
 
 
 class NACA4():
@@ -14,23 +13,23 @@ class NACA4():
     _mt: float = None
     _mc: float = None
     _pc: float = None
-    _cdst: List[float] = None
-    _xc: List[float] = None
-    _yc: List[float] = None
-    _dydx: List[float] = None
-    _thc: List[float] = None
-    _t: List[float] = None
-    _dtdx: List[float] = None
-    _tht: List[float] = None
-    _xu: List[float] = None
-    _yu: List[float] = None
-    _thu: List[float] = None
-    _xl: List[float] = None
-    _yl: List[float] = None
-    _thl: List[float] = None
-    _x: List[float] = None
-    _y: List[float] = None
-    _th: List[float] = None
+    _cdst: list[float] = None
+    _xc: list[float] = None
+    _yc: list[float] = None
+    _dydx: list[float] = None
+    _thc: list[float] = None
+    _t: list[float] = None
+    _dtdx: list[float] = None
+    _tht: list[float] = None
+    _xu: list[float] = None
+    _yu: list[float] = None
+    _thu: list[float] = None
+    _xl: list[float] = None
+    _yl: list[float] = None
+    _thl: list[float] = None
+    _x: list[float] = None
+    _y: list[float] = None
+    _th: list[float] = None
 
     def __init__(self, code: str, cnum: int=80, teclosed=False):
         self.code = code

@@ -1,11 +1,10 @@
 from json import load
 from os.path import dirname, exists, join
 from time import perf_counter
-from typing import TYPE_CHECKING, Any, Dict, List, Tuple
+from typing import TYPE_CHECKING, Any
 
 from matplotlib.pyplot import figure
 from numpy import zeros
-
 from py2md.classes import MDTable
 from pygeom.geom3d import Vector
 
@@ -19,65 +18,64 @@ from .paneltrim import paneltrim_from_dict
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
-    from numpy import ndarray
-
-    from pygeom.geom3d import Vector
+    from numpy.typing import NDArray
 
     from .horseshoedoublet import HorseshoeDoublet
     from .panelresult import PanelResult
     from .panelstrip import PanelStrip
     from .panelsurface import PanelSurface
 
+
 class PanelSystem():
     name: str = None
-    grds: Dict[int, Grid] = None
-    pnls: Dict[int, Panel] = None
+    grds: dict[int, Grid] = None
+    pnls: dict[int, Panel] = None
     bref: float = None
     cref: float = None
     sref: float = None
     rref: Vector = None
-    ctrls: Dict[str, Tuple[int]] = None
-    srfcs: List['PanelSurface'] = None
-    results: Dict[str, 'PanelResult'] = None
+    ctrls: dict[str, tuple[int]] = None
+    srfcs: list['PanelSurface'] = None
+    results: dict[str, 'PanelResult'] = None
     masses = None
     source: str = None
-    _hsvs: List['HorseshoeDoublet'] = None
+    _hsvs: list['HorseshoeDoublet'] = None
     _numgrd: int = None
     _numpnl: int = None
     _numhsv: int = None
     _numctrl: int = None
-    _pnts: 'Vector' = None
-    _pnla: 'ndarray' = None
-    _nrms: 'Vector' = None
-    _rrel: 'Vector' = None
-    _apd: 'ndarray' = None
-    _aps: 'ndarray' = None
-    _aph: 'ndarray' = None
-    _apm: 'ndarray' = None
-    _bps: Dict[float, 'Vector'] = None
-    _avd: Dict[float, 'Vector'] = None
-    _avs: Dict[float, 'Vector'] = None
-    _avh: Dict[float, 'Vector'] = None
-    _avm: Dict[float, 'Vector'] = None
-    _ans: 'ndarray' = None
-    _anm: 'ndarray' = None
-    _bnm: 'ndarray' = None
-    _unsig: Dict[float, 'Vector'] = None
-    _unmu: Dict[float, 'Vector'] = None
-    _unphi: Dict[float, 'Vector'] = None
-    _unnvg: Dict[float, 'Vector'] = None
-    _hsvpnts: 'Vector' = None
-    _hsvnrms: 'Vector' = None
-    _awd: 'ndarray' = None
-    _aws: 'ndarray' = None
-    _awh: 'ndarray' = None
-    _adh: 'ndarray' = None
-    _ash: 'ndarray' = None
-    _alh: 'ndarray' = None
+    _pnts: Vector = None
+    _pnla: 'NDArray' = None
+    _nrms: Vector = None
+    _rrel: Vector = None
+    _apd: 'NDArray' = None
+    _aps: 'NDArray' = None
+    _aph: 'NDArray' = None
+    _apm: 'NDArray' = None
+    _bps: dict[float, Vector] = None
+    _avd: dict[float, Vector] = None
+    _avs: dict[float, Vector] = None
+    _avh: dict[float, Vector] = None
+    _avm: dict[float, Vector] = None
+    _ans: 'NDArray' = None
+    _anm: 'NDArray' = None
+    _bnm: 'NDArray' = None
+    _unsig: dict[float, Vector] = None
+    _unmu: dict[float, Vector] = None
+    _unphi: dict[float, Vector] = None
+    _unnvg: dict[float, Vector] = None
+    _hsvpnts: Vector = None
+    _hsvnrms: Vector = None
+    _awd: 'NDArray' = None
+    _aws: 'NDArray' = None
+    _awh: 'NDArray' = None
+    _adh: 'NDArray' = None
+    _ash: 'NDArray' = None
+    _alh: 'NDArray' = None
     _ar: float = None
     _area: float = None
-    _strps: List['PanelStrip'] = None
-    _phind: Dict[int, List[int]] = None
+    _strps: list['PanelStrip'] = None
+    _phind: dict[int, list[int]] = None
 
     def __init__(self, name: str, bref: float, cref: float,
                  sref: float, rref: Vector) -> None:
@@ -89,12 +87,12 @@ class PanelSystem():
         self.ctrls = {}
         self.results = {}
 
-    def set_mesh(self, grds: Dict[int, Grid], pnls: Dict[int, Panel]) -> None:
+    def set_mesh(self, grds: dict[int, Grid], pnls: dict[int, Panel]) -> None:
         self.grds = grds
         self.pnls = pnls
         self.update()
 
-    def set_geom(self, srfcs: List['PanelSurface']=None) -> None:
+    def set_geom(self, srfcs: list['PanelSurface']=None) -> None:
         self.srfcs = srfcs
         self.mesh()
         self.update()
@@ -171,35 +169,35 @@ class PanelSystem():
     @property
     def pnts(self) -> int:
         if self._pnts is None:
-            self._pnts = Vector.zeros(self.numpnl, dtype=float)
+            self._pnts = Vector.zeros(self.numpnl)
             for pnl in self.pnls.values():
                 self._pnts[pnl.ind] = pnl.pnto
         return self._pnts
 
     @property
-    def rrel(self) -> 'Vector':
+    def rrel(self) -> Vector:
         if self._rrel is None:
             self._rrel = self.pnts - self.rref
         return self._rrel
 
     @property
-    def nrms(self) -> 'Vector':
+    def nrms(self) -> Vector:
         if self._nrms is None:
-            self._nrms = Vector.zeros(self.numpnl, dtype=float)
+            self._nrms = Vector.zeros(self.numpnl)
             for pnl in self.pnls.values():
                 self._nrms[pnl.ind] = pnl.nrm
         return self._nrms
 
     @property
-    def pnla(self) -> 'ndarray':
+    def pnla(self) -> 'NDArray':
         if self._pnla is None:
-            self._pnla = zeros(self.numpnl, dtype=float)
+            self._pnla = zeros(self.numpnl)
             for pnl in self.pnls.values():
                 self._pnla[pnl.ind] = pnl.area
         return self._pnla
 
     @property
-    def hsvs(self) -> List['HorseshoeDoublet']:
+    def hsvs(self) -> list['HorseshoeDoublet']:
         if self._hsvs is None:
             self._hsvs = []
             for pnl in self.pnls.values():
@@ -207,7 +205,7 @@ class PanelSystem():
         return self._hsvs
 
     @property
-    def phind(self) -> Dict[int, int]:
+    def phind(self) -> dict[int, int]:
         if self._phind is None:
             self._phind = {}
             for i, hsv in enumerate(self.hsvs):
@@ -218,63 +216,63 @@ class PanelSystem():
                     self._phind[pind] = [i]
         return self._phind
 
-    def bps(self, mach: float=0.0) -> 'Vector':
+    def bps(self, mach: float=0.0) -> Vector:
         if self._bps is None:
             self._bps = {}
         if mach not in self._bps:
             self._bps[mach] = self.unsig(mach).rmatmul(-self.aps(mach))
         return self._bps[mach]
 
-    def bnm(self, mach: float=0.0) -> 'Vector':
+    def bnm(self, mach: float=0.0) -> Vector:
         if self._bnm is None:
             self._bnm = {}
         if mach not in self._bnm:
             self._bnm[mach] = -self.nrms - self.unsig(mach).rmatmul(self.ans(mach))
         return self._bnm[mach]
 
-    def apd(self, mach: float=0.0) -> 'ndarray':
+    def apd(self, mach: float=0.0) -> 'NDArray':
         if self._apd is None:
             self._apd = {}
         if mach not in self._apd:
             self.assemble_panels(False, mach=mach)
         return self._apd[mach]
 
-    def avd(self, mach: float=0.0) -> 'ndarray':
+    def avd(self, mach: float=0.0) -> 'NDArray':
         if self._avd is None:
             self._avd = {}
         if mach not in self._avd:
             self.assemble_panels_full(False, mach=mach)
         return self._avd[mach]
 
-    def aps(self, mach: float=0.0) -> 'ndarray':
+    def aps(self, mach: float=0.0) -> 'NDArray':
         if self._aps is None:
             self._aps = {}
         if mach not in self._aps:
             self.assemble_panels(False, mach=mach)
         return self._aps[mach]
 
-    def avs(self, mach: float=0.0) -> 'ndarray':
+    def avs(self, mach: float=0.0) -> 'NDArray':
         if self._avs is None:
             self._avs = {}
         if mach not in self._avs:
             self.assemble_panels_full(False, mach=mach)
         return self._avs[mach]
 
-    def aph(self, mach: float=0.0) -> 'ndarray':
+    def aph(self, mach: float=0.0) -> 'NDArray':
         if self._aph is None:
             self._aph = {}
         if mach not in self._aph:
             self.assemble_horseshoes(False, mach=mach)
         return self._aph[mach]
 
-    def avh(self, mach: float=0.0) -> 'ndarray':
+    def avh(self, mach: float=0.0) -> 'NDArray':
         if self._avh is None:
             self._avh = {}
         if mach not in self._avh:
             self.assemble_horseshoes_full(False, mach=mach)
         return self._avh[mach]
 
-    def apm(self, mach: float=0.0) -> 'ndarray':
+    def apm(self, mach: float=0.0) -> 'NDArray':
         if self._apm is None:
             self._apm = {}
         if mach not in self._apm:
@@ -286,7 +284,7 @@ class PanelSystem():
             self._apm[mach] = apm
         return self._apm[mach]
 
-    def avm(self, mach: float=0.0) -> 'ndarray':
+    def avm(self, mach: float=0.0) -> 'NDArray':
         if self._avm is None:
             self._avm = {}
         if self._avm is None:
@@ -298,7 +296,7 @@ class PanelSystem():
             self._avm[mach] = avm
         return self._avm[mach]
 
-    def ans(self, mach: float=0.0) -> 'ndarray':
+    def ans(self, mach: float=0.0) -> 'NDArray':
         if self._ans is None:
             self._ans = {}
         if mach not in self._ans:
@@ -306,7 +304,7 @@ class PanelSystem():
             self._ans[mach] = nrms.dot(self.avs(mach))
         return self._ans[mach]
 
-    def anm(self, mach: float=0.0) -> 'ndarray':
+    def anm(self, mach: float=0.0) -> 'NDArray':
         if self._anm is None:
             self._anm = {}
         if mach not in self._anm:
@@ -315,23 +313,23 @@ class PanelSystem():
         return self._anm[mach]
 
     @property
-    def hsvpnts(self) -> 'Vector':
+    def hsvpnts(self) -> Vector:
         if self._hsvpnts is None:
-            self._hsvpnts = Vector.zeros(self.numhsv, dtype=float)
+            self._hsvpnts = Vector.zeros(self.numhsv)
             for i, hsv in enumerate(self.hsvs):
                 self._hsvpnts[i] = hsv.pnto
         return self._hsvpnts
 
     @property
-    def hsvnrms(self) -> 'Vector':
+    def hsvnrms(self) -> Vector:
         if self._hsvnrms is None:
-            self._hsvnrms = Vector.zeros(self.numhsv, dtype=float)
+            self._hsvnrms = Vector.zeros(self.numhsv)
             for i, hsv in enumerate(self.hsvs):
                 self._hsvnrms[i] = hsv.nrm
         return self._hsvnrms
 
     @property
-    def strps(self) -> List['PanelStrip']:
+    def strps(self) -> list['PanelStrip']:
         if self._strps is None:
             if self.srfcs is not None:
                 self._strps = []
@@ -347,8 +345,8 @@ class PanelSystem():
         if time:
             start = perf_counter()
         shp = (self.numhsv, self.numpnl)
-        self._awd = zeros(shp, dtype=float)
-        self._aws = zeros(shp, dtype=float)
+        self._awd = zeros(shp)
+        self._aws = zeros(shp)
         for pnl in self.pnls.values():
             ind = pnl.ind
             _, _, avd, avs = pnl.influence_coefficients(self.hsvpnts)
@@ -357,13 +355,13 @@ class PanelSystem():
         if time:
             finish = perf_counter()
             elapsed = finish - start
-            print(f'Wash ndarray assembly time is {elapsed:.3f} seconds.')
+            print(f'Wash array assembly time is {elapsed:.3f} seconds.')
 
     def assemble_horseshoes_wash(self, time: bool=True) -> None:
         if time:
             start = perf_counter()
         shp = (self.numhsv, self.numhsv)
-        self._awh = zeros(shp, dtype=float)
+        self._awh = zeros(shp)
         for i, hsv in enumerate(self.hsvs):
             avh = hsv.trefftz_plane_velocities(self.hsvpnts)
             self._awh[:, i] = avh.dot(self.hsvnrms)
@@ -373,52 +371,52 @@ class PanelSystem():
             print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
 
     @property
-    def awh(self) -> 'ndarray':
+    def awh(self) -> 'NDArray':
         if self._awh is None:
             self.assemble_horseshoes_wash(time=False)
         return self._awh
 
     @property
-    def awd(self) -> 'ndarray':
+    def awd(self) -> 'NDArray':
         if self._awd is None:
             self.assemble_panels_wash(time=False)
         return self._awd
 
     @property
-    def aws(self) -> 'ndarray':
+    def aws(self) -> 'NDArray':
         if self._aws is None:
             self.assemble_panels_wash(time=False)
         return self._aws
 
     @property
-    def adh(self) -> 'ndarray':
+    def adh(self) -> 'NDArray':
         if self._adh is None:
-            self._adh = zeros(self.awh.shape, dtype=float)
+            self._adh = zeros(self.awh.shape)
             for i, hsv in enumerate(self.hsvs):
                 self._adh[:, i] = -self._awh[:, i]*hsv.width
         return self._adh
 
     @property
-    def ash(self) -> 'ndarray':
+    def ash(self) -> 'NDArray':
         if self._ash is None:
-            self._ash = zeros(self.numhsv, dtype=float)
+            self._ash = zeros(self.numhsv)
             for i, hsv in enumerate(self.hsvs):
                 self._ash[i] = -hsv.vecab.z
         return self._ash
 
     @property
-    def alh(self) -> 'ndarray':
+    def alh(self) -> 'NDArray':
         if self._alh is None:
-            self._alh = zeros(self.numhsv, dtype=float)
+            self._alh = zeros(self.numhsv)
             for i, hsv in enumerate(self.hsvs):
                 self._alh[i] = hsv.vecab.y
         return self._alh
 
-    def unsig(self, mach: float=0.0) -> 'Vector':
+    def unsig(self, mach: float=0.0) -> Vector:
         if self._unsig is None:
             self._unsig = {}
         if mach not in self._unsig:
-            unsig = Vector.zeros((self.numpnl, 2+4*self.numctrl), dtype=float)
+            unsig = Vector.zeros((self.numpnl, 2+4*self.numctrl))
             unsig[:, 0] = -self.nrms
             unsig[:, 1] = self.rrel.cross(self.nrms)
             if self.srfcs is not None:
@@ -439,14 +437,14 @@ class PanelSystem():
             self._unsig[mach] = unsig
         return self._unsig[mach]
 
-    def unmu(self, mach: float=0.0) -> 'Vector':
+    def unmu(self, mach: float=0.0) -> Vector:
         if self._unmu is None:
             self._unmu = {}
         if mach not in self._unmu:
             self.solve_dirichlet_system(time=False, mach=mach)
         return self._unmu[mach]
 
-    def unphi(self, mach: float=0.0) -> 'Vector':
+    def unphi(self, mach: float=0.0) -> Vector:
         if self._unphi is None:
             self._unphi = {}
         if mach not in self._unphi:
@@ -457,8 +455,8 @@ class PanelSystem():
         if time:
             start = perf_counter()
         shp = (self.numpnl, self.numpnl)
-        apd = zeros(shp, dtype=float)
-        aps = zeros(shp, dtype=float)
+        apd = zeros(shp)
+        aps = zeros(shp)
         betm = betm_from_mach(mach)
         for pnl in self.pnls.values():
             ind = pnl.ind
@@ -478,10 +476,10 @@ class PanelSystem():
         if time:
             start = perf_counter()
         shp = (self.numpnl, self.numpnl)
-        apd = zeros(shp, dtype=float)
-        aps = zeros(shp, dtype=float)
-        avd = Vector.zeros(shp, dtype=float)
-        avs = Vector.zeros(shp, dtype=float)
+        apd = zeros(shp)
+        aps = zeros(shp)
+        avd = Vector.zeros(shp)
+        avs = Vector.zeros(shp)
         betm = betm_from_mach(mach)
         for pnl in self.pnls.values():
             ind = pnl.ind
@@ -507,7 +505,7 @@ class PanelSystem():
         if time:
             start = perf_counter()
         shp = (self.numpnl, self.numhsv)
-        aph = zeros(shp, dtype=float)
+        aph = zeros(shp)
         betm = betm_from_mach(mach)
         for i, hsv in enumerate(self.hsvs):
             aph[:, i] = hsv.doublet_velocity_potentials(self.pnts, betx=betm)
@@ -523,8 +521,8 @@ class PanelSystem():
         if time:
             start = perf_counter()
         shp = (self.numpnl, self.numpnl)
-        aph = zeros(shp, dtype=float)
-        avh = Vector.zeros(shp, dtype=float)
+        aph = zeros(shp)
+        avh = Vector.zeros(shp)
         betm = betm_from_mach(mach)
         for i, hsv in enumerate(self.hsvs):
             aph[:, i], avh[:, i] = hsv.doublet_influence_coefficients(self.pnts, betx=betm)
@@ -577,7 +575,7 @@ class PanelSystem():
             print(f'System solution time is {elapsed:.3f} seconds.')
 
     def plot_twist_distribution(self, ax: 'Axes'=None, axis: str='b',
-                                surfaces: List['PanelSurface']=None) -> 'Axes':
+                                surfaces: list['PanelSurface']=None) -> 'Axes':
         if self.srfcs is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
@@ -785,7 +783,7 @@ def panelsystem_from_json(jsonfilepath: str) -> PanelSystem:
 
     return psys
 
-def panelsystem_from_mesh(sysdct: Dict[str, any]) -> PanelSystem:
+def panelsystem_from_mesh(sysdct: dict[str, any]) -> PanelSystem:
 
     name = sysdct['name']
     bref = sysdct['bref']
@@ -796,7 +794,7 @@ def panelsystem_from_mesh(sysdct: Dict[str, any]) -> PanelSystem:
     zref = sysdct['zref']
     rref = Vector(xref, yref, zref)
 
-    grds: Dict[int, Grid] = {}
+    grds: dict[int, Grid] = {}
     griddata = sysdct['grids']
     for gidstr, gd in griddata.items():
         gid = int(gidstr)
@@ -815,7 +813,7 @@ def panelsystem_from_mesh(sysdct: Dict[str, any]) -> PanelSystem:
             if 'noload' not in grps[grpid]:
                 grps[grpid]['noload'] = False
 
-    pnls: Dict[int, Panel] = {}
+    pnls: dict[int, Panel] = {}
     paneldata = sysdct['panels']
     for pidstr, pd in paneldata.items():
         pid = int(pidstr)
@@ -849,7 +847,7 @@ def panelsystem_from_mesh(sysdct: Dict[str, any]) -> PanelSystem:
 
     return psys
 
-def panelsystem_from_geom(sysdct: Dict[str, any]) -> PanelSystem:
+def panelsystem_from_geom(sysdct: dict[str, any]) -> PanelSystem:
 
     if 'source' in sysdct:
         path = dirname(sysdct['source'])
@@ -902,7 +900,7 @@ def panelsystem_from_geom(sysdct: Dict[str, any]) -> PanelSystem:
 
     return psys
 
-def panelresults_from_dict(psys: PanelSystem, cases: Dict[str, Any]) -> 'PanelResult':
+def panelresults_from_dict(psys: PanelSystem, cases: dict[str, Any]) -> 'PanelResult':
 
     for i in range(len(cases)):
         resdata = cases[i]

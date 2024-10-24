@@ -1,7 +1,6 @@
 from math import pi
 
 from numpy import ones, zeros
-
 from pygeom.geom3d import Vector
 
 from .boundedge import BoundEdge
@@ -98,14 +97,14 @@ class HorseShoe():
         if betx != 1.0:
             vecs.x = vecs.x/betx
             nrm = Vector(self.nrm.x/betx, self.nrm.y, self.nrm.z)
-        locz = vecs*nrm
+        locz = vecs.dot(nrm)
         sgnz = ones(locz.shape, float)
         sgnz[locz <= 0.0] = -1.0
         return sgnz
 
     def doublet_influence_coefficients(self, pnts: Vector, betx: float=1.0):
-        phid = zeros(pnts.shape, dtype=float)
-        veld = Vector.zeros(pnts.shape, dtype=float)
+        phid = zeros(pnts.shape)
+        veld = Vector.zeros(pnts.shape)
         sgnz = self.sign_local_z(pnts, betx=betx)
         phida, velda = self.tva.doublet_influence_coefficients(pnts, sgnz=sgnz, betx=betx)
         phidb, veldb = self.tvb.doublet_influence_coefficients(pnts, sgnz=sgnz, betx=betx)
@@ -115,7 +114,7 @@ class HorseShoe():
         return phid, veld
 
     def doublet_velocity_potentials(self, pnts: Vector, betx: float=1.0):
-        phid = zeros(pnts.shape, dtype=float)
+        phid = zeros(pnts.shape)
         sgnz = self.sign_local_z(pnts, betx=betx)
         phida = self.tva.doublet_velocity_potentials(pnts, sgnz=sgnz, betx=betx)
         phidb = self.tvb.doublet_velocity_potentials(pnts, sgnz=sgnz, betx=betx)

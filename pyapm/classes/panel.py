@@ -1,46 +1,48 @@
-from math import acos, pi, sqrt
-from typing import TYPE_CHECKING, List, Tuple
+from typing import TYPE_CHECKING
 
-from numpy import absolute, full, logical_not, minimum, ndarray, ones
-
+from numpy import (absolute, acos, asarray, full, logical_not, minimum, ones,
+                   pi, sqrt)
 from pygeom.geom3d import IHAT, KHAT, Coordinate, Vector
 
 from .dirichletpoly import DirichletPoly
 from .grid import Grid
 from .horseshoedoublet import HorseshoeDoublet
 
-oor2 = 1/sqrt(2.0)
-angtol = pi/4
-
 if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
     from .panelsection import PanelSection
     from .panelsheet import PanelSheet
     from .panelsurface import PanelSurface
 
+oor2 = 1/sqrt(2.0)
+angtol = pi/4
+
+
 class Panel(DirichletPoly):
     pid: int = None
-    grds: List[Grid] = None
-    gids: List[int] = None
+    grds: list[Grid] = None
+    gids: list[int] = None
     ind: int = None
     grp: int = None
     sht: 'PanelSheet' = None
     sct: 'PanelSection' = None
     srfc: 'PanelSurface' = None
     _crd: Coordinate = None
-    _hsvs: List[HorseshoeDoublet] = None
-    _grdlocs: List[Vector] = None
-    _edgpnls: List['Panel'] = None
-    _edginds: List[List[int]] = None
-    _edgpnts: List[Vector] = None
-    _edgdist: List[float] = None
-    _edgfacs: List[float] = None
-    _edgpntl: List[Vector] = None
-    _edglens: List[float] = None
-    _grdpnls: List[List['Panel']] = None
-    _grdinds: List[List[int]] = None
-    _grdfacs: List[List[float]] = None
+    _hsvs: list[HorseshoeDoublet] = None
+    _grdlocs: list[Vector] = None
+    _edgpnls: list['Panel'] = None
+    _edginds: list[list[int]] = None
+    _edgpnts: list[Vector] = None
+    _edgdist: list[float] = None
+    _edgfacs: list[float] = None
+    _edgpntl: list[Vector] = None
+    _edglens: list[float] = None
+    _grdpnls: list[list['Panel']] = None
+    _grdinds: list[list[int]] = None
+    _grdfacs: list[list[float]] = None
 
-    def __init__(self, pid: int, grds: List[Grid]):
+    def __init__(self, pid: int, grds: list[Grid]):
         super().__init__(grds)
         self.pid = pid
         for grd in self.grds:
@@ -83,7 +85,7 @@ class Panel(DirichletPoly):
                 if grda.te and grdb.te:
                     self._hsvs.append(HorseshoeDoublet(grda, grdb, diro, self.ind))
 
-    def check_panel(self, pnl: 'Panel') -> Tuple[bool, bool, bool]:
+    def check_panel(self, pnl: 'Panel') -> tuple[bool, bool, bool]:
         if pnl.grp is not None and self.grp is not None:
             grpchk = pnl.grp == self.grp
         else:
@@ -247,7 +249,7 @@ class Panel(DirichletPoly):
                     ValueError(f'Too many panels associated to edge {i:d} of panel {self.pid:d}.')
         return self._edgfacs
 
-    def edge_mu(self, mu: ndarray, display: bool = False):
+    def edge_mu(self, mu: 'NDArray', display: bool = False):
         edgmu = []
         if display:
             print(f'edgpnls = {self.edgpnls}')
@@ -267,7 +269,7 @@ class Panel(DirichletPoly):
             self._edgpntl = [self.crd.point_to_local(pnt) for pnt in self.edgpnts]
         return self._edgpntl
 
-    def diff_mu(self, mu: ndarray, display: bool = False):
+    def diff_mu(self, mu: 'NDArray', display: bool = False):
         pnlmu = mu[self.ind]
         if display:
             print(f'pnlmu = {pnlmu}')
@@ -379,7 +381,7 @@ class Panel(DirichletPoly):
                 self._grdfacs.append([invd/suminvd for invd in pnlinvd])
         return self._grdfacs
 
-    def grid_res(self, pnlres: ndarray):
+    def grid_res(self, pnlres: 'NDArray'):
         grdres = []
         for i in range(self.num):
             grdres.append(0.0)
@@ -389,18 +391,18 @@ class Panel(DirichletPoly):
 
     def within_and_absz_ttol(self, pnts: Vector, ttol: float=0.1):
         shp = pnts.shape
-        pnts = pnts.reshape((-1, 1))
-        rgcs = pnts-self.pnto
+        # pnts = pnts.reshape((-1, 1))
+        rgcs = pnts - self.pnto
         wint = full(pnts.shape, False)
         absz = full(pnts.shape, float('inf'))
         for i in range(self.num):
             dirx = self.dirxab[0, i]
             diry = self.diryab[0, i]
             dirz = self.dirzab[0, i]
-            xy1 = ones((pnts.shape[0], 3), dtype=float)
+            xy1 = ones((pnts.shape[0], 3))
             xy1[:, 1] = rgcs.dot(dirx)
             xy1[:, 2] = rgcs.dot(diry)
-            t123 = xy1*self.baryinv[i].transpose()
+            t123 = xy1@self.baryinv[i].transpose()
             mint = t123.min(axis=1)
             chk = mint > -ttol
             wint[chk] = True
@@ -411,7 +413,7 @@ class Panel(DirichletPoly):
         absz = absz.reshape(shp)
         return wint, absz
 
-    def point_res(self, pnlres: ndarray, pnt: Vector, ttol: float=0.1):
+    def point_res(self, pnlres: 'NDArray', pnt: Vector, ttol: float=0.1):
         vecg = pnt - self.pnto
         gres = self.grid_res(pnlres)
         pres = pnlres[self.ind]
@@ -422,7 +424,7 @@ class Panel(DirichletPoly):
             dirz = self.dirzab[0, i]
             vecl = Vector(vecg.dot(dirx), vecg.dot(diry), vecg.dot(dirz))
             ainv = self.baryinv[i]
-            bmat = ndarray([[1.0], [vecl.x], [vecl.y]])
+            bmat = asarray([[1.0], [vecl.x], [vecl.y]])
             tmat = ainv*bmat
             to, ta, tb = tmat[0, 0], tmat[1, 0], tmat[2, 0]
             mint = min(to, ta, tb)

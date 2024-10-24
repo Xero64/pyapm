@@ -1,40 +1,44 @@
-from typing import List
+from typing import TYPE_CHECKING
 
 from matplotlib.pyplot import figure
-from numpy import (arctan, array, cos, hstack, multiply, pi, power, sin, sqrt,
-                   zeros)
+from numpy import (arctan, asarray, cos, hstack, multiply, pi, power, sin,
+                   sqrt, zeros)
+from pygeom.tools.spacing import (equal_spacing, full_cosine_spacing,
+                                  linear_bias_left)
 from scipy.optimize import least_squares, root
 
 from . import read_dat
-from .spacing import equal_spacing, full_cosine_spacing, linear_bias_left
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 
 class PolyFoil():
     name: str = None
-    a: List[float] = None
+    a: list[float] = None
     b0: float = None
-    b: List[float] = None
+    b: list[float] = None
     cspc: str = None
     teclosed: bool = None
-    _cdst: List[float] = None
-    _xc: List[float] = None
-    _yc: List[float] = None
-    _dydx: List[float] = None
-    _thc: List[float] = None
-    _t: List[float] = None
-    _dtdx: List[float] = None
-    _tht: List[float] = None
-    _xu: List[float] = None
-    _yu: List[float] = None
-    _thu: List[float] = None
-    _xl: List[float] = None
-    _yl: List[float] = None
-    _thl: List[float] = None
-    _x: List[float] = None
-    _y: List[float] = None
-    _th: List[float] = None
+    _cdst: list[float] = None
+    _xc: list[float] = None
+    _yc: list[float] = None
+    _dydx: list[float] = None
+    _thc: list[float] = None
+    _t: list[float] = None
+    _dtdx: list[float] = None
+    _tht: list[float] = None
+    _xu: list[float] = None
+    _yu: list[float] = None
+    _thu: list[float] = None
+    _xl: list[float] = None
+    _yl: list[float] = None
+    _thl: list[float] = None
+    _x: list[float] = None
+    _y: list[float] = None
+    _th: list[float] = None
 
-    def __init__(self, name: str, a: List[float], b0: float, b: List[float],
+    def __init__(self, name: str, a: list[float], b0: float, b: list[float],
                  cnum: int=80, teclosed=False):
         self.name = name
         self.a = a
@@ -67,7 +71,7 @@ class PolyFoil():
     @property
     def xc(self):
         if self._xc is None:
-            self._xc = array(linear_bias_left(self.cdst, 0.2), dtype=float)
+            self._xc = asarray(linear_bias_left(self.cdst, 0.2))
         return self._xc
 
     @property
@@ -183,32 +187,32 @@ class PolyFoil():
     def __repr__(self):
         return f'<{self.name:s}>'
 
-def camber(xc: array, a: List[float]):
-    yc = zeros(xc.shape, dtype=float)
+def camber(xc: 'NDArray', a: list[float]):
+    yc = zeros(xc.shape)
     for i, ai in enumerate(a):
         yc += ai*power(xc, i+1)
     return yc
 
-def camber_slope(xc: array, a: List[float]):
-    dycdx = zeros(xc.shape, dtype=float)
+def camber_slope(xc: 'NDArray', a: list[float]):
+    dycdx = zeros(xc.shape)
     for i, ai in enumerate(a):
         dycdx += (i+1)*ai*power(xc, i)
     return dycdx
 
-def thickness(xc: array, b0: float, b: List[float]):
+def thickness(xc: 'NDArray', b0: float, b: list[float]):
     yt = b0*sqrt(xc)
     for i, bi in enumerate(b):
         yt += bi*power(xc, i+1)
     return yt
 
-def thickness_slope(xc: array, b0: float, b: List[float]):
+def thickness_slope(xc: 'NDArray', b0: float, b: list[float]):
     dytdx = b0*power(2*sqrt(xc), -1)
     dytdx[0] = 0.0
     for i, bi in enumerate(b):
         dytdx += (i+1)*bi*power(xc, i)
     return dytdx
 
-def split_xvals(xvals: array, nx: int, na: int):
+def split_xvals(xvals: 'NDArray', nx: int, na: int):
     xc = xvals[:nx]
     nb = len(xvals)
     nb -= nx
@@ -224,7 +228,7 @@ def split_xvals(xvals: array, nx: int, na: int):
     b = b[1:]
     return xc, a, b0, b
 
-def fit_func(xvals: array, tgt: array, coeff: array, na: int=0):
+def fit_func(xvals: 'NDArray', tgt: 'NDArray', coeff: 'NDArray', na: int=0):
     nx = len(coeff)
     xc, a, b0, b = split_xvals(xvals, nx, na)
     yc = camber(xc, a)
@@ -238,7 +242,7 @@ def fit_func(xvals: array, tgt: array, coeff: array, na: int=0):
     g = yc + multiply(to2, costhc)
     return hstack((f, g))-tgt
 
-def polyfoil_from_xy(name: str, x: List[float], y: List[float],
+def polyfoil_from_xy(name: str, x: list[float], y: list[float],
                      na: int=None, nb: int=None):
     num = len(x)
     area = 0.0
@@ -263,17 +267,17 @@ def polyfoil_from_xy(name: str, x: List[float], y: List[float],
     nl = len(xl)
     nu = len(xu)
     nx = nl+nu
-    ydata = array(xl+xu+yl+yu, dtype=float)
+    ydata = asarray(xl+xu+yl+yu)
     if na is None and nb is None:
         ab = [0.0 for i in range(nl+nu)]
     elif na == 0 and nb is None:
         ab = [0.0 for i in range(nl+nu)]
     else:
         ab = [0.0 for i in range(na+nb+1)]
-    xdata = array(xl+xu+ab, dtype=float)
+    xdata = asarray(xl+xu+ab)
     cl = [-1.0 for _ in range(nl)]
     cu = [1.0 for _ in range(nu)]
-    coeff = array(cl+cu, dtype=float)
+    coeff = asarray(cl+cu)
     if na is None and nb is None:
         sol = root(fit_func, xdata, args=(ydata, coeff, na))
     elif na == 0 and nb is None:

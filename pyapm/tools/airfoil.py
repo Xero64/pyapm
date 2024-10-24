@@ -1,19 +1,16 @@
-from typing import List
-
 from matplotlib.pyplot import figure
 from numpy import asarray
-
 from pygeom.geom2d import Vector2D
 from pygeom.geom2d.cubicspline2d import CubicSpline2D
+from pygeom.tools.spacing import equal_spacing, full_cosine_spacing
 
 from . import read_dat
-from .spacing import equal_spacing, full_cosine_spacing
 
 
 class Airfoil():
     name: str = None
-    xin: List[float] = None
-    yin: List[float] = None
+    xin: list[float] = None
+    yin: list[float] = None
     cnum: int = None
     cspc: str = None
     normalise: bool = None
@@ -24,18 +21,18 @@ class Airfoil():
     _yle: float = None
     _ile: int = None
     _chord: float = None
-    _xsp: List[float] = None
-    _ysp: List[float] = None
-    _cdst: List[float] = None
+    _xsp: list[float] = None
+    _ysp: list[float] = None
+    _cdst: list[float] = None
     _spline: CubicSpline2D = None
-    _x: List[float] = None
-    _y: List[float] = None
-    _xu: List[float] = None
-    _yu: List[float] = None
-    _xl: List[float] = None
-    _yl: List[float] = None
-    _xc: List[float] = None
-    _yc: List[float] = None
+    _x: list[float] = None
+    _y: list[float] = None
+    _xu: list[float] = None
+    _yu: list[float] = None
+    _xl: list[float] = None
+    _yl: list[float] = None
+    _xc: list[float] = None
+    _yc: list[float] = None
 
     def __init__(self, name: str, xin: list, yin: list, cnum: int=80,
                  normalise: bool=False, shift: bool=False):

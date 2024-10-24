@@ -1,9 +1,7 @@
-from math import cos, pi, radians, sin
-from typing import TYPE_CHECKING, Dict
+from typing import TYPE_CHECKING
 
 from matplotlib.pyplot import figure
-from numpy import ndarray, square, zeros
-
+from numpy import cos, pi, radians, sin, square, zeros
 from py2md.classes import MDHeading, MDReport, MDTable
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import Coordinate, Vector
@@ -11,7 +9,10 @@ from pygeom.geom3d import Coordinate, Vector
 tol = 1e-12
 
 if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
     from .panelsystem import PanelSystem
+
 
 class PanelResult():
     name: str = None
@@ -24,7 +25,7 @@ class PanelResult():
     pbo2V: float = None
     qco2V: float = None
     rbo2V: float = None
-    ctrls: Dict[str, float] = None
+    ctrls: dict[str, float] = None
     rcg: Vector = None
     _acs: Coordinate = None
     _wcs: Coordinate = None
@@ -32,15 +33,15 @@ class PanelResult():
     _ofs: Vector = None
     _qfs: float = None
     _arm: Vector = None
-    _unsig: ndarray = None
-    _unmu: ndarray = None
-    _unphi: ndarray = None
-    _sig: ndarray = None
-    _mu: ndarray = None
-    _phi: ndarray = None
+    _unsig: 'NDArray' = None
+    _unmu: 'NDArray' = None
+    _unphi: 'NDArray' = None
+    _sig: 'NDArray' = None
+    _mu: 'NDArray' = None
+    _phi: 'NDArray' = None
     _qloc: Vector2D = None
-    _qs: ndarray = None
-    _cp: ndarray = None
+    _qs: 'NDArray' = None
+    _cp: 'NDArray' = None
     _nfres: 'NearFieldResult' = None
     _strpres: 'StripResult' = None
     _ffres: 'FarFieldResult' = None
@@ -170,7 +171,7 @@ class PanelResult():
     @property
     def vfsl(self):
         if self._vfsl is None:
-            self._vfsl = Vector.zeros(self.sys.numpnl, dtype=float)
+            self._vfsl = Vector.zeros(self.sys.numpnl)
             for pnl in self.sys.pnls.values():
                 self._vfsl[pnl.ind] = pnl.crd.vector_to_local(self.vfsg[pnl.ind])
         return self._vfsl
@@ -259,17 +260,17 @@ class PanelResult():
                     self._phi += ctrlrad*(self.unphi[:, indo].dot(self.ofs))
         return self._phi
 
-    def calc_qloc(self, mu: ndarray, vfs: Vector=None,
+    def calc_qloc(self, mu: 'NDArray', vfs: Vector=None,
                   ofs: Vector=None) -> Vector2D:
-        vfsg = Vector.zeros(self.arm.shape, dtype=float)
+        vfsg = Vector.zeros(self.arm.shape)
         if ofs is not None:
             vfsg += self.arm.cross(ofs)
         if vfs is not None:
             vfsg += vfs
-        vl = zeros(self.sys.numpnl, dtype=float)
-        vt = zeros(self.sys.numpnl, dtype=float)
-        ql = zeros(self.sys.numpnl, dtype=float)
-        qt = zeros(self.sys.numpnl, dtype=float)
+        vl = zeros(self.sys.numpnl)
+        vt = zeros(self.sys.numpnl)
+        ql = zeros(self.sys.numpnl)
+        qt = zeros(self.sys.numpnl)
         for pnl in self.sys.pnls.values():
             vl[pnl.ind] = pnl.crd.dirx.dot(vfsg[pnl.ind])
             vt[pnl.ind] = pnl.crd.diry.dot(vfsg[pnl.ind])
@@ -944,8 +945,8 @@ def trig_angle(angle: float):
 
 class NearFieldResult():
     res: PanelResult = None
-    nfcp: ndarray = None
-    _nfprs: ndarray = None
+    nfcp: 'NDArray' = None
+    _nfprs: 'NDArray' = None
     _nffrc: Vector = None
     _nfmom: Vector = None
     _nffrctot: Vector = None
@@ -964,12 +965,12 @@ class NearFieldResult():
     _Cm: float = None
     _Cn: float = None
 
-    def __init__(self, res: PanelResult, nfcp: ndarray):
+    def __init__(self, res: PanelResult, nfcp: 'NDArray'):
         self.res = res
         self.nfcp = nfcp
 
     @property
-    def nfprs(self) -> ndarray:
+    def nfprs(self) -> 'NDArray':
         if self._nfprs is None:
             self._nfprs = self.res.qfs*self.nfcp
         return self._nfprs
@@ -1104,8 +1105,8 @@ class NearFieldResult():
 
 class StripResult():
     nfres: 'NearFieldResult' = None
-    _stfrc: 'Vector' = None
-    _stmom: 'Vector' = None
+    _stfrc: Vector = None
+    _stmom: Vector = None
     _stcp = None
     _lift = None
     _side = None
@@ -1120,7 +1121,7 @@ class StripResult():
         if self._stfrc is None:
             sys = self.nfres.res.sys
             num = len(sys.strps)
-            self._stfrc = Vector.zeros(num, dtype=float)
+            self._stfrc = Vector.zeros(num)
             for strp in sys.strps:
                 i = strp.ind
                 for pnl in strp.pnls:
@@ -1133,7 +1134,7 @@ class StripResult():
         if self._stmom is None:
             sys = self.nfres.res.sys
             num = len(sys.strps)
-            self._stmom = Vector.zeros(num, dtype=float)
+            self._stmom = Vector.zeros(num)
             for strp in sys.strps:
                 i = strp.ind
                 for pnl in strp.pnls:
@@ -1147,7 +1148,7 @@ class StripResult():
         if self._stcp is None:
             sys = self.nfres.res.sys
             num = len(sys.strps)
-            self._stcp = zeros(num, dtype=float)
+            self._stcp = zeros(num)
             for strp in sys.strps:
                 i = strp.ind
                 if abs(self.stfrc[i].z) > 1e-12:
@@ -1157,7 +1158,7 @@ class StripResult():
     @property
     def drag(self):
         if self._drag is None:
-            self._drag = zeros(self.stfrc.size, dtype=float)
+            self._drag = zeros(self.stfrc.size)
             for i in range(self.stfrc.size):
                 self._drag[i] = self.nfres.res.acs.dirx.dot(self.stfrc[i])
         return self._drag
@@ -1165,7 +1166,7 @@ class StripResult():
     @property
     def side(self):
         if self._side is None:
-            self._side = zeros(self.stfrc.size, dtype=float)
+            self._side = zeros(self.stfrc.size)
             for i in range(self.stfrc.size):
                 self._side[i] = self.nfres.res.acs.diry.dot(self.stfrc[i])
         return self._side
@@ -1173,7 +1174,7 @@ class StripResult():
     @property
     def lift(self):
         if self._lift is None:
-            self._lift = zeros(self.stfrc.size, dtype=float)
+            self._lift = zeros(self.stfrc.size)
             for i in range(self.stfrc.size):
                 self._lift[i] = self.nfres.res.acs.dirz.dot(self.stfrc[i])
         return self._lift
@@ -1251,7 +1252,7 @@ class FarFieldResult():
     def ffmu(self):
         if self._ffmu is None:
             numhsv = self.res.sys.numhsv
-            self._ffmu = zeros(numhsv, dtype=float)
+            self._ffmu = zeros(numhsv)
             for ind, hsv in enumerate(self.res.sys.hsvs):
                 self._ffmu[ind] = self.res.mu[hsv.ind]
         return self._ffmu
@@ -1294,7 +1295,7 @@ class FarFieldResult():
         if self._circ is None:
             sys = self.res.sys
             num = len(sys.strps)
-            self._circ = zeros((num, 1), dtype=float)
+            self._circ = zeros((num, 1))
             for i, strp in enumerate(sys.strps):
                 if not strp.nohsv:
                     pnla = strp.pnls[0]
@@ -1309,7 +1310,7 @@ class FarFieldResult():
         if self._wash is None:
             sys = self.res.sys
             num = len(sys.strps)
-            self._wash = zeros(num, dtype=float)
+            self._wash = zeros(num)
             for i, strp in enumerate(sys.strps):
                 if not strp.nohsv:
                     pnla = strp.pnls[0]
@@ -1333,7 +1334,7 @@ class FarFieldResult():
         if self._drag is None:
             sys = self.res.sys
             num = len(sys.strps)
-            self._drag = zeros(num, dtype=float)
+            self._drag = zeros(num)
             for i, strp in enumerate(sys.strps):
                 if not strp.noload:
                     self._drag[i] = -self.res.rho*self.wash[i]*self.circ[i]*strp.width/2
@@ -1344,7 +1345,7 @@ class FarFieldResult():
         if self._side is None:
             sys = self.res.sys
             num = len(sys.strps)
-            self._side = zeros(num, dtype=float)
+            self._side = zeros(num)
             for i, strp in enumerate(sys.strps):
                 if not strp.noload:
                     if not strp.nohsv:
@@ -1365,7 +1366,7 @@ class FarFieldResult():
         if self._lift is None:
             sys = self.res.sys
             num = len(sys.strps)
-            self._lift = zeros(num, dtype=float)
+            self._lift = zeros(num)
             for i, strp in enumerate(sys.strps):
                 if not strp.noload:
                     if not strp.nohsv:

@@ -3,10 +3,10 @@
 from time import perf_counter
 
 from matplotlib.pyplot import figure
+from pygeom.geom3d import Vector
 
 from pyapm.classes.grid import Grid
 from pyapm.classes.horseshoe import HorseShoe
-from pygeom.geom3d import Vector
 
 #%%
 # Create Horseshoe Vortex

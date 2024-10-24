@@ -1,8 +1,4 @@
-from math import cos, radians
-from typing import Dict, List
-
-from numpy import absolute
-
+from numpy import absolute, cos, radians
 from pygeom.geom3d import Vector
 
 from ..tools.airfoil import airfoil_from_dat
@@ -24,12 +20,12 @@ class PanelSection(PanelProfile):
     zoc: float = None
     shta: object = None
     shtb: object = None
-    grds: List[Grid] = None
-    pnls: List[Panel] = None
+    grds: list[Grid] = None
+    pnls: list[Panel] = None
     ruled: bool = None
     noload: bool = None
     nomesh: bool = None
-    ctrls: Dict[str, PanelControl] = None
+    ctrls: dict[str, PanelControl] = None
     _thkcor: float = None
     _scttyp: str = None
 
@@ -133,7 +129,7 @@ class PanelSection(PanelProfile):
 
     def get_profile(self, offset: bool=True):
         num = self.cnum*2+1
-        profile = Vector.zeros((1, num), dtype=float)
+        profile = Vector.zeros((1, num))
         for i in range(self.cnum+1):
             n = num-i-1
             j = n-num

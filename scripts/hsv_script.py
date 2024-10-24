@@ -4,11 +4,11 @@ from time import perf_counter
 
 from matplotlib.pyplot import figure
 from numpy import absolute
+from pygeom.geom3d import Vector
 
 from pyapm.classes.horseshoe import HorseShoe
 from pyapm.classes.poly import Poly
 from pyapm.tools.functions import derivative, mean
-from pygeom.geom3d import Vector
 
 #%%
 # Create Trailing Edge Vortex

@@ -1,17 +1,19 @@
-from math import pi
+from typing import TYPE_CHECKING
 
-from numpy import (absolute, arctan, divide, multiply, ndarray, ones, square,
-                   zeros)
-
+from numpy import (absolute, arctan, divide, multiply, ones, pi, reciprocal,
+                   square, zeros)
 from pygeom.geom3d import Coordinate, Vector
-from pygeom.geom3d.vector import Vector
 
 from .boundedge import phi_doublet_array
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 tol = 1e-12
 piby2 = pi/2
 fourPi = 4*pi
 twoPi = 2*pi
+
 
 class TrailingEdge():
     pnto: Vector = None
@@ -98,8 +100,8 @@ class TrailingEdge():
         dirz = Vector(self.dirx.z, self.diry.z, self.dirz.z)
         return Vector(vecs.dot(dirx), vecs.dot(diry), vecs.dot(dirz))
 
-    def doublet_velocity_potentials(self, pnts: Vector, extraout: bool=False,
-                                    sgnz: ndarray=None, factor: bool=True,
+    def doublet_velocity_potentials(self, pnts: Vector, extraout: bool = False,
+                                    sgnz: 'NDArray' = None, factor: bool = True,
                                     betx: float=1.0):
         rls = self.points_to_local(pnts, betx=betx)
         absx = absolute(rls.x)
@@ -124,8 +126,8 @@ class TrailingEdge():
         return output
 
     def doublet_influence_coefficients(self, pnts: Vector,
-                                       sgnz: ndarray=None, factor: bool=True,
-                                       betx: float=1.0):
+                                       sgnz: 'NDArray' = None, factor: bool=True,
+                                       betx: float=1.0) -> tuple['NDArray', Vector]:
         phid, _, ov, om = self.doublet_velocity_potentials(pnts, extraout=True,
                                                            sgnz=sgnz, factor=False,
                                                            betx=betx)
@@ -134,9 +136,10 @@ class TrailingEdge():
         if factor:
             phid, veld = phid/fourPi, veld/fourPi
         return phid, veld
-    def trefftz_plane_velocities(self, pnts: Vector):
+
+    def trefftz_plane_velocities(self, pnts: Vector) -> Vector:
         rls = self.points_to_local(pnts)
-        rls.x = zeros(rls.shape, dtype=float)
+        rls.x = zeros(rls.shape)
         # ro = Vector(0.0, self.grdo.y, self.grdo.z)
         # o = rls-ro
         oxx = Vector(rls.x, -rls.z, rls.y)
@@ -149,7 +152,7 @@ class TrailingEdge():
         veld = self.vectors_to_global(veldl)*self.faco
         return veld/twoPi
 
-    def __str__(self):
+    def __str__(self) -> str:
         outstr = ''
         outstr += f'pnto = {self.pnto}\n'
         outstr += f'grdo = {self.grdo}\n'
@@ -161,19 +164,18 @@ class TrailingEdge():
         outstr += f'grdol = {self.grdol}\n'
         return outstr
 
-def vel_doublet_array(ov, om, faco):
+def vel_doublet_array(ov: Vector, om: 'NDArray', faco: float) -> Vector:
     ov = faco*ov
     oxx = Vector(zeros(ov.shape), -ov.z, ov.y)
-    oxxm = oxx.return_magnitude()
-    chko = (oxxm == 0.0)
-    velol = oxx, multiply(om/om-ov.x)
-    velol.x[chko] = 0.0
-    velol.y[chko] = 0.0
-    velol.z[chko] = 0.0
+    deno = om*(om - ov.x)
+    recn = zeros(deno.shape)
+    chkd = absolute(deno) > tol
+    reciprocal(deno, out=recn, where=chkd)
+    velol = oxx*recn
     return velol
 
-def phi_trailing_doublet_array(rls: Vector, sgnz: ndarray, faco: float):
-    ths = zeros(rls.shape, dtype=float)
+def phi_trailing_doublet_array(rls: Vector, sgnz: 'NDArray', faco: float) -> 'NDArray':
+    ths = zeros(rls.shape)
     ths[rls.y > 0.0] = piby2
     ths[rls.y == 0.0] = -piby2*faco
     ths[rls.y < 0.0] = -piby2

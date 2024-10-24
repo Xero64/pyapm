@@ -1,6 +1,4 @@
-from math import sqrt
-from typing import List
-
+from numpy import sqrt
 from pygeom.geom3d import Vector
 
 from .panel import Panel
@@ -11,7 +9,7 @@ class PanelStrip():
     prfa: PanelProfile = None
     prfb: PanelProfile = None
     sht: object = None
-    pnls: List[Panel] = None
+    pnls: list[Panel] = None
     ind: int = None
     _point: Vector = None
     _bpos: float = None

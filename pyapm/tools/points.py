@@ -1,8 +1,12 @@
-from numpy import arange, argmin, array, logical_not, ndarray, zeros
+from typing import TYPE_CHECKING
 
+from numpy import arange, argmin, asarray, logical_not, zeros
 from pygeom.geom3d import Vector
 
 from ..classes.panelsystem import PanelSystem
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 
 def fetch_pids_ttol(pnts: Vector, psys: PanelSystem, ztol: float=0.01, ttol: float=0.1):
@@ -12,7 +16,7 @@ def fetch_pids_ttol(pnts: Vector, psys: PanelSystem, ztol: float=0.01, ttol: flo
     numpnl = len(psys.pnls)
     pidm = zeros((1, numpnl), dtype=int)
     wintm = zeros((numpnt, numpnl), dtype=bool)
-    abszm = zeros((numpnt, numpnl), dtype=float)
+    abszm = zeros((numpnt, numpnl))
     if isinstance(psys.pnls, dict):
         for pnl in psys.pnls.values():
             pidm[0, pnl.ind] = pnl.pid
@@ -23,22 +27,22 @@ def fetch_pids_ttol(pnts: Vector, psys: PanelSystem, ztol: float=0.01, ttol: flo
             wintm[:, pnl.ind], abszm[:, pnl.ind] = pnl.within_and_absz_ttol(pnts[:, 0], ttol=ttol)
     abszm[wintm is False] = float('inf')
     minm = argmin(abszm, axis=1)
-    minm = array(minm).flatten()
-    pidm = array(pidm).flatten()
+    minm = asarray(minm).flatten()
+    pidm = asarray(pidm).flatten()
     pids = pidm[minm]
-    pids = ndarray([pids], dtype=int).transpose()
+    pids = asarray([pids], dtype=int).transpose()
     indp = arange(numpnt)
-    minz = array(abszm[indp, minm]).flatten()
-    minz = ndarray([minz], dtype=float).transpose()
+    minz = asarray(abszm[indp, minm]).flatten()
+    minz = asarray([minz]).transpose()
     chkz = minz < ztol
     pids[logical_not(chkz)] = 0
     pids = pids.reshape(shp)
     chkz = chkz.reshape(shp)
     return pids, chkz
 
-def point_results(pnts: Vector, psys: PanelSystem, pids: array, chkz: array,
-                  pnlres: ndarray, ttol: float=0.1):
-    res = zeros(pnts.shape, dtype=float)
+def point_results(pnts: Vector, psys: PanelSystem, pids: 'NDArray', chkz: 'NDArray',
+                  pnlres: 'NDArray', ttol: float=0.1):
+    res = zeros(pnts.shape)
     for i in range(pnts.shape[0]):
         for j in range(pnts.shape[1]):
             if chkz[i, j]:

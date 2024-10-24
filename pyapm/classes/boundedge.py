@@ -1,9 +1,12 @@
-from math import pi
+from typing import TYPE_CHECKING
 
-from numpy import (absolute, arctan, divide, log, logical_and, multiply,
-                   ndarray, ones)
-
+from numpy import (absolute, arctan, divide, log, logical_and, multiply, ones,
+                   pi)
 from pygeom.geom3d import Coordinate, Vector
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
 
 tol = 1e-12
 piby2 = pi/2
@@ -145,7 +148,7 @@ class BoundEdge():
         return Vector(vecs.dot(dirx), vecs.dot(diry), vecs.dot(dirz))
 
     def doublet_velocity_potentials(self, pnts: Vector, extraout: bool=False,
-                                    sgnz: ndarray=None, factor: bool=True,
+                                    sgnz: 'NDArray'=None, factor: bool=True,
                                     betx: float=1.0):
         rls = self.points_to_local(pnts, betx=betx)
         absx = absolute(rls.x)
@@ -170,7 +173,7 @@ class BoundEdge():
             return phids
 
     def doublet_influence_coefficients(self, pnts: Vector,
-                                       sgnz: ndarray=None, factor: bool=True,
+                                       sgnz: 'NDArray'=None, factor: bool=True,
                                        betx: float=1.0):
         phid, _, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True,
                                                                    sgnz=sgnz,
@@ -183,7 +186,7 @@ class BoundEdge():
         return phid, veld
 
     def velocity_potentials(self, pnts: Vector,
-                            sgnz: ndarray=None, factor: bool=True, betx: float=1.0):
+                            sgnz: 'NDArray'=None, factor: bool=True, betx: float=1.0):
         phid, rl, _, am, _, bm = self.doublet_velocity_potentials(pnts, extraout=True,
                                                                   sgnz=sgnz,
                                                                   factor=False,
@@ -194,7 +197,7 @@ class BoundEdge():
         return phid, phis
 
     def influence_coefficients(self, pnts: Vector,
-                               sgnz: ndarray=None, factor: bool=True, betx: float=1.0):
+                               sgnz: 'NDArray'=None, factor: bool=True, betx: float=1.0):
         phid, rl, av, am, bv, bm = self.doublet_velocity_potentials(pnts, extraout=True,
                                                                     sgnz=sgnz,
                                                                     factor=False,
@@ -222,7 +225,7 @@ class BoundEdge():
         outstr += f'grdbl = {self.grdbl}\n'
         return outstr
 
-def phi_doublet_array(vecs: Vector, rls: Vector, sgnz: ndarray):
+def phi_doublet_array(vecs: Vector, rls: Vector, sgnz: 'NDArray'):
     mags = vecs.return_magnitude()
     ms = divide(vecs.x, rls.y)
     ths = arctan(ms)
@@ -258,10 +261,10 @@ def vel_doublet_array(av: Vector, am, bv: Vector, bm):
     return velvl
 
 def vel_source_array(Qab, rl, phid):
-    velsl = Vector.zeros(Qab.shape, dtype=float)
+    velsl = Vector.zeros(Qab.shape)
     velsl.y = -Qab
     # velsl.z = -phid
-    faco = ones(Qab.shape, dtype=float)
+    faco = ones(Qab.shape)
     faco[rl.z != 0.0] = -1.0
     velsl.z = multiply(faco, phid)
     return velsl

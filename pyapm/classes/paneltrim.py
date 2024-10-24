@@ -1,5 +1,5 @@
 from time import perf_counter
-from typing import TYPE_CHECKING, Dict, List
+from typing import TYPE_CHECKING
 
 from numpy import degrees, radians, zeros
 from numpy.linalg import inv, norm
@@ -8,10 +8,11 @@ from ..tools.mass import Mass
 from ..tools.trim import LoadTrim, LoopingTrim, TurningTrim
 from .panelresult import NearFieldResult, PanelResult
 
-ANGTOL = 30.0
-
 if TYPE_CHECKING:
     from .panelsystem import PanelSystem
+
+ANGTOL = 30.0
+
 
 class PanelTrim(PanelResult):
     CLt: float = None
@@ -19,9 +20,9 @@ class PanelTrim(PanelResult):
     Clt: float = None
     Cmt: float = None
     Cnt: float = None
-    initstate: Dict[str, float] = None
-    initctrls: Dict[str, float] = None
-    _tgtlst: List[str] = None
+    initstate: dict[str, float] = None
+    initctrls: dict[str, float] = None
+    _tgtlst: list[str] = None
     _numtgt: int = None
     _trmmom: bool = None
     # trmfrc = None
@@ -43,7 +44,7 @@ class PanelTrim(PanelResult):
         self._numtgt = None
         self._trmmom = None
 
-    def set_initial_state(self, initstate: Dict[str, float]):
+    def set_initial_state(self, initstate: dict[str, float]):
         self.initstate = initstate
         # if 'alpha' not in self.initstate:
         #     self.initstate['alpha'] = 0.0
@@ -51,7 +52,7 @@ class PanelTrim(PanelResult):
         #     self.initstate['beta'] = 0.0
         self.set_state(**self.initstate)
 
-    def set_initial_controls(self, initctrls: Dict[str, float]):
+    def set_initial_controls(self, initctrls: dict[str, float]):
         self.initctrls = initctrls
         self.set_controls(**self.initctrls)
 
@@ -95,43 +96,43 @@ class PanelTrim(PanelResult):
 
     def target_Cmat(self):
         numtgt = len(self.tgtlst)
-        Ctgt = zeros((numtgt, 1), dtype=float)
+        Ctgt = zeros((numtgt, 1))
         for i, tgt in enumerate(self.tgtlst):
             Ctgt[i, 0] = getattr(self, tgt + 't')
         # if self.trmlft:
-        #     Ctgt = zeros((1, 1), dtype=float)
+        #     Ctgt = zeros((1, 1))
         #     Ctgt[0, 0] = self.CLt
         # elif self.trmfrc and self.trmmom:
-        #     Ctgt = zeros((5, 1), dtype=float)
+        #     Ctgt = zeros((5, 1))
         #     Ctgt[0, 0] = self.CLt
         #     Ctgt[1, 0] = self.CYt
         #     Ctgt[2, 0] = self.Clt
         #     Ctgt[3, 0] = self.Cmt
         #     Ctgt[4, 0] = self.Cnt
         # elif self.trmfrc:
-        #     Ctgt = zeros((2, 1), dtype=float)
+        #     Ctgt = zeros((2, 1))
         #     Ctgt[0, 0] = self.CLt
         #     Ctgt[1, 0] = self.CYt
         # elif self.trmmom:
-        #     Ctgt = zeros((3, 1), dtype=float)
+        #     Ctgt = zeros((3, 1))
         #     Ctgt[0, 0] = self.Clt
         #     Ctgt[1, 0] = self.Cmt
         #     Ctgt[2, 0] = self.Cnt
         # else:
-        #     Ctgt = zeros((0, 1), dtype=float)
+        #     Ctgt = zeros((0, 1))
         return Ctgt
 
     def current_Cmat(self):
         numtgt = len(self.tgtlst)
-        Ccur = zeros((numtgt, 1), dtype=float)
+        Ccur = zeros((numtgt, 1))
         self._nfres = None
         for i, tgt in enumerate(self.tgtlst):
             Ccur[i, 0] = getattr(self.nfres, tgt)
         # if self.trmlft:
-        #     Ccur = zeros((1, 1), dtype=float)
+        #     Ccur = zeros((1, 1))
         #     Ccur[0, 0] = self.nfres.CL
         # elif self.trmfrc and self.trmmom:
-        #     Ccur = zeros((5, 1), dtype=float)
+        #     Ccur = zeros((5, 1))
         #     Ccur[0, 0] = self.nfres.CL
         #     Ccur[1, 0] = self.nfres.CY
         #     Ccur[2, 0] = self.nfres.Cl
@@ -144,14 +145,14 @@ class PanelTrim(PanelResult):
         #     #     Ccur[3, 0] += self.pdres.Cm
         #     #     Ccur[4, 0] += self.pdres.Cn
         # elif self.trmfrc:
-        #     Ccur = zeros((2, 1), dtype=float)
+        #     Ccur = zeros((2, 1))
         #     Ccur[0, 0] = self.nfres.CL
         #     Ccur[1, 0] = self.nfres.CY
         #     # if self.sys.cdo != 0.0:
         #     #     Ccur[0, 0] += self.pdres.CL
         #     #     Ccur[1, 0] += self.pdres.CY
         # elif self.trmmom:
-        #     Ccur = zeros((3, 1), dtype=float)
+        #     Ccur = zeros((3, 1))
         #     Ccur[0, 0] = self.nfres.Cl
         #     Ccur[1, 0] = self.nfres.Cm
         #     Ccur[2, 0] = self.nfres.Cn
@@ -160,14 +161,14 @@ class PanelTrim(PanelResult):
         #     #     Ccur[1, 0] += self.pdres.Cm
         #     #     Ccur[2, 0] += self.pdres.Cn
         # else:
-        #     Ccur = zeros((0, 1), dtype=float)
+        #     Ccur = zeros((0, 1))
         return Ccur
 
     def current_Dmat(self):
         numv = len(self.initstate)
         numc = len(self.initctrls)
         num = numv + numc
-        Dcur = zeros((num, 1), dtype=float)
+        Dcur = zeros((num, 1))
         j = 0
         for var in self.initstate:
             if var == 'alpha' or var == 'beta':
@@ -185,11 +186,11 @@ class PanelTrim(PanelResult):
         # else:
         #     numc = 0
         # if self.trmlft:
-        #     Dcur = zeros((1, 1), dtype=float)
+        #     Dcur = zeros((1, 1))
         #     Dcur[0, 0] = radians(self.alpha)
         # else:
         #     num = numc+2
-        #     Dcur = zeros((num, 1), dtype=float)
+        #     Dcur = zeros((num, 1))
         #     Dcur[0, 0] = radians(self.alpha)
         #     Dcur[1, 0] = radians(self.beta)
         # if self.trmmom:
@@ -204,7 +205,7 @@ class PanelTrim(PanelResult):
         numc = len(self.initctrls)
         num = numv + numc
         numtgt = len(self.tgtlst)
-        H = zeros((numtgt, num), dtype=float)
+        H = zeros((numtgt, num))
         for i, tgt in enumerate(self.tgtlst):
             j = 0
             for var in self.initstate:
@@ -221,10 +222,10 @@ class PanelTrim(PanelResult):
                 j += 1
 
         # if self.trmlft:
-        #     H = zeros((1, 1), dtype=float)
+        #     H = zeros((1, 1))
         #     H[0, 0] = self.stres.alpha.CL
         # elif self.trmfrc and self.trmmom:
-        #     H = zeros((5, num), dtype=float)
+        #     H = zeros((5, num))
         #     H[0, 0] = self.stres.alpha.CL
         #     H[1, 0] = self.stres.alpha.CY
         #     H[2, 0] = self.stres.alpha.Cl
@@ -249,13 +250,13 @@ class PanelTrim(PanelResult):
         #         H[4, 2+c] = ctres.Cn
         #         c += 1
         # elif self.trmfrc:
-        #     H = zeros((2, num), dtype=float)
+        #     H = zeros((2, num))
         #     H[0, 0] = self.stres.alpha.CL
         #     H[1, 0] = self.stres.alpha.CY
         #     H[0, 1] = self.stres.beta.CL
         #     H[1, 1] = self.stres.beta.CY
         # elif self.trmmom:
-        #     H = zeros((3, num), dtype=float)
+        #     H = zeros((3, num))
         #     H[0, 0] = self.stres.alpha.Cl
         #     H[1, 0] = self.stres.alpha.Cm
         #     H[2, 0] = self.stres.alpha.Cn
@@ -275,7 +276,7 @@ class PanelTrim(PanelResult):
         #         H[2, 2+c] = ctres.Cn
         #         c += 1
         # else:
-        #     H = zeros((0, 0), dtype=float)
+        #     H = zeros((0, 0))
         return H
 
     def trim_iteration(self, display=False):

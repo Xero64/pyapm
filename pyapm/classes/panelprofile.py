@@ -1,13 +1,11 @@
-from math import acos, cos, degrees, radians, sin
-from typing import TYPE_CHECKING, List
+from typing import TYPE_CHECKING
 
+from numpy import acos, cos, degrees, radians, sin
 from pygeom.geom3d import Coordinate, Vector
 
 from .grid import Grid
 
 if TYPE_CHECKING:
-    from pygeom.geom3d import Vector
-
     from .panelsection import PanelSection
 
 class PanelProfile():
@@ -20,7 +18,7 @@ class PanelProfile():
     bpos: float = None
     scta: 'PanelSection' = None
     sctb: 'PanelSection' = None
-    grds: List[Grid] = None
+    grds: list[Grid] = None
     nohsv: bool = None
 
     def __init__(self, point: Vector, chord: float, twist: float) -> None:
@@ -63,13 +61,13 @@ class PanelProfile():
             self._crdsys = Coordinate(self.point, dirx, diry)
         return self._crdsys
 
-    def get_profile(self, offset: bool=True) -> 'Vector':
+    def get_profile(self, offset: bool=True) -> Vector:
         prfa = self.scta.get_profile(offset=offset)
         prfb = self.sctb.get_profile(offset=offset)
         profiledir = prfb - prfa
         return prfa + self.bval*profiledir
 
-    def get_shape(self) -> 'Vector':
+    def get_shape(self) -> Vector:
         profile = self.get_profile()
         scaledprofile = profile*self.chord
         rotatedprofile = self.crdsys.vector_to_global(scaledprofile)

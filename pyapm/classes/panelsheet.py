@@ -1,11 +1,10 @@
-from math import atan2, degrees
-from typing import Dict, List
+from typing import TYPE_CHECKING
 
-from numpy import ndarray
-
+from numpy import arctan2, degrees
 from pygeom.geom3d import IHAT, Vector
+from pygeom.tools.spacing import (equal_spacing, full_cosine_spacing,
+                                  semi_cosine_spacing)
 
-from ..tools import equal_spacing, full_cosine_spacing, semi_cosine_spacing
 from .grid import Grid
 from .panel import Panel
 from .panelcontrol import PanelControl
@@ -14,26 +13,29 @@ from .panelprofile import PanelProfile
 from .panelsection import PanelSection
 from .panelstrip import PanelStrip
 
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
 
 class PanelSheet():
     scta: PanelSection = None
     sctb: PanelSection = None
-    fncs: Dict[str, PanelFunction] = None
+    fncs: dict[str, PanelFunction] = None
     _ruled: bool = None
     _noload: bool = None
     _nomesh: bool = None
     _nohsv: bool = None
     _bnum: int = None
     _bspc: str = None
-    _bdst: List[float] = None
-    _prfs: List[PanelProfile] = None
-    _strps: List[PanelStrip] = None
+    _bdst: list[float] = None
+    _prfs: list[PanelProfile] = None
+    _strps: list[PanelStrip] = None
     _mirror: bool = None
     _tilt: float = None
     _area: float = None
-    grds: List[Grid] = None
-    pnls: List[Panel] = None
-    _ctrls: Dict[str, PanelControl] = None
+    grds: list[Grid] = None
+    pnls: list[Panel] = None
+    _ctrls: dict[str, PanelControl] = None
 
     def __init__(self, scta: PanelSection, sctb: PanelSection):
         self.scta = scta
@@ -132,7 +134,7 @@ class PanelSheet():
         return self._bspc
 
     @property
-    def bdst(self) -> ndarray:
+    def bdst(self) -> 'NDArray':
         if self._bdst is None:
             if self.bspc == 'equal':
                 bdst = equal_spacing(self.bnum)
@@ -208,7 +210,7 @@ class PanelSheet():
         if self._tilt is None:
             dz = self.sctb.point.z - self.scta.point.z
             dy = self.sctb.point.y - self.scta.point.y
-            self._tilt = degrees(atan2(dz, dy))
+            self._tilt = degrees(arctan2(dz, dy))
         return self._tilt
 
     @property

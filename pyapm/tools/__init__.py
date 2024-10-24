@@ -1,13 +1,10 @@
 from math import sqrt
 
-from .spacing import (equal_spacing, full_cosine_spacing, linear_bias_left,
-                      linear_bias_right, semi_cosine_spacing)
 
+def betm_from_mach(mach: float = 0.0) -> float:
+    return sqrt(1.0 - mach**2)
 
-def betm_from_mach(mach: float=0.0):
-    return sqrt(1-mach**2)
-
-def read_dat(datfilepath: str):
+def read_dat(datfilepath: str) -> tuple[str, list[float], list[float]]:
     name = ''
     x = []
     y = []

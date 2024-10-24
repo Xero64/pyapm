@@ -1,22 +1,24 @@
-from typing import List
+from typing import TYPE_CHECKING
 
-from numpy import ndarray, zeros
+from numpy import zeros
 from numpy.linalg import inv
-
 from pygeom.geom3d import Vector
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
 
 class RigidBody():
-    pnt: List[Vector] = None
-    pnts: List[Vector] = None
-    ks: List[Vector] = None
-    gs: List[Vector] = None
+    pnt: list[Vector] = None
+    pnts: list[Vector] = None
+    ks: list[Vector] = None
+    gs: list[Vector] = None
     _numpnt: int = None
-    _rrel: List[Vector] = None
-    _amat: ndarray = None
-    _ainv: ndarray = None
+    _rrel: list[Vector] = None
+    _amat: 'NDArray' = None
+    _ainv: 'NDArray' = None
 
-    def __init__(self, pnt: Vector, pnts: List[Vector], ks: List[Vector], gs: List[Vector]):
+    def __init__(self, pnt: Vector, pnts: list[Vector], ks: list[Vector], gs: list[Vector]):
         self.pnt = pnt
         self.pnts = []
         self.ks = []
@@ -41,7 +43,7 @@ class RigidBody():
     @property
     def amat(self):
         if self._amat is None:
-            self._amat = zeros((6, 6), dtype=float)
+            self._amat = zeros((6, 6))
             for i in range(self.numpnt):
                 ri = self.rrel[i]
                 ki = self.ks[i]
@@ -93,11 +95,11 @@ class RigidBody():
             if self.numpnt > 0:
                 self._ainv = inv(self.amat)
             else:
-                self._ainv = zeros((6, 6), dtype=float)
+                self._ainv = zeros((6, 6))
         return self._ainv
 
     def return_reactions(self, frc: Vector, mom: Vector):
-        pmat = zeros((6, 1), dtype=float)
+        pmat = zeros((6, 1))
         pmat[0, 0] = frc.x
         pmat[1, 0] = frc.y
         pmat[2, 0] = frc.z

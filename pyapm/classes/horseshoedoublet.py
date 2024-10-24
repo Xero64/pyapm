@@ -1,18 +1,20 @@
-from math import pi
+from typing import TYPE_CHECKING
 
-from numpy import (absolute, arctan, divide, logical_not, multiply, ndarray,
-                   ones, reciprocal, seterr, square, zeros)
-
+from numpy import (absolute, arctan, divide, logical_not, multiply, ones, pi,
+                   reciprocal, square, zeros)
 from pygeom.geom3d import Vector
 
 from .dirichletpoly import phi_doublet_array, vel_doublet_array
 
-seterr(divide='ignore')
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
 
 tol = 1e-12
 piby2 = pi/2
 fourPi = 4*pi
 twoPi = 2*pi
+
 
 class HorseshoeDoublet():
     grda: Vector = None
@@ -93,11 +95,11 @@ class HorseshoeDoublet():
         agcs = self.relative_mach(pnts, self.grda, betx=betx, bety=bety, betz=betz)
         bgcs = self.relative_mach(pnts, self.grdb, betx=betx, bety=bety, betz=betz)
         locz = agcs.dot(self.nrm)
-        sgnz = ones(locz.shape, dtype=float)
+        sgnz = ones(locz.shape)
         sgnz[locz <= 0.0] = -1.0
-        phid = zeros(pnts.shape, dtype=float)
+        phid = zeros(pnts.shape)
         if incvel:
-            veld = Vector.zeros(pnts.shape, dtype=float)
+            veld = Vector.zeros(pnts.shape)
         # Vector A in Local Coordinate System
         alcs = Vector(agcs.dot(dirxab), agcs.dot(diryab), agcs.dot(dirzab))
         if checktol:
@@ -188,11 +190,11 @@ class HorseshoeDoublet():
         dirza = self.nrm
         dirya = dirza.cross(dirxa)
         alcs = Vector(agcs.dot(dirxa), agcs.dot(dirya), agcs.dot(dirza))
-        alcs.x = zeros(alcs.shape, dtype=float)
+        alcs.x = zeros(alcs.shape)
         axx = Vector(alcs.x, -alcs.z, alcs.y)
         am2 = square(alcs.y) + square(alcs.z)
         chkam2 = absolute(am2) < tol
-        am2r = zeros(pnts.shape, dtype=float)
+        am2r = zeros(pnts.shape)
         reciprocal(am2, where=logical_not(chkam2), out=am2r)
         faca = -1.0
         veldl = axx*am2r*faca
@@ -209,11 +211,11 @@ class HorseshoeDoublet():
         dirzb = self.nrm
         diryb = dirzb.cross(dirxb)
         blcs = Vector(bgcs.dot(dirxb), bgcs.dot(diryb), bgcs.dot(dirzb))
-        blcs.x = zeros(blcs.shape, dtype=float)
+        blcs.x = zeros(blcs.shape)
         bxx = Vector(blcs.x, -blcs.z, blcs.y)
         bm2 = square(blcs.y) + square(blcs.z)
         chkbm2 = absolute(bm2) < tol
-        bm2r = zeros(pnts.shape, dtype=float)
+        bm2r = zeros(pnts.shape)
         reciprocal(bm2, where=logical_not(chkbm2), out=bm2r)
         facb = 1.0
         veldl = bxx*bm2r*facb
@@ -235,7 +237,7 @@ def vel_trailing_doublet_array(ov, om, faco):
     chko = absolute(oxxm) < tol
     den = multiply(om, om-ov.x)
     chkd = absolute(den) < tol
-    denr = zeros(ov.shape, dtype=float)
+    denr = zeros(ov.shape)
     reciprocal(den, where=logical_not(chkd), out=denr)
     velol = oxx*denr
     velol.x[chko] = 0.0
@@ -243,13 +245,13 @@ def vel_trailing_doublet_array(ov, om, faco):
     velol.z[chko] = 0.0
     return velol
 
-def phi_trailing_doublet_array(rls: Vector, sgnz: ndarray):
-    ths = zeros(rls.shape, dtype=float)
+def phi_trailing_doublet_array(rls: Vector, sgnz: 'NDArray'):
+    ths = zeros(rls.shape)
     chky = absolute(rls.y) < tol
     ths[rls.y > 0.0] = piby2
     ths[rls.y < 0.0] = -piby2
     ths[chky] = -piby2
-    gs = zeros(rls.shape, dtype=float)
+    gs = zeros(rls.shape)
     divide(rls.z, rls.y, where=logical_not(chky), out=gs)
     Js = arctan(gs)
     Js[rls.y == 0.0] = -piby2
