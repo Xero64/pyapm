@@ -24,6 +24,7 @@ if TYPE_CHECKING:
     from .panelresult import PanelResult
     from .panelstrip import PanelStrip
     from .panelsurface import PanelSurface
+    from .paneltrim import PanelTrim
 
 
 class PanelSystem():
@@ -36,7 +37,7 @@ class PanelSystem():
     rref: Vector = None
     ctrls: dict[str, tuple[int]] = None
     srfcs: list['PanelSurface'] = None
-    results: dict[str, 'PanelResult'] = None
+    results: dict[str, 'PanelResult | PanelTrim'] = None
     masses = None
     source: str = None
     _hsvs: list['HorseshoeDoublet'] = None
@@ -216,63 +217,63 @@ class PanelSystem():
                     self._phind[pind] = [i]
         return self._phind
 
-    def bps(self, mach: float=0.0) -> Vector:
+    def bps(self, mach: float = 0.0) -> Vector:
         if self._bps is None:
             self._bps = {}
         if mach not in self._bps:
             self._bps[mach] = self.unsig(mach).rmatmul(-self.aps(mach))
         return self._bps[mach]
 
-    def bnm(self, mach: float=0.0) -> Vector:
+    def bnm(self, mach: float = 0.0) -> Vector:
         if self._bnm is None:
             self._bnm = {}
         if mach not in self._bnm:
             self._bnm[mach] = -self.nrms - self.unsig(mach).rmatmul(self.ans(mach))
         return self._bnm[mach]
 
-    def apd(self, mach: float=0.0) -> 'NDArray':
+    def apd(self, mach: float = 0.0) -> 'NDArray':
         if self._apd is None:
             self._apd = {}
         if mach not in self._apd:
             self.assemble_panels(False, mach=mach)
         return self._apd[mach]
 
-    def avd(self, mach: float=0.0) -> 'NDArray':
+    def avd(self, mach: float = 0.0) -> 'NDArray':
         if self._avd is None:
             self._avd = {}
         if mach not in self._avd:
             self.assemble_panels_full(False, mach=mach)
         return self._avd[mach]
 
-    def aps(self, mach: float=0.0) -> 'NDArray':
+    def aps(self, mach: float = 0.0) -> 'NDArray':
         if self._aps is None:
             self._aps = {}
         if mach not in self._aps:
             self.assemble_panels(False, mach=mach)
         return self._aps[mach]
 
-    def avs(self, mach: float=0.0) -> 'NDArray':
+    def avs(self, mach: float = 0.0) -> 'NDArray':
         if self._avs is None:
             self._avs = {}
         if mach not in self._avs:
             self.assemble_panels_full(False, mach=mach)
         return self._avs[mach]
 
-    def aph(self, mach: float=0.0) -> 'NDArray':
+    def aph(self, mach: float = 0.0) -> 'NDArray':
         if self._aph is None:
             self._aph = {}
         if mach not in self._aph:
             self.assemble_horseshoes(False, mach=mach)
         return self._aph[mach]
 
-    def avh(self, mach: float=0.0) -> 'NDArray':
+    def avh(self, mach: float = 0.0) -> 'NDArray':
         if self._avh is None:
             self._avh = {}
         if mach not in self._avh:
             self.assemble_horseshoes_full(False, mach=mach)
         return self._avh[mach]
 
-    def apm(self, mach: float=0.0) -> 'NDArray':
+    def apm(self, mach: float = 0.0) -> 'NDArray':
         if self._apm is None:
             self._apm = {}
         if mach not in self._apm:
@@ -284,7 +285,7 @@ class PanelSystem():
             self._apm[mach] = apm
         return self._apm[mach]
 
-    def avm(self, mach: float=0.0) -> 'NDArray':
+    def avm(self, mach: float = 0.0) -> 'NDArray':
         if self._avm is None:
             self._avm = {}
         if self._avm is None:
@@ -296,7 +297,7 @@ class PanelSystem():
             self._avm[mach] = avm
         return self._avm[mach]
 
-    def ans(self, mach: float=0.0) -> 'NDArray':
+    def ans(self, mach: float = 0.0) -> 'NDArray':
         if self._ans is None:
             self._ans = {}
         if mach not in self._ans:
@@ -304,7 +305,7 @@ class PanelSystem():
             self._ans[mach] = nrms.dot(self.avs(mach))
         return self._ans[mach]
 
-    def anm(self, mach: float=0.0) -> 'NDArray':
+    def anm(self, mach: float = 0.0) -> 'NDArray':
         if self._anm is None:
             self._anm = {}
         if mach not in self._anm:
@@ -412,7 +413,7 @@ class PanelSystem():
                 self._alh[i] = hsv.vecab.y
         return self._alh
 
-    def unsig(self, mach: float=0.0) -> Vector:
+    def unsig(self, mach: float = 0.0) -> Vector:
         if self._unsig is None:
             self._unsig = {}
         if mach not in self._unsig:
@@ -437,14 +438,14 @@ class PanelSystem():
             self._unsig[mach] = unsig
         return self._unsig[mach]
 
-    def unmu(self, mach: float=0.0) -> Vector:
+    def unmu(self, mach: float = 0.0) -> Vector:
         if self._unmu is None:
             self._unmu = {}
         if mach not in self._unmu:
             self.solve_dirichlet_system(time=False, mach=mach)
         return self._unmu[mach]
 
-    def unphi(self, mach: float=0.0) -> Vector:
+    def unphi(self, mach: float = 0.0) -> Vector:
         if self._unphi is None:
             self._unphi = {}
         if mach not in self._unphi:
@@ -472,7 +473,7 @@ class PanelSystem():
             elapsed = finish - start
             print(f'Panel assembly time is {elapsed:.3f} seconds.')
 
-    def assemble_panels_full(self, time: bool=True, mach: float=0.0) -> None:
+    def assemble_panels_full(self, time: bool=True, mach: float = 0.0) -> None:
         if time:
             start = perf_counter()
         shp = (self.numpnl, self.numpnl)
@@ -501,7 +502,7 @@ class PanelSystem():
             elapsed = finish - start
             print(f'Full panel assembly time is {elapsed:.3f} seconds.')
 
-    def assemble_horseshoes(self, time: bool=True, mach: float=0.0) -> None:
+    def assemble_horseshoes(self, time: bool=True, mach: float = 0.0) -> None:
         if time:
             start = perf_counter()
         shp = (self.numpnl, self.numhsv)
@@ -517,7 +518,7 @@ class PanelSystem():
             elapsed = finish - start
             print(f'Horse shoe assembly time is {elapsed:.3f} seconds.')
 
-    def assemble_horseshoes_full(self, time: bool=True, mach: float=0.0):
+    def assemble_horseshoes_full(self, time: bool=True, mach: float = 0.0):
         if time:
             start = perf_counter()
         shp = (self.numpnl, self.numpnl)
@@ -537,7 +538,7 @@ class PanelSystem():
             elapsed = finish - start
             print(f'Full horse shoe assembly time is {elapsed:.3f} seconds.')
 
-    def solve_system(self, time: bool=True, mach: float=0.0) -> None:
+    def solve_system(self, time: bool=True, mach: float = 0.0) -> None:
         if time:
             start = perf_counter()
         self.solve_dirichlet_system(time=False, mach=mach)
@@ -546,7 +547,7 @@ class PanelSystem():
             elapsed = finish - start
             print(f'System solution time is {elapsed:.3f} seconds.')
 
-    def solve_dirichlet_system(self, time: bool=True, mach: float=0.0) -> None:
+    def solve_dirichlet_system(self, time: bool=True, mach: float = 0.0) -> None:
         if time:
             start = perf_counter()
         if self._unmu is None:
@@ -560,7 +561,7 @@ class PanelSystem():
             elapsed = finish - start
             print(f'System solution time is {elapsed:.3f} seconds.')
 
-    def solve_neumann_system(self, time: bool=True, mach: float=0.0) -> None:
+    def solve_neumann_system(self, time: bool=True, mach: float = 0.0) -> None:
         if time:
             start = perf_counter()
         if self._unmu is None:

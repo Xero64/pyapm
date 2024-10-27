@@ -120,6 +120,16 @@ class PanelResult():
         return self._acs
 
     @property
+    def scs(self) -> Coordinate:
+        if self._scs is None:
+            pnt = self.sys.rref
+            cosal, sinal = trig_angle(self.alpha)
+            dirx = Vector(-cosal, 0.0, -sinal)
+            diry = Vector(0.0, 1.0, 0.0)
+            self._scs = Coordinate(pnt, dirx, diry)
+        return self._scs
+
+    @property
     def wcs(self):
         if self._wcs is None:
             pnt = self.sys.rref
