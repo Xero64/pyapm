@@ -77,6 +77,9 @@ class PanelSystem():
     _area: float = None
     _strps: list['PanelStrip'] = None
     _phind: dict[int, list[int]] = None
+    _pnldirx: Vector = None
+    _pnldiry: Vector = None
+    _pnldirz: Vector = None
 
     def __init__(self, name: str, bref: float, cref: float,
                  sref: float, rref: Vector) -> None:
@@ -216,6 +219,30 @@ class PanelSystem():
                 else:
                     self._phind[pind] = [i]
         return self._phind
+
+    @property
+    def pnldirx(self) -> Vector:
+        if self._pnldirx is None:
+            self._pnldirx = Vector.zeros(self.numpnl)
+            for pnl in self.pnls.values():
+                self._pnldirx[pnl.ind] = pnl.crd.dirx
+        return self._pnldirx
+
+    @property
+    def pnldiry(self) -> Vector:
+        if self._pnldiry is None:
+            self._pnldiry = Vector.zeros(self.numpnl)
+            for pnl in self.pnls.values():
+                self._pnldiry[pnl.ind] = pnl.crd.diry
+        return self._pnldiry
+
+    @property
+    def pnldirz(self) -> Vector:
+        if self._pnldirz is None:
+            self._pnldirz = Vector.zeros(self.numpnl)
+            for pnl in self.pnls.values():
+                self._pnldirz[pnl.ind] = pnl.crd.dirz
+        return self._pnldirz
 
     def bps(self, mach: float = 0.0) -> Vector:
         if self._bps is None:
@@ -417,7 +444,7 @@ class PanelSystem():
         if self._unsig is None:
             self._unsig = {}
         if mach not in self._unsig:
-            unsig = Vector.zeros((self.numpnl, 2+4*self.numctrl))
+            unsig = Vector.zeros((self.numpnl, 2 + 4*self.numctrl))
             unsig[:, 0] = -self.nrms
             unsig[:, 1] = self.rrel.cross(self.nrms)
             if self.srfcs is not None:

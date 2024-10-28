@@ -1,29 +1,35 @@
+from typing import TYPE_CHECKING, Any
+
 from pygeom.geom3d import Vector
+
+if TYPE_CHECKING:
+    from pyapm.classes.panel import Panel
 
 
 class PanelControl():
-    name = None
-    posgain = None
-    neggain = None
-    xhinge = None
-    uhvec = None
-    reverse = None
-    pnls = None
+    name: str = None
+    posgain: float = None
+    neggain: float = None
+    xhinge: float = None
+    uhvec: Vector = None
+    reverse: bool = None
+    pnls: list['Panel'] = None
 
-    def __init__(self, name: str, posgain: float, neggain: float, xhinge: float):
+    def __init__(self, name: str, posgain: float, neggain: float,
+                 xhinge: float) -> None:
         self.name = name
         self.posgain = posgain
         self.neggain = neggain
         self.xhinge = xhinge
         self.pnls = []
 
-    def set_hinge_vector(self, hvec: Vector):
+    def set_hinge_vector(self, hvec: Vector) -> None:
         if hvec.return_magnitude() != 0.0:
             self.uhvec = hvec.to_unit()
         else:
             self.uhvec = hvec
 
-    def duplicate(self, mirror=True):
+    def duplicate(self, mirror: bool = True) -> 'PanelControl':
         if mirror and self.reverse:
             posgain, neggain = -self.neggain, -self.posgain
         else:
@@ -37,34 +43,23 @@ class PanelControl():
         ctrl.set_hinge_vector(uhvec)
         return ctrl
 
-    def add_panel(self, pnl):
+    def add_panel(self, pnl: 'Panel') -> None:
         self.pnls.append(pnl)
 
-def panelcontrol_from_dict(name: str, controldata: dict):
-    xhinge = controldata['xhinge']
-    posgain = 1.0
-    if 'posgain' in controldata:
-        posgain = controldata['posgain']
-    neggain = 1.0
-    if 'neggain' in controldata:
-        neggain = controldata['neggain']
-    ctrl = PanelControl(name, posgain, neggain, xhinge)
-    hvec = Vector(0.0, 0.0, 0.0)
-    if 'hvec' in controldata:
-        hvec = vector_from_dict(controldata['hvec'])
-    ctrl.set_hinge_vector(hvec)
-    reverse = False
-    if 'reverse' in controldata:
-        reverse = controldata['reverse']
-    ctrl.reverse = reverse
-    return ctrl
+    @classmethod
+    def from_dict(cls, name: str, control_dict: dict[str, Any]) -> 'PanelControl':
+        xhinge = control_dict['xhinge']
+        posgain = control_dict.get('posgain', 1.0)
+        neggain = control_dict.get('neggain', 1.0)
+        ctrl = cls(name, posgain, neggain, xhinge)
+        hvec_dict = control_dict.get('hvec', {'x': 0.0, 'y': 0.0, 'z': 0.0})
+        hvec = Vector.fromdict(hvec_dict)
+        ctrl.set_hinge_vector(hvec)
+        ctrl.reverse = control_dict.get('reverse', False)
+        return ctrl
 
-def vector_from_dict(vectordata):
-    x, y, z = None, None, None
-    if 'x' in vectordata:
-        x = vectordata['x']
-    if 'y' in vectordata:
-        y = vectordata['y']
-    if 'z' in vectordata:
-        z = vectordata['z']
-    return Vector(x, y, z)
+    def __repr__(self):
+        return f'PanelControl({self.name})'
+
+    def __str__(self):
+        return f'PanelControl({self.name})'

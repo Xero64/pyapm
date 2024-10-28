@@ -5,7 +5,7 @@ from ..tools.airfoil import airfoil_from_dat
 from ..tools.naca4 import NACA4
 from .grid import Grid
 from .panel import Panel
-from .panelcontrol import PanelControl, panelcontrol_from_dict
+from .panelcontrol import PanelControl
 from .panelprofile import PanelProfile
 
 tol = 1e-12
@@ -249,6 +249,6 @@ def panelsection_from_json(sectdata: dict) -> PanelSection:
             # sect.nohsv = True
     if 'controls' in sectdata:
         for name in sectdata['controls']:
-            ctrl = panelcontrol_from_dict(name, sectdata['controls'][name])
+            ctrl = PanelControl.from_dict(name, sectdata['controls'][name])
             sect.add_control(ctrl)
     return sect
