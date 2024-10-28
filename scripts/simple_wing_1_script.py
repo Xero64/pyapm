@@ -1,7 +1,7 @@
 #%%
 # Import Dependencies
 from numpy import zeros
-from pyfoil.airfoil import naca_to_xyt
+from pyapm.tools.naca4 import NACA4
 from pygeom.geom3d import Vector
 from pygeom.tools.spacing import full_cosine_spacing
 
@@ -11,10 +11,11 @@ from pyapm.outputs.msh import panelresult_to_msh
 #%%
 # Create Grids
 xznum = 20
-x, z, _ = naca_to_xyt('0012', num=xznum)
+naca4 = NACA4('0012', cnum = xznum)
+x, z = naca4.x, naca4.y
 
 ynum = 30
-cdst = full_cosine_spacing(ynum-1)
+cdst = full_cosine_spacing(ynum - 1)
 
 ymin = -3.0
 ymax = 3.0
