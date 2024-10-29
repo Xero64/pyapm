@@ -42,7 +42,7 @@ class Poly():
     @property
     def nrm(self):
         if self._nrm is None:
-            edgnrml = Vector.fromiter([edg.dirz for edg in self.edgs])
+            edgnrml = Vector.from_iter([edg.dirz for edg in self.edgs])
             self._nrm = (edgnrml.sum()/self.num).to_unit()
         return self._nrm
 

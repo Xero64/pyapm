@@ -53,7 +53,7 @@ class PanelControl():
         neggain = control_dict.get('neggain', 1.0)
         ctrl = cls(name, posgain, neggain, xhinge)
         hvec_dict = control_dict.get('hvec', {'x': 0.0, 'y': 0.0, 'z': 0.0})
-        hvec = Vector.fromdict(hvec_dict)
+        hvec = Vector.from_dict(hvec_dict)
         ctrl.set_hinge_vector(hvec)
         ctrl.reverse = control_dict.get('reverse', False)
         return ctrl

@@ -248,14 +248,14 @@ class PanelSystem():
         if self._bps is None:
             self._bps = {}
         if mach not in self._bps:
-            self._bps[mach] = self.unsig(mach).rmatmul(-self.aps(mach))
+            self._bps[mach] = -self.aps(mach)@self.unsig(mach)
         return self._bps[mach]
 
     def bnm(self, mach: float = 0.0) -> Vector:
         if self._bnm is None:
             self._bnm = {}
         if mach not in self._bnm:
-            self._bnm[mach] = -self.nrms - self.unsig(mach).rmatmul(self.ans(mach))
+            self._bnm[mach] = -self.nrms - self.ans(mach)@self.unsig(mach)
         return self._bnm[mach]
 
     def apd(self, mach: float = 0.0) -> 'NDArray':
@@ -582,7 +582,7 @@ class PanelSystem():
         self._unmu[mach] = self.bps(mach).solve(self.apm(mach))
         if self._unphi is None:
             self._unphi = {}
-        self._unphi[mach] = self.unmu(mach).rmatmul(self.apm(mach)) + self.bps(mach)
+        self._unphi[mach] = self.apm(mach)@self.unmu(mach) + self.bps(mach)
         if time:
             finish = perf_counter()
             elapsed = finish - start
@@ -596,7 +596,7 @@ class PanelSystem():
         self._unmu[mach] = self.bnm(mach).solve(self.anm(mach))
         if self._unnvg is None:
             self._unnvg = {}
-        self._unnvg[mach] = self.unmu(mach).rmatmul(self.anm(mach)) + self.bnm(mach)
+        self._unnvg[mach] = self.anm(mach)@self.unmu(mach) + self.bnm(mach)
         if time:
             finish = perf_counter()
             elapsed = finish - start
