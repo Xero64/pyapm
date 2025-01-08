@@ -1,7 +1,7 @@
 from numpy import absolute, cos, radians
 from pygeom.geom3d import Vector
 
-from ..tools.airfoil import airfoil_from_dat
+from ..tools.airfoil import airfoil_from_dat, Airfoil
 from ..tools.naca4 import NACA4
 from .grid import Grid
 from .panel import Panel
@@ -11,7 +11,7 @@ from .panelprofile import PanelProfile
 tol = 1e-12
 
 class PanelSection(PanelProfile):
-    airfoil: object = None
+    airfoil: Airfoil = None
     bnum: int = None
     bspc: str = None
     mirror: bool = None

@@ -220,7 +220,7 @@ def panelsurface_from_json(surfdata: dict, display: bool=False):
         cnum = surfdata['cnum']
     if display: print(f'Loading Surface: {name:s}')
     # Read Section Variables
-    sects = []
+    sects: list[PanelSection] = []
     for sectdata in surfdata['sections']:
         sect = panelsection_from_json(sectdata)
         sects.append(sect)
@@ -244,7 +244,7 @@ def panelsurface_from_json(surfdata: dict, display: bool=False):
     lensects = len(sects)
     b = [0.0]
     for i in range(lensects-1):
-        bi = b[i]+sqrt((y[i+1]-y[i])**2+(z[i+1]-z[i])**2)
+        bi = b[i] + sqrt((y[i+1] - y[i])**2 + (z[i+1] - z[i])**2)
         b.append(bi)
     x = linear_interpolate_none(b, x)
     c = linear_interpolate_none(b, c)
