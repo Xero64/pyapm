@@ -16,8 +16,8 @@ class PanelProfile():
     _crdsys: Coordinate = None
     bval: float = None
     bpos: float = None
-    scta: 'PanelSection' = None
-    sctb: 'PanelSection' = None
+    sct1: 'PanelSection' = None
+    sct2: 'PanelSection' = None
     grds: list[Grid] = None
     nohsv: bool = None
 
@@ -30,8 +30,8 @@ class PanelProfile():
         self._tilt = tilt
 
     def set_ruled_twist(self) -> None:
-        shpa = self.scta.get_shape()
-        shpb = self.sctb.get_shape()
+        shpa = self.sct1.get_shape()
+        shpb = self.sct2.get_shape()
         shapedir = shpb - shpa
         shp = shpa + self.bval*shapedir
         n = shp.shape[1]
@@ -44,7 +44,7 @@ class PanelProfile():
     @property
     def tilt(self) -> float:
         if self._tilt is None:
-            self._tilt = self.sctb.tilt + self.bval*(self.sctb.tilt - self.scta.tilt)
+            self._tilt = self.sct2.tilt + self.bval*(self.sct2.tilt - self.sct1.tilt)
         return self._tilt
 
     @property
@@ -62,8 +62,8 @@ class PanelProfile():
         return self._crdsys
 
     def get_profile(self, offset: bool=True) -> Vector:
-        prfa = self.scta.get_profile(offset=offset)
-        prfb = self.sctb.get_profile(offset=offset)
+        prfa = self.sct1.get_profile(offset=offset)
+        prfb = self.sct2.get_profile(offset=offset)
         profiledir = prfb - prfa
         return prfa + self.bval*profiledir
 

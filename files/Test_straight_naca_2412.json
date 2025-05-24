@@ -35,7 +35,7 @@
                     "twist": null,
                     "bnum": 40,
                     "bspc": "semi-cosine",
-                    "airfoil": null,
+                    "airfoil": "NACA 2412",
                     "xoc": 0.25
                 },
                 {

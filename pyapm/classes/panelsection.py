@@ -1,5 +1,8 @@
+from typing import Any
 from numpy import absolute, cos, radians
 from pygeom.geom3d import Vector
+from pygeom.tools.spacing import (equal_spacing, full_cosine_spacing,
+                                  semi_cosine_spacing)
 
 from ..tools.airfoil import airfoil_from_dat, Airfoil
 from ..tools.naca4 import NACA4
@@ -29,28 +32,29 @@ class PanelSection(PanelProfile):
     _thkcor: float = None
     _scttyp: str = None
 
-    def __init__(self, point: Vector, chord: float, twist: float, airfoil: object):
+    def __init__(self, point: Vector, chord: float, twist: float):
         super().__init__(point, chord, twist)
         self.point = point
         self.chord = chord
         self.twist = twist
-        self.airfoil = airfoil
-        self.mirror = False
-        self.bnum = 1
-        self.bspc = 'equal'
+        self.update()
+
+    def update(self) -> None:
         self.noload = False
+        self.mirror = False
+        self.airfoil = NACA4('0012')
         self.nomesh = False
         self.nohsv = False
-        self.xoc = 0.0
-        self.zoc = 0.0
         self.ctrls = {}
+        self.cdo = 0.0
 
     def mirror_section_in_y(self, ymir: float=0.0):
         point = Vector(self.point.x, ymir-self.point.y, self.point.z)
         chord = self.chord
         twist = self.twist
         airfoil = self.airfoil
-        sect = PanelSection(point, chord, twist, airfoil)
+        sect = PanelSection(point, chord, twist)
+        sect.airfoil = airfoil
         sect.mirror = True
         sect.bnum = self.bnum
         sect.bspc = self.bspc
@@ -77,6 +81,34 @@ class PanelSection(PanelProfile):
 
     def offset_twist(self, twist: float):
         self.twist = self.twist + twist
+
+    def set_span_equal_spacing(self, bnum: int) -> None:
+        self.bnum = bnum
+        self.bspc = 'equal'
+
+    def set_span_cosine_spacing(self, bnum: int) -> None:
+        self.bnum = bnum
+        self.bspc = 'full-cosine'
+
+    def set_span_semi_cosine_spacing(self, bnum: int) -> None:
+        self.bnum = bnum
+        self.bspc = 'semi-cosine'
+
+    def set_airfoil(self, airfoil: str | None) -> None:
+        if airfoil is None:
+            self.airfoil = NACA4('0012')
+        elif airfoil[-4:].lower() == '.dat':
+            self.airfoil = airfoil_from_dat(airfoil)
+        elif airfoil[0:4].lower() == 'naca':
+            code = airfoil[4:].strip()
+            if len(code) == 4:
+                self.airfoil = NACA4(code)
+
+    def set_noload(self, noload: bool) -> None:
+        self.noload = noload
+
+    def set_cdo(self, cdo: float) -> None:
+        self.cdo = cdo
 
     def add_control(self, ctrl: PanelControl):
         self.ctrls[ctrl.name] = ctrl
@@ -206,40 +238,36 @@ class PanelSection(PanelProfile):
     def __repr__(self):
         return f'<pyapm.PanelSection at {self.point:}>'
 
-def panelsection_from_json(sectdata: dict) -> PanelSection:
-    xpos = sectdata['xpos']
-    ypos = sectdata['ypos']
-    zpos = sectdata['zpos']
+def panelsection_from_json(sectdata: dict[str, Any],
+                           defaults: dict[str, Any]) -> PanelSection:
+    """Create a LatticeSection object from a dictionary."""
+    xpos = sectdata.get('xpos', None)
+    ypos = sectdata.get('ypos', None)
+    zpos = sectdata.get('zpos', None)
     point = Vector(xpos, ypos, zpos)
-    chord = sectdata['chord']
-    airfoilstr = sectdata['airfoil']
-    if airfoilstr is not None:
-        if airfoilstr[-4:] == '.dat':
-            airfoil = airfoil_from_dat(airfoilstr)
-        elif airfoilstr[0:4].upper() == 'NACA':
-            code = airfoilstr[4:].strip()
-            if len(code) == 4:
-                airfoil = NACA4(code)
-        else:
-            raise ValueError(f'Airfoil identified by {airfoilstr:s} does not exist.')
-    else:
-        airfoil = None
-    twist = 0.0
-    if 'twist' in sectdata:
-        twist = sectdata['twist']
-    sect = PanelSection(point, chord, twist, airfoil)
-    if 'bnum' in sectdata:
-        sect.bnum = sectdata['bnum']
-    if 'bspc' in sectdata:
-        sect.bspc = sectdata['bspc']
+    chord = sectdata.get('chord', defaults.get('chord', None))
+    twist = sectdata.get('twist', defaults.get('twist', None))
+    airfoil = sectdata.get('airfoil', defaults.get('airfoil', None))
+    cdo = sectdata.get('cdo', defaults.get('cdo', 0.0))
+    noload = sectdata.get('noload', defaults.get('noload', False))
+    sect = PanelSection(point, chord, twist)
+    sect.bpos = sectdata.get('bpos', None)
+    sect.xoc = sectdata.get('xoc', defaults.get('xoc', None))
+    sect.zoc = sectdata.get('zoc', defaults.get('zoc', None))
+    sect.set_cdo(cdo)
+    sect.set_noload(noload)
+    sect.set_airfoil(airfoil)
+    if 'bnum' in sectdata and 'bspc' in sectdata:
+        bnum = sectdata['bnum']
+        bspc = sectdata['bspc']
+        if bspc == 'equal':
+            sect.set_span_equal_spacing(bnum)
+        elif bspc in ('full-cosine', 'cosine'):
+            sect.set_span_cosine_spacing(bnum)
+        elif bspc == 'semi-cosine':
+            sect.set_span_semi_cosine_spacing(bnum)
     if 'tilt' in sectdata:
         sect.set_tilt(sectdata['tilt'])
-    if 'xoc' in sectdata:
-        sect.xoc = sectdata['xoc']
-    if 'zoc' in sectdata:
-        sect.zoc = sectdata['zoc']
-    if 'noload' in sectdata:
-        sect.noload = sectdata['noload']
     if 'nohsv' in sectdata:
         sect.nohsv = sectdata['nohsv']
     if 'nomesh' in sectdata:

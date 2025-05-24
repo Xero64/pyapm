@@ -8,19 +8,19 @@ from pygeom.tools.spacing import (equal_spacing, full_cosine_spacing,
 from .grid import Grid
 from .panel import Panel
 from .panelcontrol import PanelControl
-from .panelfunction import PanelFunction
+# from .panelfunction import PanelFunction
 from .panelprofile import PanelProfile
 from .panelsection import PanelSection
 from .panelstrip import PanelStrip
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+    from .panelsurface import SurfaceFunction
 
 
 class PanelSheet():
-    scta: PanelSection = None
-    sctb: PanelSection = None
-    fncs: dict[str, PanelFunction] = None
+    sct1: PanelSection = None
+    sct2: PanelSection = None
     _ruled: bool = None
     _noload: bool = None
     _nomesh: bool = None
@@ -36,81 +36,82 @@ class PanelSheet():
     grds: list[Grid] = None
     pnls: list[Panel] = None
     _ctrls: dict[str, PanelControl] = None
+    fncs: dict[str, 'SurfaceFunction'] = None
 
-    def __init__(self, scta: PanelSection, sctb: PanelSection):
-        self.scta = scta
-        self.scta.shtb = self
-        self.sctb = sctb
-        self.sctb.shta = self
+    def __init__(self, sct1: PanelSection, sct2: PanelSection) -> None:
+        self.sct1 = sct1
+        self.sct1.shtb = self
+        self.sct2 = sct2
+        self.sct2.shta = self
         self.fncs = {}
 
     @property
     def mirror(self) -> bool:
         if self._mirror is None:
-            self._mirror = self.scta.mirror
+            self._mirror = self.sct1.mirror
         return self._mirror
 
     @property
     def ruled(self) -> bool:
         if self._ruled is None:
             if self.mirror:
-                self._ruled = self.sctb.ruled
+                self._ruled = self.sct2.ruled
             else:
-                self._ruled = self.scta.ruled
+                self._ruled = self.sct1.ruled
         return self._ruled
 
     @property
     def noload(self) -> bool:
         if self._noload is None:
             if self.mirror:
-                self._noload = self.sctb.noload
+                self._noload = self.sct2.noload
             else:
-                self._noload = self.scta.noload
+                self._noload = self.sct1.noload
         return self._noload
 
     @property
     def nomesh(self) -> bool:
         if self._nomesh is None:
             if self.mirror:
-                self._nomesh = self.sctb.nomesh
+                self._nomesh = self.sct2.nomesh
             else:
-                self._nomesh = self.scta.nomesh
+                self._nomesh = self.sct1.nomesh
         return self._nomesh
 
     @property
     def nohsv(self) -> bool:
         if self._nohsv is None:
             if self.mirror:
-                self._nohsv = self.sctb.nohsv
+                self._nohsv = self.sct2.nohsv
             else:
-                self._nohsv = self.scta.nohsv
+                self._nohsv = self.sct1.nohsv
         return self._nohsv
 
     @property
     def ctrls(self):
         if self._ctrls is None:
             self._ctrls = {}
-            scta = self.scta
-            sctb = self.sctb
+            sct1 = self.sct1
+            sct2 = self.sct2
             if self.mirror:
-                for control in sctb.ctrls:
-                    ctrl = sctb.ctrls[control]
+                for control in sct2.ctrls:
+                    ctrl = sct2.ctrls[control]
                     newctrl = ctrl.duplicate(mirror=True)
                     self._ctrls[control] = newctrl
             else:
-                for control in scta.ctrls:
-                    ctrl = scta.ctrls[control]
+                for control in sct1.ctrls:
+                    ctrl = sct1.ctrls[control]
                     newctrl = ctrl.duplicate(mirror=False)
                     self._ctrls[control] = newctrl
             for control in self.ctrls:
                 ctrl = self._ctrls[control]
                 if ctrl.uhvec.return_magnitude() == 0.0:
-                    pntal = Vector((ctrl.xhinge - scta.xoc)*scta.chord,
-                                   0.0, -scta.zoc*scta.chord)
-                    pnta = scta.point + scta.crdsys.vector_to_global(pntal)
-                    pntbl = Vector((ctrl.xhinge-sctb.xoc)*sctb.chord,
-                                   0.0, -sctb.zoc*sctb.chord)
-                    pntb = sctb.point + sctb.crdsys.vector_to_global(pntbl)
+                    pntal = Vector((ctrl.xhinge - sct1.xoc)*sct1.chord,
+                                   0.0, -sct1.zoc*sct1.chord)
+                    pnta = sct1.point + sct1.crdsys.vector_to_global(pntal)
+                    pntbl = Vector((ctrl.xhinge-sct2.xoc)*sct2.chord,
+                                   0.0, -sct2.zoc*sct2.chord)
+                    pntb = sct2.point + sct2.crdsys.vector_to_global(pntbl)
                     hvec = pntb - pnta
                     ctrl.set_hinge_vector(hvec)
         return self._ctrls
@@ -119,18 +120,18 @@ class PanelSheet():
     def bnum(self) -> int:
         if self._bnum is None:
             if self.mirror:
-                self._bnum = self.sctb.bnum
+                self._bnum = self.sct2.bnum
             else:
-                self._bnum = self.scta.bnum
+                self._bnum = self.sct1.bnum
         return self._bnum
 
     @property
     def bspc(self) -> int:
         if self._bspc is None:
             if self.mirror:
-                self._bspc = self.sctb.bspc
+                self._bspc = self.sct2.bspc
             else:
-                self._bspc = self.scta.bspc
+                self._bspc = self.sct1.bspc
         return self._bspc
 
     @property
@@ -145,7 +146,7 @@ class PanelSheet():
             elif self.bspc == 'cosine':
                 bdst = full_cosine_spacing(self.bnum)
             if self.mirror:
-                self._bdst = [1.0-bd for bd in bdst]
+                self._bdst = [1.0 - bd for bd in bdst]
                 self._bdst.reverse()
             else:
                 self._bdst = bdst
@@ -156,33 +157,35 @@ class PanelSheet():
         if self._prfs is None:
             self._prfs = []
             if not self.nomesh:
-                bmin = min(self.scta.bval, self.sctb.bval)
-                bmax = max(self.scta.bval, self.sctb.bval)
-                brng = bmax-bmin
-                pointdir = self.sctb.point-self.scta.point
+                bmin = min(self.sct1.bval, self.sct2.bval)
+                bmax = max(self.sct1.bval, self.sct2.bval)
+                brng = bmax - bmin
+                pointdir = self.sct2.point - self.sct1.point
                 for bd in self.bdst[1:-1]:
                     if self.mirror:
-                        bint = bmax-bd*brng
+                        bint = bmax - bd*brng
                     else:
-                        bint = bmin+bd*brng
-                    point = self.scta.point + bd*pointdir
+                        bint = bmin + bd*brng
+                    point = self.sct1.point + bd*pointdir
+
                     if 'chord' in self.fncs:
-                        chord = self.fncs['chord'].interpolate(bint)
+                        chord = self.fncs['chord'](bint)
                     else:
-                        chord = self.scta.chord*(1.0-bd)+self.sctb.chord*bd
+                        chord = self.sct1.chord*(1.0 - bd) + self.sct2.chord*bd
                     if 'twist' in self.fncs:
-                        twist = self.fncs['twist'].interpolate(bint)
+                        twist = self.fncs['twist'](bint)
                     else:
-                        twist = self.scta.twist*(1.0-bd)+self.sctb.twist*bd
+                        twist = self.sct1.twist*(1.0 - bd) + self.sct2.twist*bd
                     if 'tilt' in self.fncs:
-                        tilt = self.fncs['tilt'].interpolate(bint)
+                        tilt = self.fncs['tilt'](bint)
                     else:
-                        tilt = self.scta.tilt*(1.0-bd)+self.sctb.tilt*bd
-                    bpos = self.scta.bpos*(1.0-bd)+self.sctb.bpos*bd
+                        tilt = self.sct1.tilt*(1.0 - bd) + self.sct2.tilt*bd
+
+                    bpos = self.sct1.bpos*(1.0 - bd) + self.sct2.bpos*bd
                     prf = PanelProfile(point, chord, twist)
                     prf.set_tilt(tilt)
-                    prf.scta = self.scta
-                    prf.sctb = self.sctb
+                    prf.sct1 = self.sct1
+                    prf.sct2 = self.sct2
                     prf.bval = bd
                     prf.bpos = bpos
                     prf.nohsv = self.nohsv
@@ -197,30 +200,30 @@ class PanelSheet():
             self._strps = []
             if not self.nomesh:
                 if len(self.prfs) == 0:
-                    self._strps.append(PanelStrip(self.scta, self.sctb, self))
+                    self._strps.append(PanelStrip(self.sct1, self.sct2, self))
                 else:
-                    self._strps.append(PanelStrip(self.scta, self.prfs[0], self))
+                    self._strps.append(PanelStrip(self.sct1, self.prfs[0], self))
                     for i in range(len(self.prfs)-1):
                         self._strps.append(PanelStrip(self.prfs[i], self.prfs[i+1], self))
-                    self._strps.append(PanelStrip(self.prfs[-1], self.sctb, self))
+                    self._strps.append(PanelStrip(self.prfs[-1], self.sct2, self))
         return self._strps
 
     @property
     def tilt(self):
         if self._tilt is None:
-            dz = self.sctb.point.z - self.scta.point.z
-            dy = self.sctb.point.y - self.scta.point.y
+            dz = self.sct2.point.z - self.sct1.point.z
+            dy = self.sct2.point.y - self.sct1.point.y
             self._tilt = degrees(arctan2(dz, dy))
         return self._tilt
 
     @property
     def area(self):
         if self._area is None:
-            bmin = min(self.scta.bval, self.sctb.bval)
-            bmax = max(self.scta.bval, self.sctb.bval)
+            bmin = min(self.sct1.bval, self.sct2.bval)
+            bmax = max(self.sct1.bval, self.sct2.bval)
             brng = bmax-bmin
-            chorda = self.scta.chord
-            chordb = self.sctb.chord
+            chorda = self.sct1.chord
+            chordb = self.sct2.chord
             self._area = (chorda+chordb)/2*brng
         return self._area
 
@@ -245,23 +248,23 @@ class PanelSheet():
     def inherit_controls(self):
         self.ctrls = {}
         if self.mirror:
-            for control in self.sctb.ctrls:
-                ctrl = self.sctb.ctrls[control]
+            for control in self.sct2.ctrls:
+                ctrl = self.sct2.ctrls[control]
                 newctrl = ctrl.duplicate(mirror=True)
                 self.ctrls[control] = newctrl
         else:
-            for control in self.scta.ctrls:
-                ctrl = self.scta.ctrls[control]
+            for control in self.sct1.ctrls:
+                ctrl = self.sct1.ctrls[control]
                 newctrl = ctrl.duplicate(mirror=False)
                 self.ctrls[control] = newctrl
         for control in self.ctrls:
             ctrl = self.ctrls[control]
             if ctrl.uhvec.return_magnitude() == 0.0:
-                pnt1 = self.scta.pnt
-                crd1 = self.scta.chord
+                pnt1 = self.sct1.pnt
+                crd1 = self.sct1.chord
                 pnta = pnt1+crd1*IHAT.dot(ctrl.xhinge)
-                pnt2 = self.sctb.pnt
-                crd2 = self.sctb.chord
+                pnt2 = self.sct2.pnt
+                crd2 = self.sct2.chord
                 pntb = pnt2+crd2*IHAT.dot(ctrl.xhinge)
                 hvec = pntb-pnta
                 ctrl.set_hinge_vector(hvec)
@@ -270,9 +273,9 @@ class PanelSheet():
         for control in self.ctrls:
             ctrl = self.ctrls[control]
             if self.mirror:
-                sct = self.sctb
+                sct = self.sct2
             else:
-                sct = self.scta
+                sct = self.sct1
             prf = sct.get_profile(offset=False)
             beg = None
             end = 0

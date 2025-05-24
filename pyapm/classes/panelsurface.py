@@ -1,14 +1,24 @@
-from numpy import sqrt
-from pygeom.geom3d import Vector
+from typing import TYPE_CHECKING, Any
 
-from ..tools.airfoil import airfoil_interpolation
+from numexpr import evaluate
+from numpy import arccos, asarray, pi, sqrt
+from pygeom.geom1d import CubicSpline1D, LinearSpline1D
+from pygeom.geom3d import Vector
+from pygeom.tools.spacing import equal_spacing
+
+from ..tools.airfoil import Airfoil, airfoil_interpolation
+from ..tools.naca4 import NACA4
 from .grid import Grid
 from .panel import Panel
-from .panelfunction import PanelFunction, panelfunction_from_json
 from .panelprofile import PanelProfile
 from .panelsection import PanelSection, panelsection_from_json
 from .panelsheet import PanelSheet
 from .panelstrip import PanelStrip
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+
+    AirfoilLike = Airfoil | NACA4
 
 
 class PanelSurface():
@@ -17,7 +27,7 @@ class PanelSurface():
     twist: float = None
     mirror: bool = None
     scts: list[PanelSection] = None
-    fncs: dict[str, PanelFunction] = None
+    fncs: dict[str, 'SurfaceFunction'] = None
     close: bool = None
     cnum: int = None
     cspc: str = None
@@ -30,7 +40,7 @@ class PanelSurface():
     pnls: list[Panel] = None
 
     def __init__(self, name: str, point: Vector, twist: float, mirror: bool,
-                 scts: list[PanelSection], fncs: list[PanelFunction], close: bool):
+                 scts: list[PanelSection], fncs: list['SurfaceFunction'], close: bool):
         self.name = name
         self.point = point
         self.twist = twist
@@ -50,17 +60,17 @@ class PanelSurface():
                 dely = self.scts[i+1].point.y - self.scts[i].point.y
                 delz = self.scts[i+1].point.z - self.scts[i].point.z
                 bval += sqrt(delx**2 + dely**2 + delz**2)
-        for fnc in self.fncs.values():
-            fnc.set_spline(bval)
-            if fnc.var == 'twist':
-                for sct in self.scts:
-                    sct.twist = fnc.interpolate(sct.bval)
-            if fnc.var == 'chord':
-                for sct in self.scts:
-                    sct.chord = fnc.interpolate(sct.bval)
-            if fnc.var == 'tilt':
-                for sct in self.scts:
-                    sct.set_tilt(fnc.interpolate(sct.bval))
+        # for fnc in self.fncs.values():
+        #     fnc.set_spline(bval)
+        #     if fnc.var == 'twist':
+        #         for sct in self.scts:
+        #             sct.twist = fnc.interpolate(sct.bval)
+        #     if fnc.var == 'chord':
+        #         for sct in self.scts:
+        #             sct.chord = fnc.interpolate(sct.bval)
+        #     if fnc.var == 'tilt':
+        #         for sct in self.scts:
+        #             sct.set_tilt(fnc.interpolate(sct.bval))
         if self.mirror:
             ymir = self.scts[0].point.y
             scts = [sct.mirror_section_in_y(ymir=ymir) for sct in self.scts]
@@ -94,39 +104,39 @@ class PanelSurface():
         if self._prfs is None:
             self._prfs = []
             for sht in self.shts:
-                scta = sht.scta
-                sctb = sht.sctb
-                self._prfs.append(scta)
+                sct1 = sht.sct1
+                sct2 = sht.sct2
+                self._prfs.append(sct1)
                 self._prfs += sht.prfs
-            self._prfs.append(sctb)
+            self._prfs.append(sct2)
         return self._prfs
 
     @property
-    def strpb(self):
+    def strpb(self) -> list[float]:
         return [strp.bpos for strp in self.strps]
 
     @property
-    def strpy(self):
+    def strpy(self) -> list[float]:
         return [strp.ypos for strp in self.strps]
 
     @property
-    def strpz(self):
+    def strpz(self) -> list[float]:
         return [strp.zpos for strp in self.strps]
 
     @property
-    def prfb(self):
+    def prfb(self) -> list[float]:
         return [prf.bpos for prf in self.prfs]
 
     @property
-    def prfy(self):
+    def prfy(self) -> list[float]:
         return [prf.point.y for prf in self.prfs]
 
     @property
-    def prfz(self):
+    def prfz(self) -> list[float]:
         return [prf.point.z for prf in self.prfs]
 
     @property
-    def area(self):
+    def area(self) -> float:
         if self._area is None:
             self._area = 0.0
             for sht in self.shts:
@@ -136,14 +146,14 @@ class PanelSurface():
     def mesh_grids(self, gid: int):
         self.grds = []
         for sht in self.shts:
-            scta = sht.scta
-            sctb = sht.sctb
-            gid = scta.mesh_grids(gid)
-            self.grds += scta.grds
+            sct1 = sht.sct1
+            sct2 = sht.sct2
+            gid = sct1.mesh_grids(gid)
+            self.grds += sct1.grds
             gid = sht.mesh_grids(gid)
             self.grds += sht.grds
-        gid = sctb.mesh_grids(gid)
-        self.grds += sctb.grds
+        gid = sct2.mesh_grids(gid)
+        self.grds += sct2.grds
         return gid
 
     def mesh_panels(self, pid: int):
@@ -172,62 +182,73 @@ class PanelSurface():
     def __repr__(self):
         return f'<PanelSurface: {self.name:s}>'
 
-def linear_interpolate_none(x: list, y: list):
-    newy = []
-    for i, yi in enumerate(y):
-        if yi is None:
-            for j in range(i, -1, -1):
-                if y[j] is not None:
-                    a = j
-                    break
-            for j in range(i, len(y)):
-                if y[j] is not None:
-                    b = j
-                    break
-            xa, xb = x[a], x[b]
-            ya, yb = y[a], y[b]
-            fac = (x[i]-xa)/(xb-xa)
-            yi = (yb-ya)*fac+ya
-        newy.append(yi)
-    return newy
 
-def linear_interpolate_airfoil(x: list, af: list):
+def linear_interpolate_airfoil(x: list[float],
+                               af: list['AirfoilLike | None']) -> list['AirfoilLike']:
     newaf = []
     for i, afi in enumerate(af):
         if afi is None:
+            a = None
             for j in range(i, -1, -1):
                 if af[j] is not None:
                     a = j
                     break
+            b = None
             for j in range(i, len(af)):
                 if af[j] is not None:
                     b = j
                     break
-            xa, xb = x[a], x[b]
-            afa, afb = af[a], af[b]
-            fac = (x[i]-xa)/(xb-xa)
-            afi = airfoil_interpolation(afa, afb, fac)
+            if a is None:
+                xa = x[0]
+                afa = NACA4('0012')
+            else:
+                xa = x[a]
+                afa = af[a]
+            if b is None:
+                xb = x[-1]
+                afb = NACA4('0012')
+            else:
+                xb = x[b]
+                afb = af[b]
+            if isinstance(afa, (Airfoil, NACA4)) and isinstance(afb, (Airfoil, NACA4)):
+                fac = (x[i] - xa)/(xb - xa)
+                afi = airfoil_interpolation(afa, afb, fac)
+            else:
+                raise ValueError('Cannot interpolate airfoil.')
         newaf.append(afi)
     return newaf
 
-def panelsurface_from_json(surfdata: dict, display: bool=False):
+
+def panelsurface_from_json(surfdata: dict[str, Any],
+                           display: bool=False) -> PanelSurface:
     name = surfdata['name']
-    if 'mirror' in surfdata:
-        mirror = surfdata['mirror']
-    else:
-        mirror = False
+    mirror = surfdata.get('mirror', False)
     if 'cnum' in surfdata:
         cnum = surfdata['cnum']
     if display: print(f'Loading Surface: {name:s}')
+    # Read in Defaults
+    defaults: dict[str, Any] = surfdata.get('defaults', {})
+    # Read in Functions
+    funcdatas: dict[str, Any] = surfdata.get('functions', {})
+    funcs = {}
+    for variable, funcdata in funcdatas.items():
+        funcs[variable] = surffunc_from_json(variable, funcdata)
+    # Set defaults for functions to zero
+    for var in funcs:
+        if var not in defaults:
+            defaults[var] = 0.0
     # Read Section Variables
     sects: list[PanelSection] = []
     for sectdata in surfdata['sections']:
-        sect = panelsection_from_json(sectdata)
+        sect = panelsection_from_json(sectdata, defaults=defaults)
         sects.append(sect)
         if sect.airfoil is not None:
             sect.airfoil.update(cnum)
     # Linear Interpolate Missing Variables
-    x, y, z, c, a, af = [], [], [], [], [], []
+    x, y, z = [], [], []
+    c, a, af = [], [], []
+    cmb, xoc, zoc = [], [], []
+    b = []
     for sect in sects:
         x.append(sect.point.x)
         y.append(sect.point.y)
@@ -235,50 +256,81 @@ def panelsurface_from_json(surfdata: dict, display: bool=False):
         c.append(sect.chord)
         a.append(sect.twist)
         af.append(sect.airfoil)
-    if None in y and None in z:
-        raise ValueError('Need at least ypos or zpos specified in sections.')
-    elif None in y:
-        y = linear_interpolate_none(z, y)
-    elif None in z:
-        z = linear_interpolate_none(y, z)
-    lensects = len(sects)
-    b = [0.0]
-    for i in range(lensects-1):
-        bi = b[i] + sqrt((y[i+1] - y[i])**2 + (z[i+1] - z[i])**2)
-        b.append(bi)
+        b.append(sect.bpos)
+        xoc.append(sect.xoc)
+        zoc.append(sect.zoc)
+    # Check for None values in the first and last sections
+    if y[0] is None or z[0] is None:
+        raise ValueError('Need at least ypos or zpos specified in the first section.')
+    if y[-1] is None or z[-1] is None:
+        raise ValueError('Need at least ypos or zpos specified in the last section.')
+    # Check for None values in the middle sections
+    checky = True
+    checkz = True
+    for yi, zi, bi in zip(y, z, b):
+        if yi is None and bi is None:
+            checky = False
+        if zi is None and bi is None:
+            checkz = False
+    # Interpolate None values in y and z
+    if checky:
+        linear_interpolate_none(y, z)
+    elif checkz:
+        linear_interpolate_none(z, y)
+    else:
+        raise ValueError('Need at least ypos or zpos or bpos specified in sections.')
+    # Determine b values from known y and z values
+    bcur = 0.0
+    ycur = y[0]
+    zcur = z[0]
+    for i in range(len(b)):
+        if b[i] is None:
+            ydel = y[i] - ycur
+            zdel = z[i] - zcur
+            bdel = (ydel**2 + zdel**2)**0.5
+            b[i] = bcur + bdel
+            bcur = b[i]
+            ycur = y[i]
+            zcur = z[i]
+    # Interpolate None values in x, y, z, c, a, cmb, xoc, zoc
     x = linear_interpolate_none(b, x)
+    y = linear_interpolate_none(b, y)
+    z = linear_interpolate_none(b, z)
     c = linear_interpolate_none(b, c)
+    c = fill_none(c, 1.0)
     a = linear_interpolate_none(b, a)
-    af = linear_interpolate_airfoil(b, af)
+    a = fill_none(a, 0.0)
+    cmb = linear_interpolate_airfoil(b, cmb)
+    xoc = linear_interpolate_none(b, xoc)
+    xoc = fill_none(xoc, 0.25)
+    zoc = linear_interpolate_none(b, zoc)
+    zoc = fill_none(zoc, 0.0)
+    display = False
+    if display:
+        print(f'{x = }')
+        print(f'{y = }')
+        print(f'{z = }')
+        print(f'{c = }')
+        print(f'{a = }')
+        print(f'{cmb = }')
+        print(f'{xoc = }')
+        print(f'{zoc = }')
     for i, sect in enumerate(sects):
         sect.point.x = x[i]
         sect.point.y = y[i]
         sect.point.z = z[i]
         sect.chord = c[i]
         sect.twist = a[i]
+        sect.xoc = xoc[i]
+        sect.zoc = zoc[i]
         sect.airfoil = af[i]
-    # Read in Function Data
-    funcs = {}
-    if 'functions' in surfdata:
-        for funcdata in surfdata['functions']:
-            func = panelfunction_from_json(funcdata)
-            funcs[func.var] = func
     # Entire Surface Position
-    xpos, ypos, zpos = 0.0, 0.0, 0.0
-    if 'xpos' in surfdata:
-        xpos = surfdata['xpos']
-    if 'ypos' in surfdata:
-        ypos = surfdata['ypos']
-    if 'zpos' in surfdata:
-        zpos = surfdata['zpos']
+    xpos = surfdata.get('xpos', 0.0)
+    ypos = surfdata.get('ypos', 0.0)
+    zpos = surfdata.get('zpos', 0.0)
     point = Vector(xpos, ypos, zpos)
-    twist = 0.0
-    if 'twist' in surfdata:
-        twist = surfdata['twist']
-    if 'ruled' in surfdata:
-        ruled = surfdata['ruled']
-    else:
-        ruled = False
+    twist = surfdata.get('twist', 0.0)
+    ruled = surfdata.get('ruled', False)
     for sect in sects:
         sect.offset_position(xpos, ypos, zpos)
         sect.offset_twist(twist)
@@ -288,4 +340,108 @@ def panelsurface_from_json(surfdata: dict, display: bool=False):
         close = surfdata['close']
     surf = PanelSurface(name, point, twist, mirror, sects, funcs, close)
     surf.set_chord_spacing(cnum)
+    # Set the span for the surface functions
+    bmax = max(b)
+    bmin = min(b)
+    brng = bmax - bmin
+    for fnc in surf.fncs.values():
+        fnc.bmax = brng
+    for i, sect in enumerate(surf.scts):
+        bval = sect.bval
+        if 'chord' in surf.fncs:
+            sect.chord = surf.fncs['chord'](bval)
+        if 'twist' in surf.fncs:
+            sect.twist = surf.fncs['twist'](bval)
+        if 'tilt' in surf.fncs:
+            sect.tilt = surf.fncs['tilt'](bval)
     return surf
+
+def linear_interpolate_none(x: list[float], y: list[float]) -> list[float]:
+    for i, (xi, yi) in enumerate(zip(x, y)):
+        if yi is None and xi is None:
+            continue
+        elif yi is None:
+            a = None
+            for j in range(i, -1, -1):
+                if y[j] is not None:
+                    a = j
+                    break
+            b = None
+            for j in range(i, len(y)):
+                if y[j] is not None:
+                    b = j
+                    break
+            if a is None or b is None:
+                y[i] = None
+            else:
+                xa, xb = x[a], x[b]
+                ya, yb = y[a], y[b]
+                y[i] = (yb - ya)/(xb - xa)*(x[i] - xa)+ya
+    return y
+
+def fill_none(x: list[float], xval: float) -> list[float]:
+    for i, xi in enumerate(x):
+        if xi is None:
+            x[i] = xval
+    return x
+
+
+class SurfaceFunction():
+    variable: str | None = None
+    functype: str | None = None
+    bmax: float | None = None
+    spline: LinearSpline1D | CubicSpline1D | None = None
+    expression: str | None = None
+
+    def __init__(self, variable: str, functype: str) -> None:
+        self.variable = variable
+        self.functype = functype
+
+    def set_spline(self, spacing: str, values: list[float],
+                   interp: str = 'linear') -> None:
+        values: 'NDArray' = asarray(values)
+        if spacing == 'equal':
+            num = values.size
+            nspc = equal_spacing(num - 1)
+        else:
+            raise ValueError('Spacing not implemented.')
+        if interp == 'linear':
+            self.spline = LinearSpline1D(nspc, values)
+        elif interp == 'cubic':
+            self.spline = CubicSpline1D(nspc, values)
+        else:
+            raise ValueError('Interpolation not implemented.')
+
+    def set_expression(self, expression: str) -> None:
+        self.expression = expression
+
+    def __call__(self, value: float) -> float:
+        b = value
+        s = b/self.bmax
+        if self.functype == 'spline':
+            return self.spline.evaluate_points_at_t(s)
+        elif self.functype == 'expression':
+            th = arccos(s)
+            local_dict = {'b': b, 's': s, 'th': th}
+            global_dict = {'pi': pi}
+            return evaluate(self.expression, local_dict=local_dict,
+                            global_dict=global_dict)
+        else:
+            raise ValueError('Function type not implemented.')
+
+
+def surffunc_from_json(variable: str, funcdata: dict[str, Any]) -> SurfaceFunction:
+    functype = funcdata.get('functype')
+    srfcfunc = SurfaceFunction(variable, functype)
+    if functype == 'spline':
+        splinedata: dict[str, Any] = funcdata.get('spline')
+        spacing = splinedata.get('spacing', 'equal')
+        interp = splinedata.get('interp', 'linear')
+        values = splinedata.get('values')
+        srfcfunc.set_spline(spacing, values, interp)
+    elif functype == 'expression':
+        expression = funcdata.get('expression')
+        srfcfunc.set_expression(expression)
+    else:
+        raise ValueError('Function type not implemented.')
+    return srfcfunc

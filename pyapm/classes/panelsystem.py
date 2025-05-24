@@ -1,5 +1,3 @@
-from json import load
-from os.path import dirname, exists, join
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
@@ -9,7 +7,7 @@ from py2md.classes import MDTable
 from pygeom.geom3d import Vector
 
 from ..tools import betm_from_mach
-from ..tools.mass import Mass, masses_from_json
+from ..tools.mass import Mass, masses_from_data, masses_from_json
 from .grid import Grid
 from .panel import Panel
 from .panelresult import panelresult_from_dict
@@ -21,7 +19,6 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from ..tools.mass import MassCollection
-
     from .horseshoedoublet import HorseshoeDoublet
     from .panelresult import PanelResult
     from .panelstrip import PanelStrip
@@ -788,7 +785,9 @@ class PanelSystem():
     def _repr_markdown_(self) -> str:
         return self.__str__()
 
-def panelsystem_from_json(jsonfilepath: str, trim: bool = True) -> PanelSystem:
+def panelsystem_from_json(jsonfilepath: str,
+                          trim: bool = True) -> PanelSystem:
+    from json import load
 
     with open(jsonfilepath, 'rt') as jsonfile:
         sysdct = load(jsonfile)
@@ -804,15 +803,15 @@ def panelsystem_from_json(jsonfilepath: str, trim: bool = True) -> PanelSystem:
         filetype = 'geom'
 
     if filetype == 'geom':
-        psys = panelsystem_from_geom(sysdct, trim=trim)
+        sys = panelsystem_from_geom(sysdct, trim=trim)
     elif filetype == 'mesh':
-        psys = panelsystem_from_mesh(sysdct, trim=trim)
+        sys = panelsystem_from_mesh(sysdct, trim=trim)
     else:
         raise ValueError('Incorrect file type.')
 
-    psys.source = jsonfilepath
+    sys.source = jsonfilepath
 
-    return psys
+    return sys
 
 def panelsystem_from_mesh(sysdct: dict[str, any], trim: bool = True) -> PanelSystem:
 
@@ -861,46 +860,61 @@ def panelsystem_from_mesh(sysdct: dict[str, any], trim: bool = True) -> PanelSys
             pnlgrds = [grds[gidi] for gidi in pd['gids']]
             pnls[pid] = Panel(pid, pnlgrds)
 
-    psys = PanelSystem(name, bref, cref, sref, rref)
-    psys.set_mesh(grds, pnls)
+    sys = PanelSystem(name, bref, cref, sref, rref)
+    sys.set_mesh(grds, pnls)
 
     masses = {}
     if 'masses' in sysdct:
         if isinstance(sysdct['masses'], list):
             masses = masses_from_json(sysdct['masses'])
-    psys.masses = masses
+    sys.masses = masses
 
     if 'cases' in sysdct and sysdct:
-        panelresults_from_dict(psys, sysdct['cases'], trim = trim)
+        panelresults_from_dict(sys, sysdct['cases'], trim = trim)
 
     if 'source' in sysdct:
-        psys.source = sysdct['source']
+        sys.source = sysdct['source']
 
-    return psys
+    return sys
 
 def panelsystem_from_geom(sysdct: dict[str, any], trim: bool = True) -> PanelSystem:
 
-    if 'source' in sysdct:
-        path = dirname(sysdct['source'])
+    from os.path import dirname, exists, join
 
-        for surfdata in sysdct['surfaces']:
-            for sectdata in surfdata['sections']:
-                if 'airfoil' in sectdata:
-                    airfoil = sectdata['airfoil']
-                    if airfoil is not None:
-                        if airfoil[-4:] == '.dat':
-                            airfoil = join(path, airfoil)
-                            if not exists(airfoil):
-                                print(f'Airfoil {airfoil} does not exist.')
-                                del sectdata['airfoil']
-                            else:
-                                sectdata['airfoil'] = airfoil
+    jsonfilepath = sysdct.get('source', '.')
 
-    srfcs = []
-    for surfdata in sysdct['surfaces']:
-        srfcs.append(panelsurface_from_json(surfdata))
+    path = dirname(jsonfilepath)
+
+    surfsdata: list[dict[str, Any]] = sysdct.get('surfaces', [])
+
+    for surfdata in surfsdata:
+        if 'defaults' in surfdata:
+            if 'airfoil' in surfdata['defaults']:
+                airfoil = surfdata['defaults']['airfoil']
+                if airfoil[-4:] == '.dat':
+                    airfoil = join(path, airfoil)
+                    if not exists(airfoil):
+                        print(f'Airfoil {airfoil} does not exist.')
+                        del surfdata['defaults']['airfoil']
+                    else:
+                        surfdata['defaults']['airfoil'] = airfoil
+        sectsdata: list[dict[str, Any]] = surfdata.get('sections', [])
+        for sectdata in sectsdata:
+            if 'airfoil' in sectdata:
+                airfoil = sectdata['airfoil']
+                if airfoil[-4:] == '.dat':
+                    airfoil = join(path, airfoil)
+                    if not exists(airfoil):
+                        print(f'Airfoil {airfoil} does not exist.')
+                        del sectdata['airfoil']
+                    else:
+                        sectdata['airfoil'] = airfoil
 
     name = sysdct['name']
+    srfcs = []
+    for surfdata in sysdct['surfaces']:
+        srfc = panelsurface_from_json(surfdata)
+        srfcs.append(srfc)
     bref = sysdct['bref']
     cref = sysdct['cref']
     sref = sysdct['sref']
@@ -908,34 +922,42 @@ def panelsystem_from_geom(sysdct: dict[str, any], trim: bool = True) -> PanelSys
     yref = sysdct['yref']
     zref = sysdct['zref']
     rref = Vector(xref, yref, zref)
-    psys = PanelSystem(name, bref, cref, sref, rref)
-    psys.set_geom(srfcs)
+    sys = PanelSystem(name, bref, cref, sref, rref)
+    sys.set_geom(srfcs)
 
     masses = {}
     if 'masses' in sysdct:
-        if isinstance(sysdct['masses'], list):
-            masses = masses_from_json(sysdct['masses'])
+        if isinstance(sysdct['masses'], dict):
+            masses = masses_from_data(sysdct['masses'])
         elif isinstance(sysdct['masses'], str):
             if sysdct['masses'][-5:] == '.json':
                 massfilename = sysdct['masses']
                 massfilepath = join(path, massfilename)
             masses = masses_from_json(massfilepath)
-    psys.masses = masses
+    sys.masses = masses
+    mass = sysdct.get('mass', None)
+    if isinstance(mass, float):
+        sys.mass = Mass(sys.name, mass = mass, xcm = sys.rref.x,
+                    ycm = sys.rref.y, zcm = sys.rref.z)
+    elif isinstance(mass, str):
+        sys.mass = masses[mass]
+    else:
+        sys.mass = Mass(sys.name, mass = 1.0, xcm = sys.rref.x,
+                    ycm = sys.rref.y, zcm = sys.rref.z)
 
     if 'cases' in sysdct and sysdct:
-        panelresults_from_dict(psys, sysdct['cases'], trim = trim)
+        panelresults_from_dict(sys, sysdct['cases'], trim = trim)
 
-    if 'source' in sysdct:
-        psys.source = sysdct['source']
+    sys.source = jsonfilepath
 
-    return psys
+    return sys
 
-def panelresults_from_dict(psys: PanelSystem, cases: dict[str, Any],
+def panelresults_from_dict(sys: PanelSystem, cases: dict[str, Any],
                            trim: bool = True) -> 'PanelResult':
 
     for i in range(len(cases)):
         resdata = cases[i]
         if 'trim' in resdata:
-            paneltrim_from_dict(psys, resdata, trim = trim)
+            paneltrim_from_dict(sys, resdata, trim = trim)
         else:
-            panelresult_from_dict(psys, resdata)
+            panelresult_from_dict(sys, resdata)
