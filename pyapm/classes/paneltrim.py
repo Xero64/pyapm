@@ -18,7 +18,7 @@ ANGTOL = 30.0
 class PanelTrim(PanelResult):
     targets: dict[str, tuple[str, float]] = None
 
-    def __init__(self, name: str, sys: 'PanelSystem'):
+    def __init__(self, name: str, sys: 'PanelSystem') -> None:
         super().__init__(name, sys)
         self.targets = {
             'alpha': ('alpha', 0.0),
@@ -160,19 +160,29 @@ class PanelTrim(PanelResult):
     def trim_iteration(self, display: bool = False) -> 'NDArray':
         Cdff = self.delta_C()
         Hcur = self.current_Hmat()
+        if display:
+            print(f'Cdff = \n{Cdff}\n')
+            print(f'Hcur = \n{Hcur}\n')
         Ddff = solve(Hcur, Cdff)
         if display:
-            print(f'Cdiff = \n{Cdff}\n')
-            print(f'Hcur = \n{Hcur}\n')
-            print(f'Ddiff = \n{Ddff}\n')
-            print(f'Hcur@Ddiff = \n{Hcur@Ddff}\n')
+            print(f'Ddff = \n{Ddff}\n')
+            print(f'Cdff - Hcur@Ddff = \n{Cdff - Hcur@Ddff}\n')
         return Ddff
 
     def trim(self, crit: float = 1e-6, imax: int = 100, display: bool = False) -> None:
-        Cdff = self.delta_C()
+        Ctgt = self.target_Cmat()
+        Ccur = self.current_Cmat()
+        Cdff = Ctgt - Ccur
         nrmC = norm(Cdff)
         if display:
             print(f'normC = {nrmC}')
+        # if display:
+        #     outstr = f'{"iter":>4s}  {"d(alpha)":>11s}  {"d(beta)":>11s}'
+        #     outstr += f'  {"d(pbo2V)":>11s}  {"d(qco2V)":>11s}  {"d(rbo2V)":>11s}'
+        #     for control in self.ctrls:
+        #         control = f'd({control})'
+        #         outstr += f'  {control:>11s}'
+        #     print(outstr)
         count = 0
         while nrmC > crit:
             if display:
@@ -180,6 +190,11 @@ class PanelTrim(PanelResult):
                 start = perf_counter()
             Ddff = self.trim_iteration(display = display)
             Dcur = self.current_Dmat() + Ddff
+            # if display:
+            #     outstr = f'{count+1:4d}'
+            #     for i, variable in enumerate(self.targets):
+            #         outstr += f'  {Ddff[i]:11.3e}'
+            #     print(outstr)
             if display:
                 finish = perf_counter()
                 elapsed = finish - start
@@ -236,82 +251,80 @@ class PanelTrim(PanelResult):
                 return False
 
 
-def paneltrim_from_dict(system: 'PanelSystem', resdata: dict[str, Any]) -> PanelTrim:
+def paneltrim_from_dict(system: 'PanelSystem', resdict: dict[str, Any],
+                        trim: bool = True) -> PanelTrim:
 
     from ..tools.trim import (GRAVACC, LevelTrim, LoadTrim, LoopingTrim,
                               TurningTrim)
 
-    name = resdata['name']
+    name = resdict['name']
 
-    if resdata['trim'] == 'Load Trim':
-        trim = LoadTrim(name, system)
-        lift = resdata.get('L', None)
-        side = resdata.get('Y', None)
-        roll = resdata.get('l', None)
-        pitch = resdata.get('m', None)
-        yaw = resdata.get('n', None)
-        trim.set_loads(lift, side, roll, pitch, yaw)
+    if resdict['trim'] == 'Load Trim':
+        trim_condition = LoadTrim(name, system)
+        lift = resdict.get('L', None)
+        side = resdict.get('Y', None)
+        roll = resdict.get('l', None)
+        pitch = resdict.get('m', None)
+        yaw = resdict.get('n', None)
+        trim_condition.set_loads(lift, side, roll, pitch, yaw)
 
-    elif resdata['trim'] == 'Looping Trim':
-        trim = LoopingTrim(name, system)
-        load_factor = resdata.get('load factor', 1.0)
-        trim.set_load_factor(load_factor)
+    elif resdict['trim'] == 'Looping Trim':
+        trim_condition = LoopingTrim(name, system)
+        load_factor = resdict.get('load factor', 1.0)
+        trim_condition.set_load_factor(load_factor)
 
-    elif resdata['trim'] == 'Turning Trim':
-        trim = TurningTrim(name, system)
-        bang = resdata.get('bank angle', 0.0)
-        trim.set_bankang(bang)
+    elif resdict['trim'] == 'Turning Trim':
+        trim_condition = TurningTrim(name, system)
+        bang = resdict.get('bank angle', 0.0)
+        trim_condition.set_bankang(bang)
 
-    elif resdata['trim'] == 'Level Trim':
-        trim = LevelTrim(name, system)
+    elif resdict['trim'] == 'Level Trim':
+        trim_condition = LevelTrim(name, system)
 
-    rho = resdata.get('density', 1.0)
-    trim.set_density(rho)
+    rho = resdict.get('density', 1.0)
+    trim_condition.set_density(rho)
 
-    speed = resdata.get('speed', 1.0)
-    trim.set_speed(speed)
+    speed = resdict.get('speed', 1.0)
+    trim_condition.set_speed(speed)
 
-    gravacc = resdata.get('gravacc', GRAVACC)
-    trim.set_gravitational_acceleration(gravacc)
+    gravacc = resdict.get('gravacc', GRAVACC)
+    trim_condition.set_gravitational_acceleration(gravacc)
 
     initstate = {}
-    initstate['alpha'] = resdata.get('alpha', 0.0)
-    initstate['beta'] = resdata.get('beta', 0.0)
-    initstate['pbo2V'] = resdata.get('pbo2V', 0.0)
-    initstate['qco2V'] = resdata.get('qco2V', 0.0)
-    initstate['rbo2V'] = resdata.get('rbo2V', 0.0)
-    trim.set_initial_state(initstate)
+    initstate['alpha'] = resdict.get('alpha', 0.0)
+    initstate['beta'] = resdict.get('beta', 0.0)
+    initstate['pbo2V'] = resdict.get('pbo2V', 0.0)
+    initstate['qco2V'] = resdict.get('qco2V', 0.0)
+    initstate['rbo2V'] = resdict.get('rbo2V', 0.0)
+    trim_condition.set_initial_state(initstate)
 
     initctrls = {}
     for control in system.ctrls:
-        initctrls[control] = resdata.get(control, 0.0)
-    trim.set_initial_controls(initctrls)
+        initctrls[control] = resdict.get(control, 0.0)
+    trim_condition.set_initial_controls(initctrls)
 
-    if isinstance(trim, (LoopingTrim, TurningTrim)):
-
-        mval = 1.0
-        xcm, ycm, zcm = system.rref.x, system.rref.y, system.rref.z
-        if 'mass' in resdata:
-            if isinstance(resdata['mass'], str):
-                mass = system.masses[resdata['mass']]
-            elif isinstance(resdata['mass'], float):
-                if 'rcg' in resdata:
-                    rcgdata = resdata['rcg']
-                    xcm, ycm, zcm = rcgdata['x'], rcgdata['y'], rcgdata['z']
-                mval = resdata['mass']
-                mass = Mass(name + ' Mass', mval, xcm, ycm, zcm)
+    mass = resdict.get('mass', None)
+    if isinstance(mass, dict):
+        mass = Mass(**mass)
+    elif isinstance(mass, float):
+        mass = Mass(name = trim_condition.name, mass = mass, xcm = system.rref.x,
+                    ycm = system.rref.y, zcm = system.rref.z)
+    elif mass is None:
+        if system.mass is not None:
+            mass = system.mass
         else:
-            mass = Mass(name + ' Mass', mval, xcm, ycm, zcm)
+            mass = Mass(trim_condition.name, mass = 1.0, xcm = system.rref.x,
+                        ycm = system.rref.y, zcm = system.rref.z)
+    trim_condition.set_mass(mass)
 
-        trim.set_mass(mass)
+    trim_result = trim_condition.create_trim_result()
 
-    trimres = trim.create_trim_result()
+    mach = resdict.get('mach', 0.0)
+    trim_result.set_state(mach = mach)
 
-    mach = resdata.get('mach', 0.0)
-    trimres.set_state(mach = mach)
+    system.results[name] = trim_result
 
-    system.results[name] = trimres
+    if trim:
+        trim_result.trim()
 
-    trimres.trim()
-
-    return trimres
+    return trim_result

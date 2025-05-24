@@ -1,10 +1,11 @@
-from typing import TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from matplotlib.pyplot import figure
 from numpy import cos, pi, radians, sin, square, zeros
 from py2md.classes import MDHeading, MDReport, MDTable
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import Coordinate, Vector
+from ..tools.mass import Mass
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -25,12 +26,16 @@ class PanelResult():
     rbo2V: float = None
     ctrls: dict[str, float] = None
     rcg: Vector = None
+    mass: 'Mass' = None
     _acs: Coordinate = None
     _scs: Coordinate = None
     _dacsa: dict[str, Vector] = None
     _dacsb: dict[str, Vector] = None
     _dscsa: dict[str, Vector] = None
+    _dscsb: dict[str, Vector] = None
     _vfs: Vector = None
+    _dvfsa: Vector = None
+    _dvfsb: Vector = None
     _pqr: Vector = None
     _ofs: Vector = None
     _qfs: float = None
@@ -111,29 +116,44 @@ class PanelResult():
         self.reset()
 
     def calc_coordinate_systems(self) -> None:
-        pnt = self.sys.rref
+        pnt = self.rcg
         cosal, sinal = trig_angle(self.alpha)
         cosbt, sinbt = trig_angle(self.beta)
+        self._vfs = Vector(cosal*cosbt, -sinbt, sinal*cosbt)*self.speed
+        self._dvfsa = Vector(-sinal*cosbt, 0.0, cosal*cosbt)*self.speed
+        self._dvfsb = Vector(-cosal*sinbt, -cosbt, -sinal*sinbt)*self.speed
         # Aerodynamic Coordinate System
-        dirx = Vector(cosbt*cosal, -sinbt, cosbt*sinal)
-        diry = Vector(sinbt*cosal, cosbt, sinbt*sinal)
-        self._acs = Coordinate(pnt, dirx, diry)
+        # acs_dirx = Vector(cosal*cosbt, -sinbt, sinal*cosbt)
+        # acs_diry = Vector(cosal*sinbt, cosbt, sinal*sinbt)
+        acs_dirx = Vector(cosal, 0.0, sinal)
+        acs_diry = Vector(0.0, 1.0, 0.0)
+        self._acs = Coordinate(pnt, acs_dirx, acs_diry)
         # Stability Coordinate System
-        dirx = Vector(-cosal, 0.0, -sinal)
-        diry = Vector(0.0, 1.0, 0.0)
-        self._scs = Coordinate(pnt, dirx, diry)
-        # Derivatives of Aerodynamic Coordinate System wrt alpha
-        self._dacsa = {'x': Vector(-sinal*cosbt, 0.0, cosal*cosbt),
-                       'y': Vector(-sinal*sinbt, 0.0, cosal*sinbt),
+        scs_dirx = Vector(-cosal, 0.0, -sinal)
+        scs_diry = Vector(0.0, 1.0, 0.0)
+        self._scs = Coordinate(pnt, scs_dirx, scs_diry)
+        # Derivative of Aerodynamic Coordinate System wrt alpha
+        # self._dacsa = {'x': Vector(-sinal*cosbt, 0.0, cosal*cosbt),
+        #                'y': Vector(-sinal*sinbt, 0.0, cosal*sinbt),
+        #                'z': Vector(-cosal, 0.0, -sinal)}
+        self._dacsa = {'x': Vector(-sinal, 0.0, cosal),
+                       'y': Vector(0.0, 0.0, 0.0),
                        'z': Vector(-cosal, 0.0, -sinal)}
-        # Derivatives of Aerodynamic Coordinate System wrt beta
-        self._dacsb = {'x': Vector(-cosal*sinbt, -cosbt, -sinal*sinbt),
-                       'y': Vector(cosal*cosbt, -sinbt, sinal*cosbt),
-                       'z': Vector(0.0, 0.0, 0.0)}
-        # Derivatives of Stability Coordinate System wrt alpha
+        # Derivative of Aerodynamic Coordinate System wrt beta
+        # self._dacsb = {'x': Vector(-cosal*sinbt, -cosbt, -sinal*sinbt),
+        #                'y': Vector(cosal*cosbt, -sinbt, sinal*cosbt),
+        #                'z': Vector(0.0, 0.0, 0.0)}
+        self._dacsb = {'x': Vector.zeros(),
+                       'y': Vector.zeros(),
+                       'z': Vector.zeros()}
+        # Derivative of Stability Coordinate System wrt alpha
         self._dscsa = {'x': Vector(sinal, 0.0, -cosal),
                        'y': Vector(0.0, 0.0, 0.0),
                        'z': Vector(cosal, 0.0, sinal)}
+        # Derivative of Stability Coordinate System wrt beta
+        self._dscsb = {'x': Vector.zeros(),
+                       'y': Vector.zeros(),
+                       'z': Vector.zeros()}
 
     @property
     def acs(self) -> Coordinate:
@@ -166,10 +186,28 @@ class PanelResult():
         return self._dscsa
 
     @property
+    def dscsb(self) -> dict[str, Vector]:
+        if self._dscsb is None:
+            self.calc_coordinate_systems()
+        return self._dscsb
+
+    @property
     def vfs(self) -> Vector:
         if self._vfs is None:
-            self._vfs = self.acs.dirx*self.speed
+            self.calc_coordinate_systems()
         return self._vfs
+
+    @property
+    def dvfsa(self) -> Vector:
+        if self._dvfsa is None:
+            self.calc_coordinate_systems()
+        return self._dvfsa
+
+    @property
+    def dvfsb(self) -> Vector:
+        if self._dvfsb is None:
+            self.calc_coordinate_systems()
+        return self._dvfsb
 
     @property
     def pqr(self) -> Vector:
@@ -195,10 +233,7 @@ class PanelResult():
     @property
     def arm(self):
         if self._arm is None:
-            if self.rcg is None:
-                self._arm = self.sys.pnts - self.sys.rrel
-            else:
-                self._arm = self.sys.pnts - self.rcg
+            self._arm = self.sys.pnts - self.rcg
         return self._arm
 
     @property
@@ -964,11 +999,58 @@ class PanelResult():
 
         return report
 
-    def __repr__(self):
-        return f'<PanelResult: {self.name}>'
+    @classmethod
+    def panelresult_from_dict(cls, sys: 'System', resdata: dict[str, Any]) -> 'PanelResult':
+        name = resdata['name']
+        if 'inherit' in resdata:
+            inherit = resdata['inherit']
+            if inherit in sys.results:
+                pres = sys.results[inherit].to_result(name=name)
+        else:
+            pres = PanelResult(name, sys)
+        for key in resdata:
+            if key == 'name':
+                continue
+            elif key == 'inherit':
+                continue
+            elif key == 'density':
+                rho = resdata['density']
+                pres.set_density(rho=rho)
+            elif key == 'mach':
+                mach = resdata['mach']
+                pres.set_state(mach=mach)
+            elif key == 'speed':
+                speed = resdata['speed']
+                pres.set_state(speed=speed)
+            elif key ==  'alpha':
+                alpha = resdata['alpha']
+                pres.set_state(alpha=alpha)
+            elif key ==  'beta':
+                beta = resdata['beta']
+                pres.set_state(beta=beta)
+            elif key ==  'pbo2V':
+                pbo2V = resdata['pbo2V']
+                pres.set_state(pbo2V=pbo2V)
+            elif key ==  'qco2V':
+                qco2V = resdata['qco2V']
+                pres.set_state(qco2V=qco2V)
+            elif key ==  'rbo2V':
+                rbo2V = resdata['rbo2V']
+                pres.set_state(rbo2V=rbo2V)
+            elif key in pres.ctrls:
+                pres.ctrls[key] = resdata[key]
+            elif key == 'rcg':
+                rcgdata = resdata[key]
+                rcg = Vector(rcgdata['x'], rcgdata['y'], rcgdata['z'])
+                pres.set_cg(rcg)
+        sys.results[name] = pres
+        return pres
 
     def __str__(self) -> str:
         return self.to_mdobj().__str__()
+
+    def __repr__(self):
+        return f'<PanelResult: {self.name}>'
 
     def _repr_markdown_(self):
         return self.to_mdobj()._repr_markdown_()
@@ -1150,8 +1232,11 @@ class StabilityNearFieldResult():
     dscs: dict[str, Vector] = None
     _dmu: 'NDArray' = None
     _dqloc: Vector2D = None
+    _vdot: 'NDArray' = None
     _dvdot: 'NDArray' = None
+    _dspeed: 'NDArray' = None
     _dcp: 'NDArray' = None
+    _dqfs: 'NDArray' = None
     _dprs: 'NDArray' = None
     _dfrc: Vector = None
     _dmom: Vector = None
@@ -1166,6 +1251,7 @@ class StabilityNearFieldResult():
     _CDi: float = None
     _CY: float = None
     _CL: float = None
+    _e: float = None
     _Cl: float = None
     _Cm: float = None
     _Cn: float = None
@@ -1195,21 +1281,43 @@ class StabilityNearFieldResult():
         return self._dqloc
 
     @property
+    def vdot(self) -> 'NDArray':
+        if self._vdot is None:
+            self._vdot = self.res.qloc.dot(self.res.qloc)
+        return self._vdot
+
+    @property
     def dvdot(self) -> 'NDArray':
         if self._dvdot is None:
             self._dvdot = self.res.qloc.dot(self.dqloc)
         return self._dvdot
 
     @property
+    def dspeed(self) -> 'NDArray':
+        if self._dspeed is None:
+            if self.dvfs is not None:
+                self._dspeed = self.dvfs.return_magnitude()
+            else:
+                self._dspeed = 0.0
+        return self._dspeed
+
+    @property
     def dcp(self) -> 'NDArray':
         if self._dcp is None:
-            self._dcp = -2*self.dvdot/self.res.speed**2
+            # self._dcp = -2*self.dvdot/self.res.speed**2 # Needs fixing using Chain Rule
+            self._dcp = 2*(self.vdot*self.dspeed - self.dvdot*self.res.speed)/self.res.speed**3
         return self._dcp
+
+    @property
+    def dqfs(self) -> 'NDArray':
+        if self._dqfs is None:
+            self._dqfs = self.res.rho*self.res.speed*self.dspeed
+        return self._dqfs
 
     @property
     def dprs(self) -> 'NDArray':
         if self._dprs is None:
-            self._dprs = self.res.qfs*self.dcp
+            self._dprs = self.res.qfs*self.dcp + self.dqfs*self.res.cp
         return self._dprs
 
     @property
@@ -1698,6 +1806,8 @@ class StabilityResult():
     _pdbo2V: StabilityNearFieldResult = None
     _qdco2V: StabilityNearFieldResult = None
     _rdbo2V: StabilityNearFieldResult = None
+    _xnp: float = None
+    _sprat: float = None
 
     def __init__(self, res: PanelResult) -> None:
         self.res = res
@@ -1750,8 +1860,7 @@ class StabilityResult():
     @property
     def alpha(self) -> StabilityNearFieldResult:
         if self._alpha is None:
-            V = self.res.speed
-            dvfs = self.res.dacsa['x']*V
+            dvfs = self.res.dvfsa
             dofs = Vector(
                 self.res.dscsa['x'].dot(self.res.pqr),
                 self.res.dscsa['y'].dot(self.res.pqr),
@@ -1765,10 +1874,10 @@ class StabilityResult():
     @property
     def beta(self) -> StabilityNearFieldResult:
         if self._beta is None:
-            V = self.res.speed
-            dvfs = self.res.dacsb['x']*V
+            dvfs = self.res.dvfsb
             self._beta = StabilityNearFieldResult(self.res, dvfs = dvfs,
-                                                  dacs = self.res.dacsb)
+                                                  dacs = self.res.dacsb,
+                                                  dscs = self.res.dscsb)
         return self._beta
 
     @property
@@ -1816,13 +1925,32 @@ class StabilityResult():
             self._rdbo2V = StabilityNearFieldResult(self.res, dofs = dofs)
         return self._rdbo2V
 
-    def neutral_point(self):
-        dCzdal = self.alpha.Cz
-        dCmdal = self.alpha.Cm
-        dxoc = dCmdal/dCzdal
-        return self.res.rcg.x - dxoc*self.res.sys.cref
+    @property
+    def xnp(self) -> float:
+        if self._xnp is None:
+            xcg = self.res.rcg.x
+            CLa = self.alpha.CL
+            CMa = self.alpha.Cm
+            c = self.res.sys.cref
+            self._xnp = xcg - c*CMa/CLa
+        return self._xnp
 
-    def system_aerodynamic_array(self):
+    @property
+    def sprat(self) -> float:
+        if self._sprat is None:
+            Clb = self.beta.Cl
+            Cnb = self.beta.Cn
+            Cnr = self.rbo2V.Cn
+            Clr = self.rbo2V.Cl
+            if Clb == 0.0 and Clr == 0.0:
+                self._sprat = float('nan')
+            elif Cnb == 0.0 and Cnr == 0.0:
+                self._sprat = float('nan')
+            else:
+                self._sprat = Clb*Cnr/(Clr*Cnb)
+        return self._sprat
+
+    def system_aerodynamic_matrix(self):
         A = zeros((6, 6))
         F = self.u.dfrctot
         A[0, 0], A[1, 0], A[2, 0] = F.x, F.y, F.z
@@ -1852,98 +1980,85 @@ class StabilityResult():
 
     @property
     def stability_derivatives(self):
-        from py2md.classes import MDHeading, MDReport, MDTable
 
         from . import sfrm
         report = MDReport()
-        heading = MDHeading('Stability Derivatives', 2)
-        report.add_object(heading)
-        table = MDTable()
+        report.add_heading('Stability Derivatives', 2)
+        table = report.add_table()
         table.add_column('CLa', sfrm, data=[self.alpha.CL])
         table.add_column('CYa', sfrm, data=[self.alpha.CY])
         table.add_column('Cla', sfrm, data=[self.alpha.Cl])
         table.add_column('Cma', sfrm, data=[self.alpha.Cm])
         table.add_column('Cna', sfrm, data=[self.alpha.Cn])
-        report.add_object(table)
-        table = MDTable()
+        table = report.add_table()
         table.add_column('CLb', sfrm, data=[self.beta.CL])
         table.add_column('CYb', sfrm, data=[self.beta.CY])
         table.add_column('Clb', sfrm, data=[self.beta.Cl])
         table.add_column('Cmb', sfrm, data=[self.beta.Cm])
         table.add_column('Cnb', sfrm, data=[self.beta.Cn])
-        report.add_object(table)
-        table = MDTable()
+        table = report.add_table()
         table.add_column('CLp', sfrm, data=[self.pbo2V.CL])
         table.add_column('CYp', sfrm, data=[self.pbo2V.CY])
         table.add_column('Clp', sfrm, data=[self.pbo2V.Cl])
         table.add_column('Cmp', sfrm, data=[self.pbo2V.Cm])
         table.add_column('Cnp', sfrm, data=[self.pbo2V.Cn])
-        report.add_object(table)
-        table = MDTable()
+        table = report.add_table()
         table.add_column('CLq', sfrm, data=[self.qco2V.CL])
         table.add_column('CYq', sfrm, data=[self.qco2V.CY])
         table.add_column('Clq', sfrm, data=[self.qco2V.Cl])
         table.add_column('Cmq', sfrm, data=[self.qco2V.Cm])
         table.add_column('Cnq', sfrm, data=[self.qco2V.Cn])
-        report.add_object(table)
-        table = MDTable()
+        table = report.add_table()
         table.add_column('CLr', sfrm, data=[self.rbo2V.CL])
         table.add_column('CYr', sfrm, data=[self.rbo2V.CY])
         table.add_column('Clr', sfrm, data=[self.rbo2V.Cl])
         table.add_column('Cmr', sfrm, data=[self.rbo2V.Cm])
         table.add_column('Cnr', sfrm, data=[self.rbo2V.Cn])
-        report.add_object(table)
+        report.add_heading(f'Neutral Point Xnp = {self.xnp:.6f}', 3)
+        report.add_heading(f'Clb.Cnr/(Clr.Cnb) = {self.sprat:.6f} (> 1 if spirally stable)', 3)
         return report
 
     @property
-    def stability_derivatives_body(self):
-        from py2md.classes import MDHeading, MDReport, MDTable
-
+    def stability_derivatives_body(self) -> MDReport:
         from . import sfrm
         report = MDReport()
-        heading = MDHeading('Stability Derivatives Body Axis', 2)
-        report.add_object(heading)
-        table = MDTable()
+        report.add_heading('Stability Derivatives Body Axis', 2)
+        table = report.add_table()
         table.add_column('Cxu', sfrm, data=[self.u.Cx])
         table.add_column('Cyu', sfrm, data=[self.u.Cy])
         table.add_column('Czu', sfrm, data=[self.u.Cz])
         table.add_column('Clu', sfrm, data=[self.u.Cmx])
         table.add_column('Cmu', sfrm, data=[self.u.Cmy])
         table.add_column('Cnu', sfrm, data=[self.u.Cmz])
-        report.add_object(table)
-        table = MDTable()
+        table = report.add_table()
         table.add_column('Cxv', sfrm, data=[self.v.Cx])
         table.add_column('Cyv', sfrm, data=[self.v.Cy])
         table.add_column('Czv', sfrm, data=[self.v.Cz])
         table.add_column('Clv', sfrm, data=[self.v.Cmx])
         table.add_column('Cmv', sfrm, data=[self.v.Cmy])
         table.add_column('Cnv', sfrm, data=[self.v.Cmz])
-        report.add_object(table)
-        table = MDTable()
+        table = report.add_table()
         table.add_column('Cxw', sfrm, data=[self.w.Cx])
         table.add_column('Cyw', sfrm, data=[self.w.Cy])
         table.add_column('Czw', sfrm, data=[self.w.Cz])
         table.add_column('Clw', sfrm, data=[self.w.Cmx])
         table.add_column('Cmw', sfrm, data=[self.w.Cmy])
         table.add_column('Cnw', sfrm, data=[self.w.Cmz])
-        report.add_object(table)
-        table = MDTable()
+        table = report.add_table()
         table.add_column('Cxp', sfrm, data=[self.pdbo2V.Cx])
         table.add_column('Cyp', sfrm, data=[self.pdbo2V.Cy])
         table.add_column('Czp', sfrm, data=[self.pdbo2V.Cz])
         table.add_column('Clp', sfrm, data=[self.pdbo2V.Cmx])
         table.add_column('Cmp', sfrm, data=[self.pdbo2V.Cmy])
         table.add_column('Cnp', sfrm, data=[self.pdbo2V.Cmz])
-        report.add_object(table)
-        table = MDTable()
+        table = report.add_table()
         table.add_column('Cxq', sfrm, data=[self.qdco2V.Cx])
         table.add_column('Cyq', sfrm, data=[self.qdco2V.Cy])
         table.add_column('Czq', sfrm, data=[self.qdco2V.Cz])
         table.add_column('Clq', sfrm, data=[self.qdco2V.Cmx])
         table.add_column('Cmq', sfrm, data=[self.qdco2V.Cmy])
         table.add_column('Cnq', sfrm, data=[self.qdco2V.Cmz])
-        report.add_object(table)
-        table = MDTable()
+        table = report.add_table()
         table.add_column('Cxr', sfrm, data=[self.rdbo2V.Cx])
         table.add_column('Cyr', sfrm, data=[self.rdbo2V.Cy])
         table.add_column('Czr', sfrm, data=[self.rdbo2V.Cz])
@@ -1965,8 +2080,7 @@ def fix_zero(value: float, tol: float=1e-8) -> float:
         value = 0.0
     return value
 
-
-def panelresult_from_dict(psys: 'System', resdata: dict) -> PanelResult:
+def panelresult_from_dict(psys: 'System', resdata: dict[str, Any]) -> PanelResult:
     name = resdata['name']
     if 'inherit' in resdata:
         inherit = resdata['inherit']

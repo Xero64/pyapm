@@ -9,7 +9,7 @@ from py2md.classes import MDTable
 from pygeom.geom3d import Vector
 
 from ..tools import betm_from_mach
-from ..tools.mass import masses_from_json
+from ..tools.mass import Mass, masses_from_json
 from .grid import Grid
 from .panel import Panel
 from .panelresult import panelresult_from_dict
@@ -19,6 +19,8 @@ from .paneltrim import paneltrim_from_dict
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from numpy.typing import NDArray
+
+    from ..tools.mass import MassCollection
 
     from .horseshoedoublet import HorseshoeDoublet
     from .panelresult import PanelResult
@@ -38,7 +40,8 @@ class PanelSystem():
     ctrls: dict[str, tuple[int]] = None
     srfcs: list['PanelSurface'] = None
     results: dict[str, 'PanelResult | PanelTrim'] = None
-    masses = None
+    masses: dict[str, 'Mass | MassCollection'] = None # Store Mass Options
+    mass: 'Mass | MassCollection | None' = None # Mass Object
     source: str = None
     _hsvs: list['HorseshoeDoublet'] = None
     _numgrd: int = None
@@ -785,7 +788,7 @@ class PanelSystem():
     def _repr_markdown_(self) -> str:
         return self.__str__()
 
-def panelsystem_from_json(jsonfilepath: str) -> PanelSystem:
+def panelsystem_from_json(jsonfilepath: str, trim: bool = True) -> PanelSystem:
 
     with open(jsonfilepath, 'rt') as jsonfile:
         sysdct = load(jsonfile)
@@ -801,9 +804,9 @@ def panelsystem_from_json(jsonfilepath: str) -> PanelSystem:
         filetype = 'geom'
 
     if filetype == 'geom':
-        psys = panelsystem_from_geom(sysdct)
+        psys = panelsystem_from_geom(sysdct, trim=trim)
     elif filetype == 'mesh':
-        psys = panelsystem_from_mesh(sysdct)
+        psys = panelsystem_from_mesh(sysdct, trim=trim)
     else:
         raise ValueError('Incorrect file type.')
 
@@ -811,7 +814,7 @@ def panelsystem_from_json(jsonfilepath: str) -> PanelSystem:
 
     return psys
 
-def panelsystem_from_mesh(sysdct: dict[str, any]) -> PanelSystem:
+def panelsystem_from_mesh(sysdct: dict[str, any], trim: bool = True) -> PanelSystem:
 
     name = sysdct['name']
     bref = sysdct['bref']
@@ -868,14 +871,14 @@ def panelsystem_from_mesh(sysdct: dict[str, any]) -> PanelSystem:
     psys.masses = masses
 
     if 'cases' in sysdct and sysdct:
-        panelresults_from_dict(psys, sysdct['cases'])
+        panelresults_from_dict(psys, sysdct['cases'], trim = trim)
 
     if 'source' in sysdct:
         psys.source = sysdct['source']
 
     return psys
 
-def panelsystem_from_geom(sysdct: dict[str, any]) -> PanelSystem:
+def panelsystem_from_geom(sysdct: dict[str, any], trim: bool = True) -> PanelSystem:
 
     if 'source' in sysdct:
         path = dirname(sysdct['source'])
@@ -905,7 +908,6 @@ def panelsystem_from_geom(sysdct: dict[str, any]) -> PanelSystem:
     yref = sysdct['yref']
     zref = sysdct['zref']
     rref = Vector(xref, yref, zref)
-
     psys = PanelSystem(name, bref, cref, sref, rref)
     psys.set_geom(srfcs)
 
@@ -921,18 +923,19 @@ def panelsystem_from_geom(sysdct: dict[str, any]) -> PanelSystem:
     psys.masses = masses
 
     if 'cases' in sysdct and sysdct:
-        panelresults_from_dict(psys, sysdct['cases'])
+        panelresults_from_dict(psys, sysdct['cases'], trim = trim)
 
     if 'source' in sysdct:
         psys.source = sysdct['source']
 
     return psys
 
-def panelresults_from_dict(psys: PanelSystem, cases: dict[str, Any]) -> 'PanelResult':
+def panelresults_from_dict(psys: PanelSystem, cases: dict[str, Any],
+                           trim: bool = True) -> 'PanelResult':
 
     for i in range(len(cases)):
         resdata = cases[i]
         if 'trim' in resdata:
-            paneltrim_from_dict(psys, resdata)
+            paneltrim_from_dict(psys, resdata, trim = trim)
         else:
             panelresult_from_dict(psys, resdata)

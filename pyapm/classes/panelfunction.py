@@ -28,6 +28,7 @@ class PanelFunction():
     def interpolate(self, b: float):
         return self.spline.evaluate_points_at_t(b)
 
+
 def panelfunction_from_json(funcdata: dict):
     var = funcdata["variable"]
     if "spacing" in funcdata:

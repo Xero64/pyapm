@@ -18,7 +18,7 @@ class LoopingTrim():
     gravacc: float = None
     speed: float = None
     density: float = None
-    mass: 'Mass | MassCollection' = None
+    mass: 'Mass | MassCollection | None' = None
     loadfac: float = None
     _weight: float = None
     _lift: float = None
@@ -35,6 +35,8 @@ class LoopingTrim():
         self.name = name
         self.sys = sys
         self.gravacc = GRAVACC
+        self.initstate = {}
+        self.initctrls = {}
 
     def reset(self) -> None:
         for attr in self.__dict__:
@@ -89,6 +91,7 @@ class LoopingTrim():
         trim.set_cg(rcg)
         trim.set_initial_state(self.initstate)
         trim.set_initial_controls(self.initctrls)
+        trim.mass = self.mass
         return trim
 
     @property
@@ -175,7 +178,7 @@ class TurningTrim():
     gravacc: float = None
     speed: float = None
     density: float = None
-    mass: 'Mass | MassCollection' = None
+    mass: 'Mass | MassCollection | None' = None
     bankang: float = None
     _loadfac: float = None
     _weight: float = None
@@ -195,6 +198,8 @@ class TurningTrim():
         self.name = name
         self.sys = sys
         self.gravacc = GRAVACC
+        self.initstate = {}
+        self.initctrls = {}
 
     def reset(self) -> None:
         for attr in self.__dict__:
@@ -249,6 +254,7 @@ class TurningTrim():
         trim.set_cg(rcg)
         trim.set_initial_state(self.initstate)
         trim.set_initial_controls(self.initctrls)
+        trim.mass = self.mass
         return trim
 
     @property
@@ -364,7 +370,7 @@ class LevelTrim():
     gravacc: float = None
     speed: float = None
     density: float = None
-    mass: 'Mass | MassCollection' = None
+    mass: 'Mass | MassCollection | None' = None
     _weight: float = None
     _lift: float = None
     _dynpres: float = None
@@ -376,6 +382,8 @@ class LevelTrim():
         self.name = name
         self.sys = sys
         self.gravacc = GRAVACC
+        self.initstate = {}
+        self.initctrls = {}
 
     def reset(self) -> None:
         for attr in self.__dict__:
@@ -426,6 +434,7 @@ class LevelTrim():
         trim.set_cg(rcg)
         trim.set_initial_state(self.initstate)
         trim.set_initial_controls(self.initctrls)
+        trim.mass = self.mass
         return trim
 
     @property
@@ -494,6 +503,7 @@ class LoadTrim():
     n: float = None
     initstate: dict[str, float] = None
     initctrls: dict[str, float] = None
+    mass: 'Mass | MassCollection | None' = None
     _dynpres: float = None
     _CL: float = None
     _CY: float = None
@@ -504,6 +514,8 @@ class LoadTrim():
     def __init__(self, name: str, sys: 'System') -> None:
         self.name = name
         self.sys = sys
+        self.initstate = {}
+        self.initctrls = {}
 
     def reset(self) -> None:
         for attr in self.__dict__:
@@ -539,15 +551,15 @@ class LoadTrim():
             initctrls.setdefault(control, 0.0)
         self.initctrls = initctrls
 
-    def create_trim_result(self):
-        from ..classes import PanelTrim
-        trim = PanelTrim(self.name, self.sys)
+    def create_trim_result(self) -> Trim:
+        trim = Trim(self.name, self.sys)
         trim.set_density(rho=self.density)
         trim.set_state(speed=self.speed)
-        trim.set_targets(CLt=self.CL, CYt=self.CY,
-                         Clt=self.Cl, Cmt=self.Cm, Cnt=self.Cn)
+        trim.set_targets(CLt = self.CL, CYt = self.CY,
+                         Clt = self.Cl, Cmt = self.Cm, Cnt = self.Cn)
         trim.set_initial_state(self.initstate)
         trim.set_initial_controls(self.initctrls)
+        trim.mass = self.mass
         return trim
 
     @property
