@@ -4,6 +4,7 @@ from IPython.display import display_markdown
 
 from pyapm.classes import panelsystem_from_json  # , PanelResult
 from pyapm.outputs.msh import panelresult_to_msh
+from pyapm.outputs.k3d import PanelPlot, Plot
 
 #%%
 # Create Panel System
@@ -47,6 +48,9 @@ display_markdown(pres.surface_loads)
 print(f'sig = \n{pres.sig}')
 print(f'mu = \n{pres.mu}')
 
+mug = psys.edges_array@pres.mu
+print(f'mug = \n{mug}')
+
 #%%
 # Loop Through Grids
 for pid in sorted(psys.pnls):
@@ -88,3 +92,19 @@ _ = axw.set_xlabel('Span-Wise Coordinate - y (m)')
 # Output MSH File
 # mshfilepath = '../results/Test Simple Wing 2 Roll.msh'
 # panelresult_to_msh(pres, mshfilepath)
+
+#%%
+# Display Result
+pnlpl = PanelPlot(psys, pres)
+
+mshplot = Plot()
+mshplot += pnlpl.panel_mesh()
+mshplot.display()
+
+sigplot = Plot()
+sigplot += pnlpl.panel_sigma_plot()
+sigplot.display()
+
+muplot = Plot()
+muplot += pnlpl.panel_mu_plot()
+muplot.display()

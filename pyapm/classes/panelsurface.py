@@ -324,6 +324,8 @@ def panelsurface_from_json(surfdata: dict[str, Any],
         sect.xoc = xoc[i]
         sect.zoc = zoc[i]
         sect.airfoil = af[i]
+        sect.bpos = b[i]
+        # sect.bval = abs(b[i])
     # Entire Surface Position
     xpos = surfdata.get('xpos', 0.0)
     ypos = surfdata.get('ypos', 0.0)
@@ -341,19 +343,20 @@ def panelsurface_from_json(surfdata: dict[str, Any],
     surf = PanelSurface(name, point, twist, mirror, sects, funcs, close)
     surf.set_chord_spacing(cnum)
     # Set the span for the surface functions
-    bmax = max(b)
-    bmin = min(b)
+    bpos = [sect.bpos for sect in surf.scts]
+    bmax = max(bpos)
+    bmin = min(bpos)
     brng = bmax - bmin
     for fnc in surf.fncs.values():
-        fnc.bmax = brng
-    for i, sect in enumerate(surf.scts):
-        bval = sect.bval
+        fnc.bmax = brng/2
+    for sect in surf.scts:
+        sect.bval = abs(sect.bpos)
         if 'chord' in surf.fncs:
-            sect.chord = surf.fncs['chord'](bval)
+            sect.chord = surf.fncs['chord'](sect.bval)
         if 'twist' in surf.fncs:
-            sect.twist = surf.fncs['twist'](bval)
+            sect.twist = surf.fncs['twist'](sect.bval)
         if 'tilt' in surf.fncs:
-            sect.tilt = surf.fncs['tilt'](bval)
+            sect.tilt = surf.fncs['tilt'](sect.bval)
     return surf
 
 def linear_interpolate_none(x: list[float], y: list[float]) -> list[float]:

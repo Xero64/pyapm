@@ -157,31 +157,25 @@ class PanelSheet():
         if self._prfs is None:
             self._prfs = []
             if not self.nomesh:
-                bmin = min(self.sct1.bval, self.sct2.bval)
-                bmax = max(self.sct1.bval, self.sct2.bval)
-                brng = bmax - bmin
                 pointdir = self.sct2.point - self.sct1.point
                 for bd in self.bdst[1:-1]:
-                    if self.mirror:
-                        bint = bmax - bd*brng
-                    else:
-                        bint = bmin + bd*brng
                     point = self.sct1.point + bd*pointdir
+                    bpos = self.sct1.bpos*(1.0 - bd) + self.sct2.bpos*bd
+                    bval = self.sct1.bval*(1.0 - bd) + self.sct2.bval*bd
 
                     if 'chord' in self.fncs:
-                        chord = self.fncs['chord'](bint)
+                        chord = self.fncs['chord'](bval)
                     else:
                         chord = self.sct1.chord*(1.0 - bd) + self.sct2.chord*bd
                     if 'twist' in self.fncs:
-                        twist = self.fncs['twist'](bint)
+                        twist = self.fncs['twist'](bval)
                     else:
                         twist = self.sct1.twist*(1.0 - bd) + self.sct2.twist*bd
                     if 'tilt' in self.fncs:
-                        tilt = self.fncs['tilt'](bint)
+                        tilt = self.fncs['tilt'](bval)
                     else:
                         tilt = self.sct1.tilt*(1.0 - bd) + self.sct2.tilt*bd
 
-                    bpos = self.sct1.bpos*(1.0 - bd) + self.sct2.bpos*bd
                     prf = PanelProfile(point, chord, twist)
                     prf.set_tilt(tilt)
                     prf.sct1 = self.sct1

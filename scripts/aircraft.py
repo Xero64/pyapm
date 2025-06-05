@@ -4,6 +4,7 @@ from IPython.display import display_markdown
 
 from pyapm import panelsystem_from_json
 from pyapm.outputs.msh import panelresult_to_msh
+from pyapm.outputs.k3d import PanelPlot, Plot
 
 #%%
 # Import Geometry
@@ -88,3 +89,19 @@ axy = ptrm.plot_strip_side_force_distribution(ax=axy)
 # Plot Drag Distribution
 axd = ptrm.plot_trefftz_drag_force_distribution()
 axd = ptrm.plot_strip_drag_force_distribution(ax=axd)
+
+#%%
+# Display Result
+pnlpl = PanelPlot(psys, pres)
+
+mshplot = Plot()
+mshplot += pnlpl.panel_mesh()
+mshplot.display()
+
+sigplot = Plot()
+sigplot += pnlpl.panel_sigma_plot()
+sigplot.display()
+
+muplot = Plot()
+muplot += pnlpl.panel_mu_plot()
+muplot.display()

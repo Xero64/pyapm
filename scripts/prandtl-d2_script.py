@@ -8,6 +8,7 @@ from pygeom.geom2d import Vector2D
 from pyapm import panelsystem_from_json
 from pyapm.classes.horseshoevortex2d import HorseshoeVortex2D, Vector2D
 from pyapm.outputs.msh import panelresult_to_msh
+from pyapm.outputs.k3d import PanelPlot, Plot
 
 #%%
 # Create Panel Mesh
@@ -160,3 +161,19 @@ fig = figure(figsize=(12, 8))
 ax = fig.gca()
 ax.grid(True)
 _ = ax.plot(ypos, wash2d)
+
+#%%
+# Display Result
+pnlpl = PanelPlot(psys, pres)
+
+mshplot = Plot()
+mshplot += pnlpl.panel_mesh()
+mshplot.display()
+
+sigplot = Plot()
+sigplot += pnlpl.panel_sigma_plot()
+sigplot.display()
+
+muplot = Plot()
+muplot += pnlpl.panel_mu_plot()
+muplot.display()

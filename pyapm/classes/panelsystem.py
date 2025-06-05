@@ -13,10 +13,12 @@ from .panel import Panel
 from .panelresult import panelresult_from_dict
 from .panelsurface import panelsurface_from_json
 from .paneltrim import paneltrim_from_dict
+from .edge import edges_from_system, edges_array
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from numpy.typing import NDArray
+    from .edge import Edge
 
     from ..tools.mass import MassCollection
     from .horseshoedoublet import HorseshoeDoublet
@@ -80,6 +82,8 @@ class PanelSystem():
     _pnldirx: Vector = None
     _pnldiry: Vector = None
     _pnldirz: Vector = None
+    _edges: list['Edge'] = None
+    _edges_array: 'NDArray' = None
 
     def __init__(self, name: str, bref: float, cref: float,
                  sref: float, rref: Vector) -> None:
@@ -439,6 +443,18 @@ class PanelSystem():
             for i, hsv in enumerate(self.hsvs):
                 self._alh[i] = hsv.vecab.y
         return self._alh
+
+    @property
+    def edges(self) -> list['Edge']:
+        if self._edges is None:
+            self._edges = edges_from_system(self)
+        return self._edges
+
+    @property
+    def edges_array(self) -> 'NDArray':
+        if self._edges_array is None:
+            self._edges_array = edges_array(self.edges)
+        return self._edges_array
 
     def unsig(self, mach: float = 0.0) -> Vector:
         if self._unsig is None:

@@ -45,6 +45,7 @@ class PanelResult():
     _unphi: 'NDArray' = None
     _sig: 'NDArray' = None
     _mu: 'NDArray' = None
+    _mug: 'NDArray' = None
     _phi: 'NDArray' = None
     _qloc: Vector2D = None
     _qs: 'NDArray' = None
@@ -313,6 +314,12 @@ class PanelResult():
                     self._mu += ctrlrad*(self.unmu[:, indv].dot(self.vfs))
                     self._mu += ctrlrad*(self.unmu[:, indo].dot(self.ofs))
         return self._mu
+
+    @property
+    def mug(self):
+        if self._mug is None:
+            self._mug = self.sys.edges_array@self.mu
+        return self._mug
 
     @property
     def phi(self):
