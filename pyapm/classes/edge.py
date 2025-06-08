@@ -1,7 +1,8 @@
+from time import perf_counter
 from typing import TYPE_CHECKING
 
 from numpy import sort, unique, zeros
-from numpy.linalg import lstsq
+from numpy.linalg import solve
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import Coordinate
 
@@ -18,6 +19,7 @@ class Edge():
     gridb: 'Grid' = None
     _panela: 'Panel' = None
     _panelb: 'Panel' = None
+    _panel: 'Panel' = None
     _direcy: 'Vector' = None
     _coorda: 'Coordinate' = None
     _coordb: 'Coordinate' = None
@@ -41,28 +43,36 @@ class Edge():
         self.update()
 
     def update(self) -> None:
-        panels_a = []
+        panels_a: list['Panel'] = []
         for panel in self.grida.pnls:
             for i in range(-1, panel.num-1):
                 if panel.grds[i] is self.grida and panel.grds[i + 1] is self.gridb:
                     panels_a.append(panel)
         if len(panels_a) == 1:
             self._panela = panels_a[0]
+            self._panela.edges.append(self)
         elif len(panels_a) > 1:
             raise ValueError(f'Multiple panels found for edge {self.grida} to {self.gridb}')
         else:
             self._panela = None
-        panels_b = []
+        panels_b: list['Panel'] = []
         for panel in self.gridb.pnls:
             for i in range(-1, panel.num-1):
                 if panel.grds[i] is self.gridb and panel.grds[i + 1] is self.grida:
                     panels_b.append(panel)
         if len(panels_b) == 1:
             self._panelb = panels_b[0]
+            self._panelb.edges.append(self)
         elif len(panels_b) > 1:
             raise ValueError(f'Multiple panels found for edge {self.gridb} to {self.grida}')
         else:
             self._panelb = None
+        if self._panela is None and self._panelb is not None:
+            self._panel = self._panelb
+        elif self._panelb is None and self._panela is not None:
+            self._panel = self._panela
+        else:
+            self._panel = None
 
     @property
     def panela(self) -> 'Panel':
@@ -71,6 +81,10 @@ class Edge():
     @property
     def panelb(self) -> 'Panel':
         return self._panelb
+
+    @property
+    def panel(self) -> 'Panel':
+        return self._panel
 
     @property
     def direcy(self) -> 'Vector':
@@ -252,10 +266,42 @@ def edges_array(edges: list[Edge]) -> 'NDArray':
     for i, edge in enumerate(edges):
         varray[i, edge.grida.ind] = edge.gridb_fac
         varray[i, edge.gridb.ind] = edge.grida_fac
-        if edge.panela is not None:
+        if edge.panela is None and edge.panelb is None:
+            raise ValueError(f'Edge {edge} has no panels')
+        elif edge.panel is not None:
+            panel = edge.panel
+            vals: list[dict[int, float]] = [{panel.ind: 1.0}]
+            for ej in panel.edges:
+                if ej.panel is None:
+                    val: dict[int, float] = {}
+                    val[ej.panela.ind] = ej.panelb_fac
+                    val[ej.panelb.ind] = ej.panela_fac
+                    vals.append(val)
+            grad = panel.panel_gradient
+            if len(vals) != grad.shape[1]:
+                raise ValueError(f'Panel {panel} has {len(vals)} edges but gradient has {grad.shape[0]} rows')
+            dzdx: dict[int, float] = {}
+            dzdy: dict[int, float] = {}
+            z: dict[int, float] = {}
+            for val in vals:
+                for key in val:
+                    dzdx[key] = 0.0
+                    dzdy[key] = 0.0
+                    z[key] = 0.0
+            for k, val in enumerate(vals):
+                for key, value in val.items():
+                    dzdx[key] += grad[0, k] * value
+                    dzdy[key] += grad[1, k] * value
+                    z[key] += grad[2, k] * value
+            pnte = panel.crd.point_to_local(edge.edge_point)
+            xe = pnte.x
+            ye = pnte.y
+            for key in z:
+                parray[i, key] = dzdx[key] * xe + dzdy[key] * ye + z[key]
+        else:
             parray[i, edge.panela.ind] = edge.panelb_fac
-        if edge.panelb is not None:
             parray[i, edge.panelb.ind] = edge.panela_fac
-    earray = lstsq(varray, parray, rcond=None)[0]
+    amat = varray.transpose() @ varray
+    bmat = varray.transpose() @ parray
+    earray = solve(amat, bmat)
     return earray
-

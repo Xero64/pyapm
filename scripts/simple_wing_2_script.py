@@ -4,7 +4,7 @@ from IPython.display import display_markdown
 
 from pyapm.classes import panelsystem_from_json  # , PanelResult
 from pyapm.outputs.msh import panelresult_to_msh
-from pyapm.outputs.k3d import PanelPlot, Plot
+from pyapm.outputs.k3d import PanelPlot
 
 #%%
 # Create Panel System
@@ -47,17 +47,7 @@ display_markdown(pres.surface_loads)
 # Print Outs
 print(f'sig = \n{pres.sig}')
 print(f'mu = \n{pres.mu}')
-
-mug = psys.edges_array@pres.mu
-print(f'mug = \n{mug}')
-
-#%%
-# Loop Through Grids
-for pid in sorted(psys.pnls):
-    pnl = psys.pnls[pid]
-    qx, qy = pnl.diff_mu(pres.mu)
-    qfs = pnl.crd.vector_to_local(pres.vfs)
-    print(f'qx = {qx+qfs.x}, qy = {qy+qfs.y}')
+print(f'mug = \n{pres.mug}')
 
 #%%
 # Distribution Plots
@@ -97,14 +87,36 @@ _ = axw.set_xlabel('Span-Wise Coordinate - y (m)')
 # Display Result
 pnlpl = PanelPlot(psys, pres)
 
-mshplot = Plot()
+mshplot = pnlpl.plot()
 mshplot += pnlpl.panel_mesh()
 mshplot.display()
 
-sigplot = Plot()
+sigplot = pnlpl.plot()
 sigplot += pnlpl.panel_sigma_plot()
 sigplot.display()
 
-muplot = Plot()
+siggplot = pnlpl.plot()
+siggplot += pnlpl.grid_sigma_plot()
+siggplot.display()
+
+muplot = pnlpl.plot()
 muplot += pnlpl.panel_mu_plot()
 muplot.display()
+
+mugplot = pnlpl.plot()
+mugplot += pnlpl.grid_mu_plot()
+mugplot.display()
+
+#%%
+# Loop Through Grids
+# for pid in sorted(psys.pnls):
+#     pnl = psys.pnls[pid]
+
+pnl = psys.pnls[12]
+print(f'{pnl.crd.pnt = }')
+for face in pnl.faces:
+    print(f'{face.cord.pnt = }')
+qx_old, qy_old = pnl.diff_mu_old(pres.mu)
+q = pnl.diff_mu(pres.mu, pres.mug)
+print(f'{qx_old = }, {qy_old = }')
+print(f'{q.x = }, {q.y = }')

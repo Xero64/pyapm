@@ -447,13 +447,21 @@ class PanelSystem():
     @property
     def edges(self) -> list['Edge']:
         if self._edges is None:
+            start = perf_counter()
             self._edges = edges_from_system(self)
+            finish = perf_counter()
+            elapsed = finish - start
+            print(f'Edges assembly time is {elapsed:.3f} seconds.')
         return self._edges
 
     @property
     def edges_array(self) -> 'NDArray':
         if self._edges_array is None:
+            start = perf_counter()
             self._edges_array = edges_array(self.edges)
+            finish = perf_counter()
+            elapsed = finish - start
+            print(f'Edges array assembly time is {elapsed:.3f} seconds.')
         return self._edges_array
 
     def unsig(self, mach: float = 0.0) -> Vector:

@@ -1,10 +1,11 @@
 from typing import TYPE_CHECKING, Any
 
-from k3d import Plot, mesh, vectors
-from numpy import float32, uint32, zeros
+from k3d import mesh, vectors
+from k3d.plot import Plot
+from numpy import concatenate, float32, uint32, zeros
 
 if TYPE_CHECKING:
-    from k3d.objects import Mesh, Vectors
+    from k3d.factory import Mesh, Vectors
     from numpy.typing import NDArray
     from pygeom.geom3d import Vector
 
@@ -22,6 +23,7 @@ class PanelPlot:
     _faces: 'NDArray'
     _pntos: 'NDArray'
     _grids: 'NDArray'
+    _vinds: 'NDArray'
 
     __slots__ = tuple(__annotations__)
 
@@ -39,10 +41,13 @@ class PanelPlot:
             if attr not in exclude and attr.startswith('_'):
                 setattr(self, attr, None)
 
+    def plot(self) -> 'Plot':
+        return Plot()
+
     @property
     def system(self) -> 'PanelSystem':
         if self._system is None:
-            self._system = self._result.system
+            self._system = self._result.sys
         return self._system
 
     @system.setter
@@ -67,6 +72,7 @@ class PanelPlot:
             num_faces += panel.num
             num_verts += panel.num*3
         self._pinds = zeros(num_verts, dtype=uint32)
+        self._vinds = zeros(num_verts, dtype=uint32)
         self._verts = zeros((num_verts, 3), dtype=float32)
         self._faces = zeros((num_faces, 3), dtype=uint32)
         self._pntos = zeros((self.system.numpnl, 3), dtype=float32)
@@ -77,14 +83,17 @@ class PanelPlot:
             self._pntos[i, :] = panel.pnto.to_xyz()
             for j in range(panel.num):
                 self._pinds[k] = panel.ind
-                self._verts[k, :] = panel.grds[j-1].to_xyz()
+                self._vinds[k] = panel.grds[j - 1].ind + self.system.numpnl
+                self._verts[k, :] = panel.grds[j - 1].to_xyz()
                 self._faces[l, 0] = k
                 k += 1
                 self._pinds[k] = panel.ind
+                self._vinds[k] = panel.grds[j].ind + self.system.numpnl
                 self._verts[k, :] = panel.grds[j].to_xyz()
                 self._faces[l, 1] = k
                 k += 1
                 self._pinds[k] = panel.ind
+                self._vinds[k] = panel.ind
                 self._verts[k, :] = panel.pnto.to_xyz()
                 self._faces[l, 2] = k
                 k += 1
@@ -95,6 +104,12 @@ class PanelPlot:
         if self._pinds is None:
             self.calculate_panel()
         return self._pinds
+
+    @property
+    def vinds(self) -> 'NDArray':
+        if self._vinds is None:
+            self.calculate_panel()
+        return self._vinds
 
     @property
     def verts(self) -> 'NDArray':
@@ -139,48 +154,14 @@ class PanelPlot:
     def panel_sigma_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
         return self.panel_mesh_plot(self.result.sig, **kwargs)
 
-    # def dpanel_normal_vectors(self, **kwargs: dict[str, Any]) -> 'Vectors':
-    #     scale = kwargs.pop('scale', 1.0)
-    #     if self.result is None:
-    #         dnrml = self.system.dnormal
-    #     else:
-    #         dnrml = self.result.dnrml
-    #     return self.dpanel_vectors(dnrml*scale, **kwargs)
+    def grid_mesh_plot(self, values: 'NDArray', **kwargs: dict[str, Any]) -> 'Mesh':
+        attribute = values[self.vinds].astype(float32)
+        return mesh(self.verts, self.faces, attribute=attribute, **kwargs)
 
-    # def dpanel_normal_approx_vectors(self, **kwargs: dict[str, Any]) -> 'Vectors':
-    #     scale = kwargs.pop('scale', 1.0)
-    #     return self.dpanel_vectors(self.result.dnormal_approx*scale, **kwargs)
+    def grid_mu_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+        values = concatenate((self.result.mu, self.result.mug))
+        return self.grid_mesh_plot(values, **kwargs)
 
-    # def npanel_normal_vectors(self, **kwargs: dict[str, Any]) -> 'Vectors':
-    #     scale = kwargs.pop('scale', 1.0)
-    #     if self.result is None:
-    #         nnrml = self.system.nnormal
-    #     else:
-    #         nnrml = self.result.nnrml
-    #     return self.npanel_vectors(nnrml*scale, **kwargs)
-
-    # def npanel_normal_approx_vectors(self, **kwargs: dict[str, Any]) -> 'Vectors':
-    #     scale = kwargs.pop('scale', 1.0)
-    #     return self.npanel_vectors(self.result.nnormal_approx*scale, **kwargs)
-
-    # def grid_vectors(self, vecs: 'Vector', **kwargs: dict[str, Any]) -> 'Vectors':
-    #     scale = kwargs.pop('scale', 1.0)
-    #     vecs = vecs*scale
-    #     values = vecs.stack_xyz().astype(float32)
-    #     return vectors(self.grids, values, **kwargs)
-
-    # def grid_velocity_vectors(self, **kwargs: dict[str, Any]) -> 'Vectors':
-    #     vecs = self.result.result.ngvel
-    #     return self.grid_vectors(vecs, **kwargs)
-
-    # def grid_force_vectors(self, **kwargs: dict[str, Any]) -> 'Vectors':
-    #     vecs = self.result.result.ngfrc
-    #     return self.grid_vectors(vecs, **kwargs)
-
-    # def grid_moment_vectors(self, **kwargs: dict[str, Any]) -> 'Vectors':
-    #     vecs = self.result.result.ngmom
-    #     return self.grid_vectors(vecs, **kwargs)
-
-    # def grid_pressure_vectors(self, **kwargs: dict[str, Any]) -> 'Vectors':
-    #     vecs = self.result.result.ngfrc/self.system.gridarea
-    #     return self.grid_vectors(vecs, **kwargs)
+    def grid_sigma_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+        values = concatenate((self.result.sig, self.result.sigg))
+        return self.grid_mesh_plot(values, **kwargs)

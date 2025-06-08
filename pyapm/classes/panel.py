@@ -2,6 +2,8 @@ from typing import TYPE_CHECKING
 
 from numpy import (absolute, acos, asarray, full, logical_not, minimum, ones,
                    pi, sqrt)
+from numpy.linalg import solve
+from pygeom.geom2d import Vector2D
 from pygeom.geom3d import IHAT, KHAT, Coordinate, Vector
 
 from .dirichletpoly import DirichletPoly
@@ -11,6 +13,7 @@ from .horseshoedoublet import HorseshoeDoublet
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
+    from .edge import Edge
     from .panelsection import PanelSection
     from .panelsheet import PanelSheet
     from .panelsurface import PanelSurface
@@ -18,6 +21,153 @@ if TYPE_CHECKING:
 oor2 = 1/sqrt(2.0)
 angtol = pi/4
 
+class PanelFace:
+    fid: int = None
+    grda: Grid = None
+    grdb: Grid = None
+    pnl: 'Panel' = None
+    ind: int = None
+    _pnto: Vector = None
+    _nrml: Vector = None
+    _jac: float = None
+    _area: float = None
+    _cord: Coordinate = None
+    _pnta: Vector2D = None
+    _pntb: Vector2D = None
+    _pntc: Vector2D = None
+    _xba: float = None
+    _xac: float = None
+    _xcb: float = None
+    _yab: float = None
+    _ybc: float = None
+    _yca: float = None
+
+    def __init__(self, fid: int, grda: Grid, grdb: Grid, pnl: 'Panel') -> None:
+        self.fid = fid
+        self.grda = grda
+        self.grdb = grdb
+        self.pnl = pnl
+
+    @property
+    def grdc(self) -> Vector:
+        return self.pnl.pnto
+
+    @property
+    def pnto(self) -> Vector:
+        if self._pnto is None:
+            self._pnto = (self.grda + self.grdb + self.grdc)/3
+        return self._pnto
+
+    def calc_normal_and_jac(self) -> tuple[Vector, float]:
+        if self._nrml is None or self._area is None:
+            vecab = self.grdb - self.grda
+            vecbc = self.grdc - self.grdb
+            nrml, jac = vecab.cross(vecbc).to_unit(return_magnitude=True)
+        return nrml, jac
+
+    @property
+    def nrml(self) -> Vector:
+        if self._nrml is None:
+            self._nrml, self._jac = self.calc_normal_and_jac()
+        return self._nrml
+
+    @property
+    def jac(self) -> float:
+        if self._jac is None:
+            self._nrml, self._jac = self.calc_normal_and_jac()
+        return self._jac
+
+    @property
+    def area(self) -> float:
+        if self._area is None:
+            self._area = self.jac/2.0
+        return self._area
+
+    def set_dirl(self, vecl: Vector) -> None:
+        dirz = self.nrml
+        vecy = dirz.cross(vecl)
+        vecx = vecy.cross(dirz)
+        self._cord = Coordinate(self.grdc, vecx, vecy)
+
+    @property
+    def cord(self) -> Coordinate:
+        if self._cord is None:
+            raise ValueError('PanelFace coordinate not set. Call set_dirl() first.')
+        return self._cord
+
+    @property
+    def pnta(self) -> Vector2D:
+        if self._pnta is None:
+            veca = Vector.from_obj(self.grda)
+            loca = self.cord.point_to_local(veca)
+            self._pnta = Vector2D.from_obj(loca)
+        return self._pnta
+
+    @property
+    def pntb(self) -> Vector2D:
+        if self._pntb is None:
+            vecb = Vector.from_obj(self.grdb)
+            locb = self.cord.point_to_local(vecb)
+            self._pntb = Vector2D.from_obj(locb)
+        return self._pntb
+
+    @property
+    def pntc(self) -> Vector2D:
+        if self._pntc is None:
+            vecc = Vector.from_obj(self.grdc)
+            locc = self.cord.point_to_local(vecc)
+            self._pntc = Vector2D.from_obj(locc)
+        return self._pntc
+
+    @property
+    def xba(self) -> float:
+        if self._xba is None:
+            self._xba = self.pntb.x - self.pnta.x
+        return self._xba
+
+    @property
+    def xac(self) -> float:
+        if self._xac is None:
+            self._xac = self.pnta.x - self.pntc.x
+        return self._xac
+
+    @property
+    def xcb(self) -> float:
+        if self._xcb is None:
+            self._xcb = self.pntc.x - self.pntb.x
+        return self._xcb
+
+    @property
+    def yab(self) -> float:
+        if self._yab is None:
+            self._yab = self.pnta.y - self.pntb.y
+        return self._yab
+
+    @property
+    def ybc(self) -> float:
+        if self._ybc is None:
+            self._ybc = self.pntb.y - self.pntc.y
+        return self._ybc
+
+    @property
+    def yca(self) -> float:
+        if self._yca is None:
+            self._yca = self.pntc.y - self.pnta.y
+        return self._yca
+
+    def face_dmu(self, mu: 'NDArray', mug: 'NDArray') -> Vector2D:
+        muc = mu[self.pnl.ind]
+        mua = mug[self.grda.ind]
+        mub = mug[self.grdb.ind]
+        # print(f'{self.jac = }')
+        # print(f'{self.grda.ind = }, {self.grdb.ind = }, {self.pnl.ind = }')
+        # print(f'{mua = }, {mub = }, {muc = }')
+        # print(f'{self.ybc = }, {self.yca = }, {self.yab = }')
+        # print(f'{self.xcb = }, {self.xac = }, {self.xba = }')
+        qxJ = mua*self.ybc + mub*self.yca + muc*self.yab
+        qyJ = mua*self.xcb + mub*self.xac + muc*self.xba
+        # print(f'{qxJ = }, {qyJ = }')
+        return Vector2D(qxJ, qyJ)/self.jac
 
 class Panel(DirichletPoly):
     pid: int = None
@@ -29,6 +179,9 @@ class Panel(DirichletPoly):
     sct: 'PanelSection' = None
     srfc: 'PanelSurface' = None
     _crd: Coordinate = None
+    _faces: list[PanelFace] = None
+    _edges: list['Edge'] = None
+    _panel_gradient: 'NDArray' = None
     _hsvs: list[HorseshoeDoublet] = None
     _grdlocs: list[Vector] = None
     _edgpnls: list['Panel'] = None
@@ -124,11 +277,67 @@ class Panel(DirichletPoly):
             magy = vecy.return_magnitude()
             if magy < oor2:
                 vecy = dirz.cross(KHAT)
-            diry = vecy.to_unit()
-            dirx = diry.cross(dirz).to_unit()
+            vecx = vecy.cross(dirz)
             pntc = self.pnto
-            self._crd = Coordinate(pntc, dirx, diry)
+            self._crd = Coordinate(pntc, vecx, vecy)
         return self._crd
+
+    @property
+    def edges(self) -> list['Edge']:
+        if self._edges is None:
+            self._edges = []
+        return self._edges
+
+    @property
+    def faces(self) -> list[PanelFace]:
+        if self._faces is None:
+            self._faces = []
+            for i in range(self.num):
+                a = i - 1
+                b = i
+                grda = self.grds[a]
+                grdb = self.grds[b]
+                face = PanelFace(i, grda, grdb, self)
+                face.set_dirl(self.crd.dirx)
+                self._faces.append(face)
+        return self._faces
+
+    @property
+    def panel_gradient(self) -> 'NDArray':
+        if self._panel_gradient is None:
+            n = 1.0
+            sum_x = 0.0
+            sum_y = 0.0
+            sum_xx = 0.0
+            sum_xy = 0.0
+            sum_yy = 0.0
+            x_lst = [0.0]
+            y_lst = [0.0]
+            o_lst = [1.0]
+            for edge in self.edges:
+                # print(f'{edge.panela = }, {edge.panelb = }, {edge.panel = }')
+                if edge.panel is None:
+                    pnte = self.crd.point_to_local(edge.edge_point)
+                    xe = pnte.x
+                    ye = pnte.y
+                    n += 1.0
+                    sum_x += xe
+                    sum_y += ye
+                    sum_xx += xe*xe
+                    sum_xy += xe*ye
+                    sum_yy += ye*ye
+                    x_lst.append(xe)
+                    y_lst.append(ye)
+                    o_lst.append(1.0)
+            amat = asarray([[sum_xx, sum_xy, sum_x],
+                            [sum_xy, sum_yy, sum_y],
+                            [sum_x, sum_y, n]])
+            # print(f'amat = \n{amat}\n')
+            bmat = asarray([x_lst, y_lst, o_lst])
+            # print(f'bmat = \n{bmat}\n')
+            cmat = solve(amat, bmat)
+            self._panel_gradient = cmat
+        return self._panel_gradient
 
     @property
     def hsvs(self):
@@ -269,7 +478,21 @@ class Panel(DirichletPoly):
             self._edgpntl = [self.crd.point_to_local(pnt) for pnt in self.edgpnts]
         return self._edgpntl
 
-    def diff_mu(self, mu: 'NDArray', display: bool = False):
+    def diff_mu(self, mu: 'NDArray', mug: 'NDArray') -> Vector2D:
+        qjac = Vector2D(0.0, 0.0)
+        jac = 0.0
+        i = 0
+        # print(f'{self.pid = }')
+        for face in self.faces:
+            # print(f'{i = }')
+            i += 1
+            q = face.face_dmu(mu, mug)
+            qjac += q*face.jac
+            jac += face.jac
+        q = qjac/jac
+        return q
+
+    def diff_mu_old(self, mu: 'NDArray', display: bool = False):
         pnlmu = mu[self.ind]
         if display:
             print(f'pnlmu = {pnlmu}')
@@ -281,7 +504,9 @@ class Panel(DirichletPoly):
         Js = 0.0
         qxJs = 0.0
         qyJs = 0.0
+        # print(f'{self.pid = }')
         for i in range(self.num):
+            # print(f'{i = }')
             a = i-1
             b = i
             mua = edgmu[a]
@@ -295,17 +520,23 @@ class Panel(DirichletPoly):
                 yb = edgy[b]
                 yc = 0.0
                 J = xa*yb - xa*yc - xb*ya + xb*yc + xc*ya - xc*yb
+                # print(f'{J = }')
                 Js += J
-                ybc = yb-yc
-                yca = yc-ya
-                yab = ya-yb
-                xcb = xc-xb
-                xac = xa-xc
-                xba = xb-xa
+                ybc = yb - yc
+                yca = yc - ya
+                yab = ya - yb
+                xcb = xc - xb
+                xac = xa - xc
+                xba = xb - xa
+                # print(f'{self.edginds = }')
+                # print(f'{mua = }, {mub = }, {muc = }')
+                # print(f'{ybc = }, {yca = }, {yab = }')
+                # print(f'{xcb = }, {xac = }, {xba = }')
                 qxJ = mua*ybc + mub*yca + muc*yab
                 qxJs += qxJ
                 qyJ = mua*xcb + mub*xac + muc*xba
                 qyJs += qyJ
+                # print(f'{qxJ = }, {qyJ = }')
         if Js == 0.0:
             for i in range(self.num):
                 a = i-1
@@ -324,17 +555,22 @@ class Panel(DirichletPoly):
                 yb = edgy[b]
                 yc = 0.0
                 J = xa*yb - xa*yc - xb*ya + xb*yc + xc*ya - xc*yb
+                # print(f'{J = }')
                 Js += J
-                ybc = yb-yc
-                yca = yc-ya
-                yab = ya-yb
-                xcb = xc-xb
-                xac = xa-xc
-                xba = xb-xa
+                ybc = yb - yc
+                yca = yc - ya
+                yab = ya - yb
+                xcb = xc - xb
+                xac = xa - xc
+                xba = xb - xa
+                # print(f'{mua = }, {mub = }, {muc = }')
+                # print(f'{ybc = }, {yca = }, {yab = }')
+                # print(f'{xcb = }, {xac = }, {xba = }')
                 qxJ = mua*ybc + mub*yca + muc*yab
                 qxJs += qxJ
                 qyJ = mua*xcb + mub*xac + muc*xba
                 qyJs += qyJ
+                # print(f'{qxJ = }, {qyJ = }')
         qx = -qxJs/Js
         qy = -qyJs/Js
         return qx, qy
