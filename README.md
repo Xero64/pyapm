@@ -91,13 +91,13 @@ An Aerodynamic Panel Method implemented in Python for use from Python scripts. E
 #%%
 # Import Dependencies
 from IPython.display import display_markdown
-from pyapm.classes import PanelResult, panelsystem_from_json
+from pyapm.classes import PanelResult, PanelSystem
 from pyapm.output.msh import panelresult_to_msh
 
 #%%
 # Create Panel Mesh
 jsonfilepath = r'../files/Prandtl-D2.json'
-psys = panelsystem_from_json(jsonfilepath)
+psys = PanelSystem.from_json(jsonfilepath)
 psys.assemble_panels()
 psys.assemble_horseshoes()
 psys.solve_system()

@@ -1,16 +1,15 @@
 #%%
 # Import Dependencies
 from IPython.display import display_markdown
-from pygeom.geom3d import Vector
-
-from pyapm.classes import panelsystem_from_json
+from pyapm.classes import PanelSystem
 from pyapm.outputs.msh import panelresult_to_msh
 from pyapm.tools.points import fetch_pids_ttol, point_results
+from pygeom.geom3d import Vector
 
 #%%
 # Create Panel System
 jsonfilepath = '../files/Test_Simple_Wing_2.json'
-psys = panelsystem_from_json(jsonfilepath)
+psys = PanelSystem.from_json(jsonfilepath)
 display_markdown(psys)
 
 #%%

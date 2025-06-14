@@ -1,14 +1,13 @@
 #%%
 # Import Dependencies
 from IPython.display import display_markdown
-
-from pyapm.classes import panelsystem_from_json  # , PanelResult
+from pyapm.classes import PanelSystem
 from pyapm.outputs.msh import panelresult_to_msh
 
 #%%
 # Create Panel System
 jsonfilepath = '../files/Test_Simple_Wing_2.json'
-psys = panelsystem_from_json(jsonfilepath)
+psys = PanelSystem.from_json(jsonfilepath)
 
 #%%
 # Solve Panel Result
@@ -51,9 +50,9 @@ print(f'mu = \n{pres.mu}')
 # Loop Through Grids
 for pid in sorted(psys.pnls):
     pnl = psys.pnls[pid]
-    qx, qy = pnl.diff_mu(pres.mu)
+    q = pnl.diff_mu(pres.mu, pres.mug)
     qfs = pnl.crd.vector_to_local(pres.vfs)
-    print(f'qx = {qx+qfs.x}, qy = {qy+qfs.y}')
+    print(f'qx = {q.x+qfs.x}, qy = {q.y+qfs.y}')
 
 #%%
 # Distribution Plots

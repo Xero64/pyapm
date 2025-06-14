@@ -1047,7 +1047,7 @@ class PanelResult():
         return report
 
     @classmethod
-    def panelresult_from_dict(cls, sys: 'System', resdata: dict[str, Any]) -> 'PanelResult':
+    def from_dict(cls, sys: 'System', resdata: dict[str, Any]) -> 'PanelResult':
         name = resdata['name']
         if 'inherit' in resdata:
             inherit = resdata['inherit']
@@ -2127,49 +2127,3 @@ def fix_zero(value: float, tol: float=1e-8) -> float:
     if abs(value) < tol:
         value = 0.0
     return value
-
-def panelresult_from_dict(psys: 'System', resdata: dict[str, Any]) -> PanelResult:
-    name = resdata['name']
-    if 'inherit' in resdata:
-        inherit = resdata['inherit']
-        if inherit in psys.results:
-            pres = psys.results[inherit].to_result(name=name)
-    else:
-        pres = PanelResult(name, psys)
-    for key in resdata:
-        if key == 'name':
-            continue
-        elif key == 'inherit':
-            continue
-        elif key == 'density':
-            rho = resdata['density']
-            pres.set_density(rho=rho)
-        elif key == 'mach':
-            mach = resdata['mach']
-            pres.set_state(mach=mach)
-        elif key == 'speed':
-            speed = resdata['speed']
-            pres.set_state(speed=speed)
-        elif key ==  'alpha':
-            alpha = resdata['alpha']
-            pres.set_state(alpha=alpha)
-        elif key ==  'beta':
-            beta = resdata['beta']
-            pres.set_state(beta=beta)
-        elif key ==  'pbo2V':
-            pbo2V = resdata['pbo2V']
-            pres.set_state(pbo2V=pbo2V)
-        elif key ==  'qco2V':
-            qco2V = resdata['qco2V']
-            pres.set_state(qco2V=qco2V)
-        elif key ==  'rbo2V':
-            rbo2V = resdata['rbo2V']
-            pres.set_state(rbo2V=rbo2V)
-        elif key in pres.ctrls:
-            pres.ctrls[key] = resdata[key]
-        elif key == 'rcg':
-            rcgdata = resdata[key]
-            rcg = Vector(rcgdata['x'], rcgdata['y'], rcgdata['z'])
-            pres.set_cg(rcg)
-    psys.results[name] = pres
-    return pres

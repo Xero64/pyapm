@@ -1,12 +1,11 @@
 #%%
 # Import Dependencies
 from numpy import zeros
+from pyapm.classes import Grid, Panel, PanelResult, PanelSystem
+from pyapm.outputs.msh import panelresult_to_msh
 from pyapm.tools.naca4 import NACA4
 from pygeom.geom3d import Vector
 from pygeom.tools.spacing import full_cosine_spacing
-
-from pyapm.classes import Grid, Panel, PanelResult, PanelSystem
-from pyapm.outputs.msh import panelresult_to_msh
 
 #%%
 # Create Grids

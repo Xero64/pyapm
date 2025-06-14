@@ -1,14 +1,13 @@
 #%%
 # Import Dependencies
 from IPython.display import display_markdown
-
-from pyapm import panelsystem_from_json
+from pyapm import PanelSystem
 from pyapm.classes.surfacestructure import SurfaceStructure
 
 #%%
 # Panel System
 jsonfilepath = '../files/Test_straight_naca_2412.json'
-psys = panelsystem_from_json(jsonfilepath)
+psys = PanelSystem.from_json(jsonfilepath)
 
 pres = psys.results['Test Alpha']
 display_markdown(pres)

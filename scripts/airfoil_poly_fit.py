@@ -2,7 +2,6 @@
 # Import Dependencies
 from matplotlib.pyplot import figure
 from pyapm.tools.naca4 import NACA4
-
 from pyapm.tools.polyfoil import polyfoil_from_xy
 
 #%%

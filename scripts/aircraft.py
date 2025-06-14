@@ -1,15 +1,14 @@
 #%%
 # Import Dependencies
 from IPython.display import display_markdown
-
-from pyapm import panelsystem_from_json
-from pyapm.outputs.msh import panelresult_to_msh
+from pyapm import PanelSystem
 from pyapm.outputs.k3d import PanelPlot, Plot
+from pyapm.outputs.msh import panelresult_to_msh
 
 #%%
 # Import Geometry
 jsonfilepath = '../files/Aircraft.json'
-psys = panelsystem_from_json(jsonfilepath)
+psys = PanelSystem.from_json(jsonfilepath)
 
 #%%
 # Display System

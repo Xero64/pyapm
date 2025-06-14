@@ -1,15 +1,14 @@
 #%%
 # Import Dependencies
 from IPython.display import display_markdown
-
-from pyapm.classes import panelsystem_from_json  # , PanelResult
-from pyapm.outputs.msh import panelresult_to_msh
+from pyapm.classes import PanelSystem  # , PanelResult
 from pyapm.outputs.k3d import PanelPlot
+from pyapm.outputs.msh import panelresult_to_msh
 
 #%%
 # Create Panel System
 jsonfilepath = '../files/Test_Simple_Wing_2.json'
-psys = panelsystem_from_json(jsonfilepath)
+psys = PanelSystem.from_json(jsonfilepath)
 
 #%%
 # Solve Panel Result

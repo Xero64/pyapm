@@ -1,14 +1,13 @@
 #%%
 # Import Dependencies
 from IPython.display import display_markdown
-
-from pyapm.classes import panelsystem_from_json
+from pyapm.classes import PanelSystem
 from pyapm.outputs.msh import panelresult_to_msh
 
 #%%
 # Create Panel Mesh
 jsonfilepath = '../files/Prandtl-D2.json'
-psys = panelsystem_from_json(jsonfilepath)
+psys = PanelSystem.from_json(jsonfilepath)
 psys.assemble_panels()
 psys.assemble_horseshoes()
 psys.solve_system()

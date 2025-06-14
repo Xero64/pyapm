@@ -4,7 +4,6 @@
 from matplotlib.pyplot import figure
 from matplotlib.tri import Triangulation
 from numpy import concatenate
-
 from pyapm.tools.naca4 import NACA4
 
 #%%

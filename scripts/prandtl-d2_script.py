@@ -3,7 +3,7 @@
 from IPython.display import display_markdown
 from matplotlib.pyplot import figure
 from numpy import zeros
-from pyapm import panelsystem_from_json
+from pyapm import PanelSystem
 from pyapm.classes.horseshoevortex2d import HorseshoeVortex2D, Vector2D
 from pyapm.outputs.k3d import PanelPlot
 from pyapm.outputs.msh import panelresult_to_msh
@@ -12,7 +12,7 @@ from pygeom.geom2d import Vector2D
 #%%
 # Create Panel Mesh
 jsonfilepath = '../files/Prandtl-D2.json'
-psys = panelsystem_from_json(jsonfilepath)
+psys = PanelSystem.from_json(jsonfilepath)
 display_markdown(psys)
 
 #%%

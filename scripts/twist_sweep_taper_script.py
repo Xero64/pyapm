@@ -1,14 +1,13 @@
 #%%
 # Load Dependencies
 from IPython.display import display_markdown
-
-from pyapm import panelsystem_from_json
+from pyapm import PanelSystem
 from pyapm.outputs.msh import panelresult_to_msh
 
 #%%
 # Create Lattice System
 jsonfilepath = '../files/Test_twist_sweep_taper.json'
-psys = panelsystem_from_json(jsonfilepath)
+psys = PanelSystem.from_json(jsonfilepath)
 display_markdown(psys)
 
 #%%

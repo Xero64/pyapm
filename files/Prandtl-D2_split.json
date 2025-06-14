@@ -13,7 +13,7 @@
             "twist": 0.0,
             "mirror": true,
             "cnum": 16,
-            "close": false,
+            "close": true,
             "sections": [
                 {
                     "xpos": 0.0,
