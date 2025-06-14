@@ -112,7 +112,7 @@ class Edge():
             else:
                 direcz_b = self.panelb.crd.dirz
                 direcx_b = self.direcy.cross(direcz_b)
-                self._coordb = Coordinate(self.gridb, direcx_b, self.direcy)
+                self._coordb = Coordinate(self.grida, direcx_b, self.direcy)
         return self._coordb
 
     @property
@@ -249,58 +249,24 @@ def edges_from_system(system: 'PanelSystem') -> list[Edge]:
     return edges
 
 def edges_array(edges: list[Edge]) -> 'NDArray':
-    gindices = zeros((len(edges), 2), dtype=int)
-    pindices = zeros((len(edges), 2), dtype=int)
-    for i, edge in enumerate(edges):
-        gindices[i, 0] = edge.grida.ind
-        gindices[i, 1] = edge.gridb.ind
-        if edge.panela is not None:
-            pindices[i, 0] = edge.panela.ind
-        if edge.panelb is not None:
-            pindices[i, 1] = edge.panelb.ind
-    num_edges = len(edges)
+    conedges = [edge for edge in edges if edge.panel is None]
+    num_edges = len(conedges)
+    gindices = zeros((num_edges, 2), dtype=int)
+    pindices = zeros((num_edges, 2), dtype=int)
+    for i, conedge in enumerate(conedges):
+        gindices[i, 0] = conedge.grida.ind
+        gindices[i, 1] = conedge.gridb.ind
+        pindices[i, 0] = conedge.panela.ind
+        pindices[i, 1] = conedge.panelb.ind
     max_vind = gindices.max()
     max_pind = pindices.max()
     varray = zeros((num_edges, max_vind + 1), dtype=float)
     parray = zeros((num_edges, max_pind + 1), dtype=float)
-    for i, edge in enumerate(edges):
-        varray[i, edge.grida.ind] = edge.gridb_fac
-        varray[i, edge.gridb.ind] = edge.grida_fac
-        if edge.panela is None and edge.panelb is None:
-            raise ValueError(f'Edge {edge} has no panels')
-        elif edge.panel is not None:
-            panel = edge.panel
-            vals: list[dict[int, float]] = [{panel.ind: 1.0}]
-            for ej in panel.edges:
-                if ej.panel is None:
-                    val: dict[int, float] = {}
-                    val[ej.panela.ind] = ej.panelb_fac
-                    val[ej.panelb.ind] = ej.panela_fac
-                    vals.append(val)
-            grad = panel.panel_gradient
-            if len(vals) != grad.shape[1]:
-                raise ValueError(f'Panel {panel} has {len(vals)} edges but gradient has {grad.shape[0]} rows')
-            dzdx: dict[int, float] = {}
-            dzdy: dict[int, float] = {}
-            z: dict[int, float] = {}
-            for val in vals:
-                for key in val:
-                    dzdx[key] = 0.0
-                    dzdy[key] = 0.0
-                    z[key] = 0.0
-            for k, val in enumerate(vals):
-                for key, value in val.items():
-                    dzdx[key] += grad[0, k] * value
-                    dzdy[key] += grad[1, k] * value
-                    z[key] += grad[2, k] * value
-            pnte = panel.crd.point_to_local(edge.edge_point)
-            xe = pnte.x
-            ye = pnte.y
-            for key in z:
-                parray[i, key] = dzdx[key] * xe + dzdy[key] * ye + z[key]
-        else:
-            parray[i, edge.panela.ind] = edge.panelb_fac
-            parray[i, edge.panelb.ind] = edge.panela_fac
+    for i, conedge in enumerate(conedges):
+        varray[i, conedge.grida.ind] = conedge.gridb_fac
+        varray[i, conedge.gridb.ind] = conedge.grida_fac
+        parray[i, conedge.panela.ind] = conedge.panelb_fac
+        parray[i, conedge.panelb.ind] = conedge.panela_fac
     amat = varray.transpose() @ varray
     bmat = varray.transpose() @ parray
     earray = solve(amat, bmat)
