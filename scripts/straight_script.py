@@ -25,7 +25,7 @@ pres = psys.results['Test Alpha']
 display_markdown(pres)
 
 #%%
-# Lattice Result Result
+# Lattice Result
 lres = lsys.results['Test Alpha']
 display_markdown(lres)
 
@@ -80,17 +80,8 @@ mugplot = pnlpl.plot()
 mugplot += pnlpl.grid_mu_plot()
 mugplot.display()
 
-# #%%
-# # Loop Through Grids
-# for pid in sorted(psys.pnls):
-#     pnl = psys.pnls[pid]
-#     print(f'Panel ID: {pid}')
-#     # pnl = psys.pnls[1007]
-#     # print(f'{pnl.crd.pnt = }')
-#     # for face in pnl.faces:
-#     #     print(f'{face.cord.pnt = }')
-#     qx_old, qy_old = pnl.diff_mu_old(pres.mu)
-#     q = pnl.diff_mu(pres.mu, pres.mug)
-#     # print(f'{qx_old + q.x = :.6f}, {qy_old + q.y = :.6f}')
-#     print(f'{qx_old = :.6f}, {qy_old = :.6f}')
-#     print(f'{q.x = :.6f}, {q.y = :.6f}')
+frcplot = pnlpl.plot()
+frcplot += pnlpl.panel_mesh()
+frcplot += pnlpl.panel_vectors_plot(pres.nfres.nffrc, scale=100.0,
+                                    head_size=0.001, line_width=0.001)
+frcplot.display()
