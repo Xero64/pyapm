@@ -155,19 +155,14 @@ class PanelFace:
             self._yca = self.pntc.y - self.pnta.y
         return self._yca
 
-    def face_dmu(self, mu: 'NDArray', mug: 'NDArray') -> Vector2D:
+    def face_qxJ(self, mu: 'NDArray', mug: 'NDArray') -> Vector2D:
         muc = mu[self.pnl.ind]
         mua = mug[self.grda.ind]
         mub = mug[self.grdb.ind]
-        # print(f'{self.jac = }')
-        # print(f'{self.grda.ind = }, {self.grdb.ind = }, {self.pnl.ind = }')
-        # print(f'{mua = }, {mub = }, {muc = }')
-        # print(f'{self.ybc = }, {self.yca = }, {self.yab = }')
-        # print(f'{self.xcb = }, {self.xac = }, {self.xba = }')
         qxJ = mua*self.ybc + mub*self.yca + muc*self.yab
         qyJ = mua*self.xcb + mub*self.xac + muc*self.xba
-        # print(f'{qxJ = }, {qyJ = }')
-        return Vector2D(qxJ, qyJ)/self.jac
+        return Vector2D(qxJ, qyJ)
+
 
 class Panel(DirichletPoly):
     pid: int = None
@@ -486,8 +481,8 @@ class Panel(DirichletPoly):
         for face in self.faces:
             # print(f'{i = }')
             i += 1
-            q = face.face_dmu(mu, mug)
-            qjac += q*face.jac
+            qxJ = face.face_qxJ(mu, mug)
+            qjac += qxJ
             jac += face.jac
         q = qjac/jac
         return q

@@ -354,49 +354,50 @@ class PanelResult():
                     self._phi += ctrlrad*(self.unphi[:, indo].dot(self.ofs))
         return self._phi
 
-    def calc_qloc_old(self, mu: 'NDArray', vfs: Vector | None = None,
-                      ofs: Vector | None = None) -> Vector2D:
-        vfsg = Vector.zeros(self.arm.shape)
-        if vfs is not None:
-            vfsg += vfs
-        if ofs is not None:
-            vfsg += self.arm.cross(ofs)
-        vl = self.sys.pnldirx.dot(vfsg)
-        vt = self.sys.pnldiry.dot(vfsg)
-        ql = zeros(self.sys.numpnl)
-        qt = zeros(self.sys.numpnl)
-        for pnl in self.sys.pnls.values():
-            ql[pnl.ind], qt[pnl.ind] = pnl.diff_mu_old(mu)
-        # print(f'{ql = }')
-        # print(f'{qt = }')
-        return Vector2D(vl + ql, vt + qt)
-
-    # def calc_qloc_new(self, mu: 'NDArray', mug: 'NDArray | None' = None,
-    #             vfs: Vector | None = None, ofs: Vector | None = None) -> Vector2D:
-    #     if mug is None:
-    #         mug = self.calc_mug(mu)
+    # def calc_qloc_old(self, mu: 'NDArray', vfs: Vector | None = None,
+    #                   ofs: Vector | None = None) -> Vector2D:
     #     vfsg = Vector.zeros(self.arm.shape)
     #     if vfs is not None:
     #         vfsg += vfs
     #     if ofs is not None:
     #         vfsg += self.arm.cross(ofs)
-    #     vfsl_2d = Vector2D.zeros(self.sys.numpnl)
-    #     diff_mu = Vector2D.zeros(self.sys.numpnl)
+    #     vl = self.sys.pnldirx.dot(vfsg)
+    #     vt = self.sys.pnldiry.dot(vfsg)
+    #     ql = zeros(self.sys.numpnl)
+    #     qt = zeros(self.sys.numpnl)
     #     for pnl in self.sys.pnls.values():
-    #         vel_fs = pnl.crd.vector_to_local(vfsg[pnl.ind])
-    #         vfsl_2d[pnl.ind] = Vector2D.from_obj(vel_fs)
-    #         diff_mu[pnl.ind] = pnl.diff_mu(mu, mug)
-    #     # print(f'{diff_mu.x = }')
-    #     # print(f'{diff_mu.y = }')
-    #     return vfsl_2d - diff_mu
+    #         ql[pnl.ind], qt[pnl.ind] = pnl.diff_mu_old(mu)
+    #     # print(f'{ql = }')
+    #     # print(f'{qt = }')
+    #     return Vector2D(vl + ql, vt + qt)
+
+    def calc_qloc(self, mu: 'NDArray', mug: 'NDArray | None' = None, *,
+                  vfs: Vector | None = None,
+                  ofs: Vector | None = None) -> Vector2D:
+        if mug is None:
+            mug = self.calc_mug(mu)
+        vfsg = Vector.zeros(self.arm.shape)
+        if vfs is not None:
+            vfsg += vfs
+        if ofs is not None:
+            vfsg += self.arm.cross(ofs)
+        vfsl_2d = Vector2D.zeros(self.sys.numpnl)
+        diff_mu = Vector2D.zeros(self.sys.numpnl)
+        for pnl in self.sys.pnls.values():
+            vel_fs = pnl.crd.vector_to_local(vfsg[pnl.ind])
+            vfsl_2d[pnl.ind] = Vector2D.from_obj(vel_fs)
+            diff_mu[pnl.ind] = pnl.diff_mu(mu, mug)
+        # print(f'{diff_mu.x = }')
+        # print(f'{diff_mu.y = }')
+        return vfsl_2d - diff_mu
 
     @property
     def qloc(self) -> Vector2D:
         if self._qloc is None:
-            # self._qloc = self.calc_qloc_new(self.mu, self.mug,
-            #                                 vfs = self.vfs, ofs = self.ofs)
-            self._qloc = self.calc_qloc_old(self.mu, vfs = self.vfs,
-                                            ofs = self.ofs)
+            self._qloc = self.calc_qloc(self.mu, self.mug,
+                                        vfs = self.vfs, ofs = self.ofs)
+            # self._qloc = self.calc_qloc_old(self.mu, vfs = self.vfs,
+            #                                 ofs = self.ofs)
         return self._qloc
 
     @property
@@ -440,17 +441,19 @@ class PanelResult():
     def gctrlp_single(self, control: str):
         indv = self.sys.ctrls[control][0]
         indo = self.sys.ctrls[control][1]
-        mu = self.unmu[:, indv].dot(self.vfs) + self.unmu[:, indo].dot(self.ofs)
-        qloc = self.calc_qloc_old(mu, vfs=self.vfs, ofs=self.ofs)
-        vdot = self.qloc.dot(qloc)
+        dmu = self.unmu[:, indv].dot(self.vfs) + self.unmu[:, indo].dot(self.ofs)
+        dqloc = self.calc_qloc(dmu)#, vfs=self.vfs, ofs=self.ofs)
+        # qloc = self.calc_qloc_old(mu, vfs=self.vfs, ofs=self.ofs)
+        vdot = self.qloc.dot(dqloc)
         return (-2.0/self.speed**2)*vdot
 
     def gctrln_single(self, control: str):
         indv = self.sys.ctrls[control][2]
         indo = self.sys.ctrls[control][3]
-        mu = self.unmu[:, indv].dot(self.vfs) + self.unmu[:, indo].dot(self.ofs)
-        qloc = self.calc_qloc_old(mu, vfs=self.vfs, ofs=self.ofs)
-        vdot = self.qloc.dot(qloc)
+        dmu = self.unmu[:, indv].dot(self.vfs) + self.unmu[:, indo].dot(self.ofs)
+        dqloc = self.calc_qloc(dmu)#, vfs=self.vfs, ofs=self.ofs)
+        # qloc = self.calc_qloc_old(mu, vfs=self.vfs, ofs=self.ofs)
+        vdot = self.qloc.dot(dqloc)
         return (-2.0/self.speed**2)*vdot
 
     @property
@@ -458,8 +461,8 @@ class PanelResult():
         if self._ctresp is None:
             self._ctresp = {}
             for control in self.sys.ctrls:
-                cp = self.gctrlp_single(control)
-                self._ctresp[control] = NearFieldResult(self, cp)
+                dcp = self.gctrlp_single(control)
+                self._ctresp[control] = NearFieldResult(self, dcp)
         return self._ctresp
 
     @property
@@ -467,8 +470,8 @@ class PanelResult():
         if self._ctresn is None:
             self._ctresn = {}
             for control in self.sys.ctrls:
-                cp = self.gctrln_single(control)
-                self._ctresn[control] = NearFieldResult(self, cp)
+                dcp = self.gctrln_single(control)
+                self._ctresn[control] = NearFieldResult(self, dcp)
         return self._ctresn
 
     def plot_strip_lift_force_distribution(self, ax=None, axis: str='b',
@@ -1321,7 +1324,8 @@ class StabilityNearFieldResult():
     @property
     def dqloc(self) -> Vector2D:
         if self._dqloc is None:
-            self._dqloc = self.res.calc_qloc_old(self.dmu, self.dvfs, self.dofs)
+            self._dqloc = self.res.calc_qloc(self.dmu, vfs=self.dvfs, ofs=self.dofs)
+            # self._dqloc = self.res.calc_qloc_old(self.dmu, self.dvfs, self.dofs)
         return self._dqloc
 
     @property
