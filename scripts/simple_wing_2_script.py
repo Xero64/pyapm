@@ -71,11 +71,11 @@ _ = axw.set_xlabel('Span-Wise Coordinate - y (m)')
 # rho = 1.225
 # speed = 1.0
 # alpha = 5.0
-# pbo2V = 0.3
+# pbo2v = 0.3
 
 # pres = PanelResult(f'Test Case', psys)
 # pres.set_density(rho=rho)
-# pres.set_state(alpha=alpha, speed=speed, pbo2V=pbo2V)
+# pres.set_state(alpha=alpha, speed=speed, pbo2v=pbo2v)
 
 # #%%
 # Output MSH File

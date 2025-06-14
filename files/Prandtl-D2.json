@@ -76,7 +76,7 @@
         {
             "name": "Roll Case",
             "inherit": "Design Point",
-            "pbo2V": 0.1
+            "pbo2v": 0.1
         }
     ]
 }

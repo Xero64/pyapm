@@ -186,3 +186,12 @@ class PanelPlot:
     def panel_vectors_plot(self, vecs: 'Vector', **kwargs: dict[str, Any]) -> 'Vectors':
         return self.panel_vectors(vecs, **kwargs)
 
+    def panel_force_plot(self, **kwargs: dict[str, Any]) -> 'Vectors':
+        if self.result is None:
+            raise ValueError("Result must be set to plot forces.")
+        self.panel_vectors_plot(self.result.nfres.nffrc, **kwargs)
+
+    def panel_pressure_plot(self, **kwargs: dict[str, Any]) -> 'Vectors':
+        if self.result is None:
+            raise ValueError("Result must be set to plot forces.")
+        self.panel_mesh_plot(self.result.nfres.nfprs, **kwargs)

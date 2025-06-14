@@ -1,3 +1,5 @@
+from json import dump, load
+from os.path import dirname, exists, join
 from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
@@ -8,19 +10,19 @@ from pygeom.geom3d import Vector
 
 from ..tools import betm_from_mach
 from ..tools.mass import Mass, masses_from_data, masses_from_json
+from .edge import edges_array, edges_from_system
 from .grid import Grid
 from .panel import Panel
 from .panelresult import PanelResult
 from .panelsurface import panelsurface_from_json
 from .paneltrim import PanelTrim
-from .edge import edges_from_system, edges_array
 
 if TYPE_CHECKING:
     from matplotlib.axes import Axes
     from numpy.typing import NDArray
-    from .edge import Edge
 
     from ..tools.mass import MassCollection
+    from .edge import Edge
     from .horseshoedoublet import HorseshoeDoublet
     from .panelresult import PanelResult
     from .panelstrip import PanelStrip
@@ -38,7 +40,7 @@ class PanelSystem():
     rref: Vector = None
     ctrls: dict[str, tuple[int]] = None
     srfcs: list['PanelSurface'] = None
-    results: dict[str, 'PanelResult'] = None
+    results: dict[str, 'PanelResult | PanelTrim'] = None
     masses: dict[str, 'Mass | MassCollection'] = None # Store Mass Options
     mass: 'Mass | MassCollection | None' = None # Mass Object
     source: str = None
@@ -817,8 +819,6 @@ class PanelSystem():
     def from_json(cls, jsonfilepath: str,
                   trim: bool = True) -> 'PanelSystem':
 
-        from json import load
-
         with open(jsonfilepath, 'rt') as jsonfile:
             sysdct = load(jsonfile)
 
@@ -833,13 +833,19 @@ class PanelSystem():
             filetype = 'geom'
 
         if filetype == 'geom':
-            sys = cls.from_geom(sysdct, trim=trim)
+            sys = cls.from_geom(sysdct, trim=False)
         elif filetype == 'mesh':
-            sys = cls.from_mesh(sysdct, trim=trim)
+            sys = cls.from_mesh(sysdct, trim=False)
         else:
             raise ValueError('Incorrect file type.')
 
         sys.source = jsonfilepath
+
+        sys.load_initial_state(sys.source)
+
+        for result in sys.results.values():
+            if trim and isinstance(result, PanelTrim):
+                result.trim()
 
         return sys
 
@@ -912,8 +918,6 @@ class PanelSystem():
     @classmethod
     def from_geom(cls, sysdct: dict[str, any],
                   trim: bool = True) -> 'PanelSystem':
-
-        from os.path import dirname, exists, join
 
         jsonfilepath = sysdct.get('source', '.')
 
@@ -992,6 +996,59 @@ class PanelSystem():
         for i in range(len(cases)):
             resdata = cases[i]
             if 'trim' in resdata:
-                pres = PanelTrim.from_dict(self, resdata, trim=trim)
+                PanelTrim.from_dict(self, resdata, trim=False)
             else:
-                pres = PanelResult.from_dict(self, resdata)
+                PanelResult.from_dict(self, resdata)
+
+    def save_initial_state(self, infilepath: str,
+                           outfilepath: str | None = None,
+                           tolerance: float = 1e-10) -> None:
+
+        if not exists(infilepath):
+            raise FileNotFoundError(f"Input file {infilepath} does not exist.")
+
+        with open(infilepath, 'r') as jsonfile:
+            data = load(jsonfile)
+
+        data['state'] = {}
+        for resname, result in self.results.items():
+            data['state'][resname] = {}
+            if abs(result.alpha) > tolerance:
+                data['state'][resname]['alpha'] = result.alpha
+            if abs(result.beta) > tolerance:
+                data['state'][resname]['beta'] = result.beta
+            if abs(result.pbo2v) > tolerance:
+                data['state'][resname]['pbo2v'] = result.pbo2v
+            if abs(result.qco2v) > tolerance:
+                data['state'][resname]['qco2v'] = result.qco2v
+            if abs(result.rbo2v) > tolerance:
+                data['state'][resname]['rbo2v'] = result.rbo2v
+            for control in self.ctrls:
+                if abs(result.ctrls[control]) > tolerance:
+                    data['state'][resname][control] = result.ctrls[control]
+
+        if outfilepath is None:
+            outfilepath = infilepath
+
+        with open(outfilepath, 'w') as jsonfile:
+            dump(data, jsonfile, indent=4)
+
+    def load_initial_state(self, infilepath: str) -> None:
+
+        if exists(infilepath):
+
+            with open(infilepath, 'r') as jsonfile:
+                data: dict[str, Any] = load(jsonfile)
+
+            state: dict[str, Any] = data.get('state', {})
+
+            for result in self.results.values():
+                resdata: dict[str, Any] = state.get(result.name, {})
+                result.alpha = resdata.get('alpha', result.alpha)
+                result.beta = resdata.get('beta', result.beta)
+                result.pbo2v = resdata.get('pbo2v', result.pbo2v)
+                result.qco2v = resdata.get('qco2v', result.qco2v)
+                result.rbo2v = resdata.get('rbo2v', result.rbo2v)
+                for control in self.ctrls:
+                    value = result.ctrls[control]
+                    result.ctrls[control] = resdata.get(control, value)

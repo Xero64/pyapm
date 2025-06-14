@@ -21,9 +21,9 @@ class PanelResult():
     speed: float = None
     alpha: float = None
     beta: float = None
-    pbo2V: float = None
-    qco2V: float = None
-    rbo2V: float = None
+    pbo2v: float = None
+    qco2v: float = None
+    rbo2v: float = None
     ctrls: dict[str, float] = None
     rcg: Vector = None
     mass: 'Mass' = None
@@ -71,9 +71,9 @@ class PanelResult():
         self.speed = 1.0
         self.alpha = 0.0
         self.beta = 0.0
-        self.pbo2V = 0.0
-        self.qco2V = 0.0
-        self.rbo2V = 0.0
+        self.pbo2v = 0.0
+        self.qco2v = 0.0
+        self.rbo2v = 0.0
         self.ctrls = {}
         for control in self.sys.ctrls:
             self.ctrls[control] = 0.0
@@ -90,8 +90,8 @@ class PanelResult():
 
     def set_state(self, mach: float | None = None, speed: float | None = None,
                   alpha: float | None = None, beta: float | None = None,
-                  pbo2V: float | None = None, qco2V: float | None = None,
-                  rbo2V: float | None = None) -> None:
+                  pbo2v: float | None = None, qco2v: float | None = None,
+                  rbo2v: float | None = None) -> None:
         if mach is not None:
             self.mach = mach
         if speed is not None:
@@ -100,12 +100,12 @@ class PanelResult():
             self.alpha = alpha
         if beta is not None:
             self.beta = beta
-        if pbo2V is not None:
-            self.pbo2V = pbo2V
-        if qco2V is not None:
-            self.qco2V = qco2V
-        if rbo2V is not None:
-            self.rbo2V = rbo2V
+        if pbo2v is not None:
+            self.pbo2v = pbo2v
+        if qco2v is not None:
+            self.qco2v = qco2v
+        if rbo2v is not None:
+            self.rbo2v = rbo2v
         self.reset()
 
     def set_controls(self, **kwargs: dict[str, float]) -> None:
@@ -214,9 +214,9 @@ class PanelResult():
     @property
     def pqr(self) -> Vector:
         if self._pqr is None:
-            p = self.pbo2V*2*self.speed/self.sys.bref
-            q = self.qco2V*2*self.speed/self.sys.cref
-            r = self.rbo2V*2*self.speed/self.sys.bref
+            p = self.pbo2v*2*self.speed/self.sys.bref
+            q = self.qco2v*2*self.speed/self.sys.cref
+            r = self.rbo2v*2*self.speed/self.sys.bref
             self._pqr = Vector(p, q, r)
         return self._pqr
 
@@ -877,7 +877,7 @@ class PanelResult():
         res = PanelResult(name, self.sys)
         res.set_density(rho=self.rho)
         res.set_state(speed=self.speed, alpha=self.alpha, beta=self.beta,
-                      pbo2V=self.pbo2V, qco2V=self.qco2V, rbo2V=self.rbo2V)
+                      pbo2v=self.pbo2v, qco2v=self.qco2v, rbo2v=self.rbo2v)
         res.set_controls(**self.ctrls)
         res.set_cg(self.rcg)
         return res
@@ -991,9 +991,9 @@ class PanelResult():
         table.add_column('Mach', efrm, data=[self.mach])
         report.add_object(table)
         table = MDTable()
-        table.add_column('pb/2V (rad)', cfrm, data=[self.pbo2V])
-        table.add_column('qc/2V (rad)', cfrm, data=[self.qco2V])
-        table.add_column('rb/2V (rad)', cfrm, data=[self.rbo2V])
+        table.add_column('pb/2V (rad)', cfrm, data=[self.pbo2v])
+        table.add_column('qc/2V (rad)', cfrm, data=[self.qco2v])
+        table.add_column('rb/2V (rad)', cfrm, data=[self.rbo2v])
         report.add_object(table)
         table = MDTable()
         table.add_column('xcg', '.5f', data=[self.rcg.x])
@@ -1075,15 +1075,15 @@ class PanelResult():
             elif key ==  'beta':
                 beta = resdata['beta']
                 pres.set_state(beta=beta)
-            elif key ==  'pbo2V':
-                pbo2V = resdata['pbo2V']
-                pres.set_state(pbo2V=pbo2V)
-            elif key ==  'qco2V':
-                qco2V = resdata['qco2V']
-                pres.set_state(qco2V=qco2V)
-            elif key ==  'rbo2V':
-                rbo2V = resdata['rbo2V']
-                pres.set_state(rbo2V=rbo2V)
+            elif key ==  'pbo2v':
+                pbo2v = resdata['pbo2v']
+                pres.set_state(pbo2v=pbo2v)
+            elif key ==  'qco2v':
+                qco2v = resdata['qco2v']
+                pres.set_state(qco2v=qco2v)
+            elif key ==  'rbo2v':
+                rbo2v = resdata['rbo2v']
+                pres.set_state(rbo2v=rbo2v)
             elif key in pres.ctrls:
                 pres.ctrls[key] = resdata[key]
             elif key == 'rcg':
@@ -1848,9 +1848,9 @@ class StabilityResult():
     _r: StabilityNearFieldResult = None
     _alpha: StabilityNearFieldResult = None
     _beta: StabilityNearFieldResult = None
-    _pbo2V: StabilityNearFieldResult = None
-    _qco2V: StabilityNearFieldResult = None
-    _rbo2V: StabilityNearFieldResult = None
+    _pbo2v: StabilityNearFieldResult = None
+    _qco2v: StabilityNearFieldResult = None
+    _rbo2v: StabilityNearFieldResult = None
     _pdbo2V: StabilityNearFieldResult = None
     _qdco2V: StabilityNearFieldResult = None
     _rdbo2V: StabilityNearFieldResult = None
@@ -1929,28 +1929,28 @@ class StabilityResult():
         return self._beta
 
     @property
-    def pbo2V(self) -> StabilityNearFieldResult:
-        if self._pbo2V is None:
+    def pbo2v(self) -> StabilityNearFieldResult:
+        if self._pbo2v is None:
             dpqr = Vector(2*self.res.speed/self.res.sys.bref, 0.0, 0.0)
             dofs = self.res.scs.vector_to_global(dpqr)
-            self._pbo2V = StabilityNearFieldResult(self.res, dofs = dofs)
-        return self._pbo2V
+            self._pbo2v = StabilityNearFieldResult(self.res, dofs = dofs)
+        return self._pbo2v
 
     @property
-    def qco2V(self) -> StabilityNearFieldResult:
-        if self._qco2V is None:
+    def qco2v(self) -> StabilityNearFieldResult:
+        if self._qco2v is None:
             dpqr = Vector(0.0, 2*self.res.speed/self.res.sys.cref, 0.0)
             dofs = self.res.scs.vector_to_global(dpqr)
-            self._qco2V = StabilityNearFieldResult(self.res, dofs = dofs)
-        return self._qco2V
+            self._qco2v = StabilityNearFieldResult(self.res, dofs = dofs)
+        return self._qco2v
 
     @property
-    def rbo2V(self) -> StabilityNearFieldResult:
-        if self._rbo2V is None:
+    def rbo2v(self) -> StabilityNearFieldResult:
+        if self._rbo2v is None:
             dpqr = Vector(0.0, 0.0, 2*self.res.speed/self.res.sys.bref)
             dofs = self.res.scs.vector_to_global(dpqr)
-            self._rbo2V = StabilityNearFieldResult(self.res, dofs = dofs)
-        return self._rbo2V
+            self._rbo2v = StabilityNearFieldResult(self.res, dofs = dofs)
+        return self._rbo2v
 
     @property
     def pdbo2V(self) -> StabilityNearFieldResult:
@@ -1988,8 +1988,8 @@ class StabilityResult():
         if self._sprat is None:
             Clb = self.beta.Cl
             Cnb = self.beta.Cn
-            Cnr = self.rbo2V.Cn
-            Clr = self.rbo2V.Cl
+            Cnr = self.rbo2v.Cn
+            Clr = self.rbo2v.Cl
             if Clb == 0.0 and Clr == 0.0:
                 self._sprat = float('nan')
             elif Cnb == 0.0 and Cnr == 0.0:
@@ -2045,23 +2045,23 @@ class StabilityResult():
         table.add_column('Cmb', sfrm, data=[self.beta.Cm])
         table.add_column('Cnb', sfrm, data=[self.beta.Cn])
         table = report.add_table()
-        table.add_column('CLp', sfrm, data=[self.pbo2V.CL])
-        table.add_column('CYp', sfrm, data=[self.pbo2V.CY])
-        table.add_column('Clp', sfrm, data=[self.pbo2V.Cl])
-        table.add_column('Cmp', sfrm, data=[self.pbo2V.Cm])
-        table.add_column('Cnp', sfrm, data=[self.pbo2V.Cn])
+        table.add_column('CLp', sfrm, data=[self.pbo2v.CL])
+        table.add_column('CYp', sfrm, data=[self.pbo2v.CY])
+        table.add_column('Clp', sfrm, data=[self.pbo2v.Cl])
+        table.add_column('Cmp', sfrm, data=[self.pbo2v.Cm])
+        table.add_column('Cnp', sfrm, data=[self.pbo2v.Cn])
         table = report.add_table()
-        table.add_column('CLq', sfrm, data=[self.qco2V.CL])
-        table.add_column('CYq', sfrm, data=[self.qco2V.CY])
-        table.add_column('Clq', sfrm, data=[self.qco2V.Cl])
-        table.add_column('Cmq', sfrm, data=[self.qco2V.Cm])
-        table.add_column('Cnq', sfrm, data=[self.qco2V.Cn])
+        table.add_column('CLq', sfrm, data=[self.qco2v.CL])
+        table.add_column('CYq', sfrm, data=[self.qco2v.CY])
+        table.add_column('Clq', sfrm, data=[self.qco2v.Cl])
+        table.add_column('Cmq', sfrm, data=[self.qco2v.Cm])
+        table.add_column('Cnq', sfrm, data=[self.qco2v.Cn])
         table = report.add_table()
-        table.add_column('CLr', sfrm, data=[self.rbo2V.CL])
-        table.add_column('CYr', sfrm, data=[self.rbo2V.CY])
-        table.add_column('Clr', sfrm, data=[self.rbo2V.Cl])
-        table.add_column('Cmr', sfrm, data=[self.rbo2V.Cm])
-        table.add_column('Cnr', sfrm, data=[self.rbo2V.Cn])
+        table.add_column('CLr', sfrm, data=[self.rbo2v.CL])
+        table.add_column('CYr', sfrm, data=[self.rbo2v.CY])
+        table.add_column('Clr', sfrm, data=[self.rbo2v.Cl])
+        table.add_column('Cmr', sfrm, data=[self.rbo2v.Cm])
+        table.add_column('Cnr', sfrm, data=[self.rbo2v.Cn])
         report.add_heading(f'Neutral Point Xnp = {self.xnp:.6f}', 3)
         report.add_heading(f'Clb.Cnr/(Clr.Cnb) = {self.sprat:.6f} (> 1 if spirally stable)', 3)
         return report
