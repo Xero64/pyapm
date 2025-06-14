@@ -14,7 +14,7 @@ from .edge import edges_array, edges_from_system
 from .grid import Grid
 from .panel import Panel
 from .panelresult import PanelResult
-from .panelsurface import panelsurface_from_json
+from .panelsurface import PanelSurface
 from .paneltrim import PanelTrim
 
 if TYPE_CHECKING:
@@ -24,10 +24,7 @@ if TYPE_CHECKING:
     from ..tools.mass import MassCollection
     from .edge import Edge
     from .horseshoedoublet import HorseshoeDoublet
-    from .panelresult import PanelResult
     from .panelstrip import PanelStrip
-    from .panelsurface import PanelSurface
-    from .paneltrim import PanelTrim
 
 
 class PanelSystem():
@@ -777,47 +774,15 @@ class PanelSystem():
                             self.ctrls[control] = (ind, ind+1, ind+2, ind+3)
                             ind += 4
 
-    def __repr__(self) -> str:
-        return '<PanelSystem: {:s}>'.format(self.name)
-
-    def __str__(self) -> str:
-        outstr = '# Panel System '+self.name+'\n'
-        table = MDTable()
-        table.add_column('Name', 's', data=[self.name])
-        table.add_column('Sref', 'g', data=[self.sref])
-        table.add_column('cref', 'g', data=[self.cref])
-        table.add_column('bref', 'g', data=[self.bref])
-        table.add_column('xref', '.3f', data=[self.rref.x])
-        table.add_column('yref', '.3f', data=[self.rref.y])
-        table.add_column('zref', '.3f', data=[self.rref.z])
-        outstr += table._repr_markdown_()
-        table = MDTable()
-        if self.grds is not None:
-            table.add_column('# Grids', 'd', data=[self.numgrd])
-        else:
-            table.add_column('# Grids', 'd', data=[0])
-        if self.pnls is not None:
-            table.add_column('# Panels', 'd', data=[self.numpnl])
-        else:
-            table.add_column('# Panels', 'd', data=[0])
-        if self.hsvs is not None:
-            table.add_column('# Horseshoe Vortices', 'd', data=[self.numhsv])
-        else:
-            table.add_column('# Horseshoe Vortices', 'd', data=[0])
-        if self.ctrls is not None:
-            table.add_column('# Controls', 'd', data=[self.numctrl])
-        else:
-            table.add_column('# Controls', 'd', data=[0])
-        if len(table.columns) > 0:
-            outstr += table._repr_markdown_()
-        return outstr
-
-    def _repr_markdown_(self) -> str:
-        return self.__str__()
+    def trim(self) -> None:
+        for result in self.results.values():
+            if isinstance(result, PanelTrim):
+                result.trim()
 
     @classmethod
     def from_json(cls, jsonfilepath: str,
                   trim: bool = True) -> 'PanelSystem':
+        """Create a PanelSystem from a JSON file."""
 
         with open(jsonfilepath, 'rt') as jsonfile:
             sysdct = load(jsonfile)
@@ -843,9 +808,8 @@ class PanelSystem():
 
         sys.load_initial_state(sys.source)
 
-        for result in sys.results.values():
-            if trim and isinstance(result, PanelTrim):
-                result.trim()
+        if trim:
+            sys.trim()
 
         return sys
 
@@ -908,10 +872,15 @@ class PanelSystem():
         sys.masses = masses
 
         if 'cases' in sysdct and sysdct:
-            sys.results_from_dict(sysdct['cases'], trim = trim)
+            sys.results_from_dict(sysdct['cases'], trim = False)
 
         if 'source' in sysdct:
             sys.source = sysdct['source']
+
+        sys.load_initial_state(sys.source)
+
+        if trim:
+            sys.trim()
 
         return sys
 
@@ -951,7 +920,7 @@ class PanelSystem():
         name = sysdct['name']
         srfcs = []
         for surfdata in sysdct['surfaces']:
-            srfc = panelsurface_from_json(surfdata)
+            srfc = PanelSurface.from_dict(surfdata)
             srfcs.append(srfc)
         bref = sysdct['bref']
         cref = sysdct['cref']
@@ -984,9 +953,14 @@ class PanelSystem():
                         ycm = sys.rref.y, zcm = sys.rref.z)
 
         if 'cases' in sysdct and sysdct:
-            sys.results_from_dict(sysdct['cases'], trim = trim)
+            sys.results_from_dict(sysdct['cases'], trim = False)
 
         sys.source = jsonfilepath
+
+        sys.load_initial_state(sys.source)
+
+        if trim:
+            sys.trim()
 
         return sys
 
@@ -1052,3 +1026,41 @@ class PanelSystem():
                 for control in self.ctrls:
                     value = result.ctrls[control]
                     result.ctrls[control] = resdata.get(control, value)
+
+    def __repr__(self) -> str:
+        return '<PanelSystem: {:s}>'.format(self.name)
+
+    def __str__(self) -> str:
+        outstr = '# Panel System '+self.name+'\n'
+        table = MDTable()
+        table.add_column('Name', 's', data=[self.name])
+        table.add_column('Sref', 'g', data=[self.sref])
+        table.add_column('cref', 'g', data=[self.cref])
+        table.add_column('bref', 'g', data=[self.bref])
+        table.add_column('xref', '.3f', data=[self.rref.x])
+        table.add_column('yref', '.3f', data=[self.rref.y])
+        table.add_column('zref', '.3f', data=[self.rref.z])
+        outstr += table._repr_markdown_()
+        table = MDTable()
+        if self.grds is not None:
+            table.add_column('# Grids', 'd', data=[self.numgrd])
+        else:
+            table.add_column('# Grids', 'd', data=[0])
+        if self.pnls is not None:
+            table.add_column('# Panels', 'd', data=[self.numpnl])
+        else:
+            table.add_column('# Panels', 'd', data=[0])
+        if self.hsvs is not None:
+            table.add_column('# Horseshoe Vortices', 'd', data=[self.numhsv])
+        else:
+            table.add_column('# Horseshoe Vortices', 'd', data=[0])
+        if self.ctrls is not None:
+            table.add_column('# Controls', 'd', data=[self.numctrl])
+        else:
+            table.add_column('# Controls', 'd', data=[0])
+        if len(table.columns) > 0:
+            outstr += table._repr_markdown_()
+        return outstr
+
+    def _repr_markdown_(self) -> str:
+        return self.__str__()

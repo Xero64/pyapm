@@ -1,10 +1,9 @@
 from typing import Any
+
 from numpy import absolute, cos, radians
 from pygeom.geom3d import Vector
-from pygeom.tools.spacing import (equal_spacing, full_cosine_spacing,
-                                  semi_cosine_spacing)
 
-from ..tools.airfoil import airfoil_from_dat, Airfoil
+from ..tools.airfoil import Airfoil, airfoil_from_dat
 from ..tools.naca4 import NACA4
 from .grid import Grid
 from .panel import Panel
@@ -12,6 +11,7 @@ from .panelcontrol import PanelControl
 from .panelprofile import PanelProfile
 
 tol = 1e-12
+
 
 class PanelSection(PanelProfile):
     airfoil: Airfoil = None
@@ -235,48 +235,49 @@ class PanelSection(PanelProfile):
                 pid += 1
         return pid
 
+    @classmethod
+    def from_dict(cls, sectdata: dict[str, Any],
+                  defaults: dict[str, Any]) -> 'PanelSection':
+        """Create a LatticeSection object from a dictionary."""
+        xpos = sectdata.get('xpos', None)
+        ypos = sectdata.get('ypos', None)
+        zpos = sectdata.get('zpos', None)
+        point = Vector(xpos, ypos, zpos)
+        chord = sectdata.get('chord', defaults.get('chord', None))
+        twist = sectdata.get('twist', defaults.get('twist', None))
+        airfoil = sectdata.get('airfoil', defaults.get('airfoil', None))
+        cdo = sectdata.get('cdo', defaults.get('cdo', 0.0))
+        noload = sectdata.get('noload', defaults.get('noload', False))
+        sect = PanelSection(point, chord, twist)
+        sect.bpos = sectdata.get('bpos', None)
+        sect.xoc = sectdata.get('xoc', defaults.get('xoc', None))
+        sect.zoc = sectdata.get('zoc', defaults.get('zoc', None))
+        sect.set_cdo(cdo)
+        sect.set_noload(noload)
+        sect.set_airfoil(airfoil)
+        if 'bnum' in sectdata and 'bspc' in sectdata:
+            bnum = sectdata['bnum']
+            bspc = sectdata['bspc']
+            if bspc == 'equal':
+                sect.set_span_equal_spacing(bnum)
+            elif bspc in ('full-cosine', 'cosine'):
+                sect.set_span_cosine_spacing(bnum)
+            elif bspc == 'semi-cosine':
+                sect.set_span_semi_cosine_spacing(bnum)
+        if 'tilt' in sectdata:
+            sect.set_tilt(sectdata['tilt'])
+        if 'nohsv' in sectdata:
+            sect.nohsv = sectdata['nohsv']
+        if 'nomesh' in sectdata:
+            sect.nomesh = sectdata['nomesh']
+            if sect.nomesh:
+                sect.noload = True
+                # sect.nohsv = True
+        if 'controls' in sectdata:
+            for name in sectdata['controls']:
+                ctrl = PanelControl.from_dict(name, sectdata['controls'][name])
+                sect.add_control(ctrl)
+        return sect
+
     def __repr__(self):
         return f'<pyapm.PanelSection at {self.point:}>'
-
-def panelsection_from_json(sectdata: dict[str, Any],
-                           defaults: dict[str, Any]) -> PanelSection:
-    """Create a LatticeSection object from a dictionary."""
-    xpos = sectdata.get('xpos', None)
-    ypos = sectdata.get('ypos', None)
-    zpos = sectdata.get('zpos', None)
-    point = Vector(xpos, ypos, zpos)
-    chord = sectdata.get('chord', defaults.get('chord', None))
-    twist = sectdata.get('twist', defaults.get('twist', None))
-    airfoil = sectdata.get('airfoil', defaults.get('airfoil', None))
-    cdo = sectdata.get('cdo', defaults.get('cdo', 0.0))
-    noload = sectdata.get('noload', defaults.get('noload', False))
-    sect = PanelSection(point, chord, twist)
-    sect.bpos = sectdata.get('bpos', None)
-    sect.xoc = sectdata.get('xoc', defaults.get('xoc', None))
-    sect.zoc = sectdata.get('zoc', defaults.get('zoc', None))
-    sect.set_cdo(cdo)
-    sect.set_noload(noload)
-    sect.set_airfoil(airfoil)
-    if 'bnum' in sectdata and 'bspc' in sectdata:
-        bnum = sectdata['bnum']
-        bspc = sectdata['bspc']
-        if bspc == 'equal':
-            sect.set_span_equal_spacing(bnum)
-        elif bspc in ('full-cosine', 'cosine'):
-            sect.set_span_cosine_spacing(bnum)
-        elif bspc == 'semi-cosine':
-            sect.set_span_semi_cosine_spacing(bnum)
-    if 'tilt' in sectdata:
-        sect.set_tilt(sectdata['tilt'])
-    if 'nohsv' in sectdata:
-        sect.nohsv = sectdata['nohsv']
-    if 'nomesh' in sectdata:
-        sect.nomesh = sectdata['nomesh']
-        if sect.nomesh:
-            sect.noload = True
-            # sect.nohsv = True
-    if 'controls' in sectdata:
-        for name in sectdata['controls']:
-            ctrl = PanelControl.from_dict(name, sectdata['controls'][name])
-            sect.add_control(ctrl)
-    return sect

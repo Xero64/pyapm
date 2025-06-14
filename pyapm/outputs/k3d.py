@@ -161,9 +161,13 @@ class PanelPlot:
         return vectors(self.pntos, values, **kwargs)
 
     def panel_mu_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+        if self.result is None:
+            raise ValueError('Result must be set to plot mu.')
         return self.panel_mesh_plot(self.result.mu, **kwargs)
 
     def panel_sigma_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+        if self.result is None:
+            raise ValueError('Result must be set to plot sigma.')
         return self.panel_mesh_plot(self.result.sig, **kwargs)
 
     def grid_mesh_plot(self, values: 'NDArray', **kwargs: dict[str, Any]) -> 'Mesh':
@@ -176,10 +180,14 @@ class PanelPlot:
         return mesh(self.verts, self.faces, attribute=attribute, **kwargs)
 
     def grid_mu_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+        if self.result is None:
+            raise ValueError('Result must be set to plot mu.')
         values = concatenate((self.result.mu, self.result.mug))
         return self.grid_mesh_plot(values, **kwargs)
 
     def grid_sigma_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+        if self.result is None:
+            raise ValueError('Result must be set to plot sigma.')
         values = concatenate((self.result.sig, self.result.sigg))
         return self.grid_mesh_plot(values, **kwargs)
 
@@ -188,10 +196,16 @@ class PanelPlot:
 
     def panel_force_plot(self, **kwargs: dict[str, Any]) -> 'Vectors':
         if self.result is None:
-            raise ValueError("Result must be set to plot forces.")
-        self.panel_vectors_plot(self.result.nfres.nffrc, **kwargs)
+            raise ValueError('Result must be set to plot forces.')
+        return self.panel_vectors_plot(self.result.nfres.nffrc, **kwargs)
 
-    def panel_pressure_plot(self, **kwargs: dict[str, Any]) -> 'Vectors':
+    def panel_pressure_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
         if self.result is None:
-            raise ValueError("Result must be set to plot forces.")
-        self.panel_mesh_plot(self.result.nfres.nfprs, **kwargs)
+            raise ValueError('Result must be set to plot pressures.')
+        return self.panel_mesh_plot(self.result.nfres.nfprs, **kwargs)
+
+    def panel_cp_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+        if self.result is None:
+            raise ValueError('Result must be set to plot pressures.')
+        kwargs['color_range'] = kwargs.get('color_range', [])
+        return self.panel_mesh_plot(self.result.nfres.nfcp, **kwargs)
