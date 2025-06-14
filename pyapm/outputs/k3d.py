@@ -2,6 +2,7 @@ from typing import TYPE_CHECKING, Any
 
 from k3d import mesh, vectors
 from k3d.plot import Plot
+from k3d.colormaps import matplotlib_color_maps
 from numpy import concatenate, float32, uint32, zeros
 
 if TYPE_CHECKING:
@@ -138,14 +139,25 @@ class PanelPlot:
         return self._grids
 
     def panel_mesh(self, **kwargs: dict[str, Any]) -> 'Mesh':
+        kwargs['color'] = kwargs.get('color', 0xffd500)
+        kwargs['wireframe'] = kwargs.get('wireframe', False)
+        kwargs['flat_shading'] = kwargs.get('flat_shading', False)
+        defcmap = matplotlib_color_maps.Turbo
+        kwargs['color_map'] = kwargs.get('color_map', defcmap)
         return mesh(self.verts, self.faces, **kwargs)
 
     def panel_mesh_plot(self, values: 'NDArray', **kwargs: dict[str, Any]) -> 'Mesh':
+        kwargs['color'] = kwargs.get('color', 0xffd500)
+        kwargs['wireframe'] = kwargs.get('wireframe', False)
+        kwargs['flat_shading'] = kwargs.get('flat_shading', False)
+        defcmap = matplotlib_color_maps.Turbo
+        kwargs['color_map'] = kwargs.get('color_map', defcmap)
         attribute = values[self.pinds].astype(float32)
         return mesh(self.verts, self.faces, attribute=attribute, **kwargs)
 
     def panel_vectors(self, vecs: 'Vector', **kwargs: dict[str, Any]) -> 'Vectors':
-        values = vecs.stack_xyz().astype(float32)
+        scale = kwargs.pop('scale', 1.0)
+        values = vecs.stack_xyz().astype(float32)*scale
         return vectors(self.pntos, values, **kwargs)
 
     def panel_mu_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
@@ -155,6 +167,11 @@ class PanelPlot:
         return self.panel_mesh_plot(self.result.sig, **kwargs)
 
     def grid_mesh_plot(self, values: 'NDArray', **kwargs: dict[str, Any]) -> 'Mesh':
+        kwargs['color'] = kwargs.get('color', 0xffd500)
+        kwargs['wireframe'] = kwargs.get('wireframe', False)
+        kwargs['flat_shading'] = kwargs.get('flat_shading', False)
+        defcmap = matplotlib_color_maps.Turbo
+        kwargs['color_map'] = kwargs.get('color_map', defcmap)
         attribute = values[self.vinds].astype(float32)
         return mesh(self.verts, self.faces, attribute=attribute, **kwargs)
 
@@ -165,3 +182,7 @@ class PanelPlot:
     def grid_sigma_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
         values = concatenate((self.result.sig, self.result.sigg))
         return self.grid_mesh_plot(values, **kwargs)
+
+    def panel_vectors_plot(self, vecs: 'Vector', **kwargs: dict[str, Any]) -> 'Vectors':
+        return self.panel_vectors(vecs, **kwargs)
+
