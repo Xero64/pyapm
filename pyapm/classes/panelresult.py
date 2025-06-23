@@ -43,11 +43,13 @@ class PanelResult():
     _unsig: 'NDArray' = None
     _unmu: 'NDArray' = None
     _unphi: 'NDArray' = None
+    _unnvg: 'NDArray' = None
     _sig: 'NDArray' = None
-    _sigg: 'NDArray' = None
     _mu: 'NDArray' = None
-    _mug: 'NDArray' = None
     _phi: 'NDArray' = None
+    _nvg: 'NDArray' = None
+    _mug: 'NDArray' = None
+    _sigg: 'NDArray' = None
     _qloc: Vector2D = None
     _qs: 'NDArray' = None
     _cp: 'NDArray' = None
@@ -259,22 +261,28 @@ class PanelResult():
         return self._qfs
 
     @property
-    def unsig(self) -> 'NDArray':
+    def unsig(self) -> Vector:
         if self._unsig is None:
             self._unsig = self.sys.unsig(self.mach)
         return self._unsig
 
     @property
-    def unmu(self) -> 'NDArray':
+    def unmu(self) -> Vector:
         if self._unmu is None:
             self._unmu = self.sys.unmu(self.mach)
         return self._unmu
 
     @property
-    def unphi(self) -> 'NDArray':
+    def unphi(self) -> Vector:
         if self._unphi is None:
             self._unphi = self.sys.unphi(self.mach)
         return self._unphi
+
+    @property
+    def unnvg(self) -> Vector:
+        if self._unnvg is None:
+            self._unnvg = self.sys.unnvg(self.mach)
+        return self._unnvg
 
     @property
     def sig(self) -> 'NDArray':
@@ -353,6 +361,26 @@ class PanelResult():
                     self._phi += ctrlrad*(self.unphi[:, indv].dot(self.vfs))
                     self._phi += ctrlrad*(self.unphi[:, indo].dot(self.ofs))
         return self._phi
+
+    @property
+    def nvg(self):
+        if self._nvg is None:
+            self._nvg = self.unnvg[:, 0].dot(self.vfs)
+            self._nvg += self.unnvg[:, 1].dot(self.ofs)
+            for control in self.ctrls:
+                if control in self.sys.ctrls:
+                    ctrl = self.ctrls[control]
+                    ctrlrad = radians(ctrl)
+                    index = self.sys.ctrls[control]
+                    if ctrl >= 0.0:
+                        indv = index[0]
+                        indo = index[1]
+                    else:
+                        indv = index[2]
+                        indo = index[3]
+                    self._nvg += ctrlrad*(self.unnvg[:, indv].dot(self.vfs))
+                    self._nvg += ctrlrad*(self.unnvg[:, indo].dot(self.ofs))
+        return self._nvg
 
     # def calc_qloc_old(self, mu: 'NDArray', vfs: Vector | None = None,
     #                   ofs: Vector | None = None) -> Vector2D:

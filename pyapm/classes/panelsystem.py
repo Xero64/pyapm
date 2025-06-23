@@ -4,7 +4,8 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
 from matplotlib.pyplot import figure
-from numpy import zeros
+from numpy import zeros, add
+from numpy.linalg import norm
 from py2md.classes import MDTable
 from pygeom.geom3d import Vector
 
@@ -26,6 +27,20 @@ if TYPE_CHECKING:
     from .horseshoedoublet import HorseshoeDoublet
     from .panelstrip import PanelStrip
 
+try:
+    from ..tools.cupy import cupy_ctdsp as ctdsp
+    from ..tools.cupy import cupy_ctdsf as ctdsf
+    from ..tools.cupy import cupy_ctdsv as ctdsv
+    from ..tools.cupy import cupy_cwdp as cwdp
+    from ..tools.cupy import cupy_cwdf as cwdf
+    from ..tools.cupy import cupy_cwdv as cwdv
+except ImportError:
+    from ..tools.numpy import numpy_ctdsp as ctdsp
+    from ..tools.numpy import numpy_ctdsf as ctdsf
+    from ..tools.numpy import numpy_ctdsv as ctdsv
+    from ..tools.numpy import numpy_cwdp as cwdp
+    from ..tools.numpy import numpy_cwdf as cwdf
+    from ..tools.numpy import numpy_cwdv as cwdv
 
 class PanelSystem():
     name: str = None
@@ -83,6 +98,13 @@ class PanelSystem():
     _pnldirz: Vector = None
     _edges: list['Edge'] = None
     _edges_array: 'NDArray' = None
+    _triarr: 'NDArray' = None
+    _tgrida: Vector = None
+    _tgridb: Vector = None
+    _tgridc: Vector = None
+    _wgrida: Vector = None
+    _wgridb: Vector = None
+    _wdirl: Vector = None
 
     def __init__(self, name: str, bref: float, cref: float,
                  sref: float, rref: Vector) -> None:
@@ -174,7 +196,7 @@ class PanelSystem():
         return self._numctrl
 
     @property
-    def pnts(self) -> int:
+    def pnts(self) -> Vector:
         if self._pnts is None:
             self._pnts = Vector.zeros(self.numpnl)
             for pnl in self.pnls.values():
@@ -258,49 +280,51 @@ class PanelSystem():
         if self._bnm is None:
             self._bnm = {}
         if mach not in self._bnm:
-            self._bnm[mach] = -self.nrms - self.ans(mach)@self.unsig(mach)
+            self._bnm[mach] = -self.nrms.reshape((-1, 1)) - self.ans(mach)@self.unsig(mach)
         return self._bnm[mach]
 
     def apd(self, mach: float = 0.0) -> 'NDArray':
         if self._apd is None:
             self._apd = {}
         if mach not in self._apd:
-            self.assemble_panels(False, mach=mach)
+            # self.assemble_panels(False, mach=mach)
+            self.assemble_panels_phi(False, mach=mach)
         return self._apd[mach]
 
-    def avd(self, mach: float = 0.0) -> 'NDArray':
+    def avd(self, mach: float = 0.0) -> Vector:
         if self._avd is None:
             self._avd = {}
         if mach not in self._avd:
-            self.assemble_panels_full(False, mach=mach)
+            self.assemble_panels_vel(False, mach=mach)
         return self._avd[mach]
 
     def aps(self, mach: float = 0.0) -> 'NDArray':
         if self._aps is None:
             self._aps = {}
         if mach not in self._aps:
-            self.assemble_panels(False, mach=mach)
+            # self.assemble_panels(False, mach=mach)
+            self.assemble_panels_phi(False, mach=mach)
         return self._aps[mach]
 
-    def avs(self, mach: float = 0.0) -> 'NDArray':
+    def avs(self, mach: float = 0.0) -> Vector:
         if self._avs is None:
             self._avs = {}
         if mach not in self._avs:
-            self.assemble_panels_full(False, mach=mach)
+            self.assemble_panels_vel(False, mach=mach)
         return self._avs[mach]
 
     def aph(self, mach: float = 0.0) -> 'NDArray':
         if self._aph is None:
             self._aph = {}
         if mach not in self._aph:
-            self.assemble_horseshoes(False, mach=mach)
+            self.assemble_horseshoes_phi(False, mach=mach)
         return self._aph[mach]
 
-    def avh(self, mach: float = 0.0) -> 'NDArray':
+    def avh(self, mach: float = 0.0) -> Vector:
         if self._avh is None:
             self._avh = {}
         if mach not in self._avh:
-            self.assemble_horseshoes_full(False, mach=mach)
+            self.assemble_horseshoes_vel(False, mach=mach)
         return self._avh[mach]
 
     def apm(self, mach: float = 0.0) -> 'NDArray':
@@ -318,7 +342,7 @@ class PanelSystem():
     def avm(self, mach: float = 0.0) -> 'NDArray':
         if self._avm is None:
             self._avm = {}
-        if self._avm is None:
+        if mach not in self._avm:
             avm = self.avd(mach).copy()
             avh = self.avh(mach)
             for i, hsv in enumerate(self.hsvs):
@@ -331,7 +355,7 @@ class PanelSystem():
         if self._ans is None:
             self._ans = {}
         if mach not in self._ans:
-            nrms = self.nrms.repeat(self.numpnl, axis=1)
+            nrms = self.nrms.reshape((-1, 1)).repeat(self.numpnl, axis=1)
             self._ans[mach] = nrms.dot(self.avs(mach))
         return self._ans[mach]
 
@@ -339,7 +363,7 @@ class PanelSystem():
         if self._anm is None:
             self._anm = {}
         if mach not in self._anm:
-            nrms = self.nrms.repeat(self.numpnl, axis=1)
+            nrms = self.nrms.reshape((-1, 1)).repeat(self.numpnl, axis=1)
             self._anm[mach] = nrms.dot(self.avm(mach))
         return self._anm[mach]
 
@@ -373,8 +397,8 @@ class PanelSystem():
         return self._strps
 
     def assemble_panels_wash(self, time: bool=True) -> None:
-        if time:
-            start = perf_counter()
+        # if time:
+        start = perf_counter()
         shp = (self.numhsv, self.numpnl)
         self._awd = zeros(shp)
         self._aws = zeros(shp)
@@ -383,10 +407,35 @@ class PanelSystem():
             _, _, avd, avs = pnl.influence_coefficients(self.hsvpnts)
             self._awd[:, ind] = avd.dot(self.hsvnrms)
             self._aws[:, ind] = avs.dot(self.hsvnrms)
-        if time:
-            finish = perf_counter()
-            elapsed = finish - start
-            print(f'Wash array assembly time is {elapsed:.3f} seconds.')
+        # if time:
+        finish = perf_counter()
+        elapsed = finish - start
+        print(f'Wash array assembly time is {elapsed:.3f} seconds.')
+
+        start = perf_counter()
+
+        hsvpnts = self.hsvpnts.reshape((-1, 1))
+        hsvnrms = self.hsvnrms.reshape((-1, 1))
+
+        avdc, avsc = ctdsv(hsvpnts, self.tgrida, self.tgridb, self.tgridc)
+        avdc = add.reduceat(avdc, self.triarr, axis=1)
+        avsc = add.reduceat(avsc, self.triarr, axis=1)
+        awdc = hsvnrms.dot(avd)
+        awsc = hsvnrms.dot(avs)
+
+        finish = perf_counter()
+        elapsedc = finish - start
+        print(f'Wash array assembly time with cupy is {elapsedc:.3f} seconds.')
+        print(f'Speedup is {elapsed/elapsedc:.2f}x.')
+
+        diffawd = self._awd - awdc
+        diffaws = self._aws - awsc
+
+        normawd = norm(diffawd)
+        normaws = norm(diffaws)
+
+        print(f'Difference in awd: {normawd:.12f}')
+        print(f'Difference in aws: {normaws:.12f}')
 
     def assemble_horseshoes_wash(self, time: bool=True) -> None:
         if time:
@@ -400,6 +449,26 @@ class PanelSystem():
             finish = perf_counter()
             elapsed = finish - start
             print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
+
+        # start = perf_counter()
+
+        # hsvpnts = self.hsvpnts.reshape((-1, 1))
+        # hsvnrms = self.hsvnrms.reshape((-1, 1))
+
+        # avhc = cwdv(hsvpnts, self.wgrida, self.wgridb, self.wdirl)
+
+        # awhc = hsvnrms.dot(avhc)
+
+        # finish = perf_counter()
+        # elapsedc = finish - start
+        # print(f'Wash horse shoe assembly time with cupy is {elapsedc:.3f} seconds.')
+        # print(f'Speedup is {elapsed/elapsedc:.2f}x.')
+
+        # diffawh = self._awh - awhc
+
+        # normawh = norm(diffawh)
+
+        # print(f'Difference in awh: {normawh:.12f}')
 
     @property
     def awh(self) -> 'NDArray':
@@ -467,6 +536,75 @@ class PanelSystem():
                 print(f'Edges array assembly time is {elapsed:.3f} seconds.')
         return self._edges_array
 
+    def calc_triarr(self) -> 'NDArray':
+        numtria = 0
+        for panel in self.pnls.values():
+            numtria += panel.num
+        self._triarr = zeros(self.numpnl, dtype=int)
+        self._tgrida = Vector.zeros((1, numtria))
+        self._tgridb = Vector.zeros((1, numtria))
+        self._tgridc = Vector.zeros((1, numtria))
+        k = 0
+        for panel in self.pnls.values():
+            self._triarr[panel.ind] = k
+            for i in range(-1, panel.num-1):
+                a, b = i, i + 1
+                self._tgrida[0, k] = panel.grds[a]
+                self._tgridb[0, k] = panel.grds[b]
+                self._tgridc[0, k] = panel.pnto
+                k += 1
+
+    @property
+    def triarr(self) -> 'NDArray':
+        if self._triarr is None:
+            self.calc_triarr()
+        return self._triarr
+
+    @property
+    def tgrida(self) -> Vector:
+        if self._tgrida is None:
+            self.calc_triarr()
+        return self._tgrida
+
+    @property
+    def tgridb(self) -> Vector:
+        if self._tgridb is None:
+            self.calc_triarr()
+        return self._tgridb
+
+    @property
+    def tgridc(self) -> Vector:
+        if self._tgridc is None:
+            self.calc_triarr()
+        return self._tgridc
+
+    def calc_wpanel(self) -> 'NDArray':
+        self._wgrida = Vector.zeros((1, self.numhsv))
+        self._wgridb = Vector.zeros((1, self.numhsv))
+        self._wdirl = Vector.zeros((1, self.numhsv))
+        for i, hsv in enumerate(self.hsvs):
+            self._wgrida[0, i] = hsv.grda
+            self._wgridb[0, i] = hsv.grdb
+            self._wdirl[0, i] = hsv.diro
+
+    @property
+    def wgrida(self) -> Vector:
+        if self._wgrida is None:
+            self.calc_wpanel()
+        return self._wgrida
+
+    @property
+    def wgridb(self) -> Vector:
+        if self._wgridb is None:
+            self.calc_wpanel()
+        return self._wgridb
+
+    @property
+    def wdirl(self) -> Vector:
+        if self._wdirl is None:
+            self.calc_wpanel()
+        return self._wdirl
+
     def unsig(self, mach: float = 0.0) -> Vector:
         if self._unsig is None:
             self._unsig = {}
@@ -497,6 +635,7 @@ class PanelSystem():
             self._unmu = {}
         if mach not in self._unmu:
             self.solve_dirichlet_system(time=False, mach=mach)
+            # self.solve_neumann_system(time=False, mach=mach)
         return self._unmu[mach]
 
     def unphi(self, mach: float = 0.0) -> Vector:
@@ -504,98 +643,237 @@ class PanelSystem():
             self._unphi = {}
         if mach not in self._unphi:
             self.solve_dirichlet_system(time=False, mach=mach)
+            # self.solve_neumann_system(time=False, mach=mach)
         return self._unphi[mach]
 
-    def assemble_panels(self, time: bool=True, mach=0.0) -> None:
-        if time:
-            start = perf_counter()
-        shp = (self.numpnl, self.numpnl)
-        apd = zeros(shp)
-        aps = zeros(shp)
-        betm = betm_from_mach(mach)
-        for pnl in self.pnls.values():
-            ind = pnl.ind
-            apd[:, ind], aps[:, ind] = pnl.velocity_potentials(self.pnts, betx=betm)
-        if self._apd is None:
-            self._apd = {}
-        self._apd[mach] = apd
-        if self._aps is None:
-            self._aps = {}
-        self._aps[mach] = aps
-        if time:
-            finish = perf_counter()
-            elapsed = finish - start
-            print(f'Panel assembly time is {elapsed:.3f} seconds.')
+    def unnvg(self, mach: float = 0.0) -> Vector:
+        if self._unphi is None:
+            self._unphi = {}
+        if mach not in self._unnvg:
+            self.solve_dirichlet_system(time=False, mach=mach)
+            # self.solve_neumann_system(time=False, mach=mach)
+        return self._unnvg[mach]
 
-    def assemble_panels_full(self, time: bool=True, mach: float = 0.0) -> None:
-        if time:
-            start = perf_counter()
-        shp = (self.numpnl, self.numpnl)
-        apd = zeros(shp)
-        aps = zeros(shp)
-        avd = Vector.zeros(shp)
-        avs = Vector.zeros(shp)
-        betm = betm_from_mach(mach)
-        for pnl in self.pnls.values():
-            ind = pnl.ind
-            apd[:, ind], aps[:, ind], avd[:, ind], avs[:, ind] = pnl.influence_coefficients(self.pnts, betx=betm)
+    def assemble_panels_phi(self, time: bool=True, mach=0.0) -> None:
         if self._apd is None:
             self._apd = {}
-        self._apd[mach] = apd
         if self._aps is None:
             self._aps = {}
-        self._aps[mach] = aps
+
+        betm = betm_from_mach(mach)
+
+        # # if time:
+        # start = perf_counter()
+        # shp = (self.numpnl, self.numpnl)
+        # apd = zeros(shp)
+        # aps = zeros(shp)
+        # for pnl in self.pnls.values():
+        #     ind = pnl.ind
+        #     apd[:, ind], aps[:, ind] = pnl.velocity_potentials(self.pnts, betx=betm)
+        # # if time:
+        # finish = perf_counter()
+        # elapsed = finish - start
+        # print(f'Panel assembly time is {elapsed:.6f} seconds.')
+
+        # start = perf_counter()
+
+        pnts = self.pnts.reshape((-1, 1))
+
+        apdc, apsc = ctdsp(pnts, self.tgrida, self.tgridb, self.tgridc,
+                           betx=betm, cond=-1.0)
+
+        apdc = add.reduceat(apdc, self.triarr, axis=1)
+        apsc = add.reduceat(apsc, self.triarr, axis=1)
+
+        # finish = perf_counter()
+        # elapsedc = finish - start
+        # print(f'Panel assembly time with cupy is {elapsedc:.6f} seconds.')
+        # print(f'Speedup is {elapsed/elapsedc:.2f}x.')
+
+        # diffapd = apd - apdc
+        # diffaps = aps - apsc
+        # normapd = norm(diffapd)
+        # normaps = norm(diffaps)
+        # print(f'Difference in apd: {normapd:.12f}')
+        # print(f'Difference in aps: {normaps:.12f}')
+
+        self._apd[mach] = apdc
+        self._aps[mach] = apsc
+
+    def assemble_panels_vel(self, time: bool=True, mach: float = 0.0) -> None:
+        if self._apd is None:
+            self._apd = {}
+        if self._aps is None:
+            self._aps = {}
         if self._avd is None:
             self._avd = {}
-        self._avd[mach] = avd
         if self._avs is None:
             self._avs = {}
-        self._avs[mach] = avs
-        if time:
-            finish = perf_counter()
-            elapsed = finish - start
-            print(f'Full panel assembly time is {elapsed:.3f} seconds.')
 
-    def assemble_horseshoes(self, time: bool=True, mach: float = 0.0) -> None:
-        if time:
-            start = perf_counter()
-        shp = (self.numpnl, self.numhsv)
-        aph = zeros(shp)
         betm = betm_from_mach(mach)
-        for i, hsv in enumerate(self.hsvs):
-            aph[:, i] = hsv.doublet_velocity_potentials(self.pnts, betx=betm)
+
+        # # if time:
+        # start = perf_counter()
+        # shp = (self.numpnl, self.numpnl)
+        # apd = zeros(shp)
+        # aps = zeros(shp)
+        # avd = Vector.zeros(shp)
+        # avs = Vector.zeros(shp)
+        # for pnl in self.pnls.values():
+        #     ind = pnl.ind
+        #     apd[:, ind], aps[:, ind], avd[:, ind], avs[:, ind] = pnl.influence_coefficients(self.pnts, betx=betm)
+        # # if time:
+        # finish = perf_counter()
+        # elapsed = finish - start
+        # print(f'Full panel assembly time is {elapsed:.3f} seconds.')
+
+        # start = perf_counter()
+
+        pnts = self.pnts.reshape((-1, 1))
+
+        avdc, avsc = ctdsv(pnts, self.tgrida, self.tgridb, self.tgridc,
+                           betx=betm, cond=1.0)
+
+        # apdc = add.reduceat(apdc, self.triarr, axis=1)
+        avdc = Vector(add.reduceat(avdc.x, self.triarr, axis=1),
+                      add.reduceat(avdc.y, self.triarr, axis=1),
+                      add.reduceat(avdc.z, self.triarr, axis=1))
+        # apsc = add.reduceat(apsc, self.triarr, axis=1)
+        avsc = Vector(add.reduceat(avsc.x, self.triarr, axis=1),
+                      add.reduceat(avsc.y, self.triarr, axis=1),
+                      add.reduceat(avsc.z, self.triarr, axis=1))
+
+        # finish = perf_counter()
+        # elapsedc = finish - start
+        # print(f'Full panel assembly time with cupy is {elapsedc:.3f} seconds.')
+        # print(f'Speedup is {elapsed/elapsedc:.2f}x.')
+
+        # diffapd = apd - apdc
+        # diffaps = aps - apsc
+        # diffavd = avd - avdc
+        # diffavs = avs - avsc
+        # normapd = norm(diffapd)
+        # normaps = norm(diffaps)
+        # normavdx = norm(diffavd.x)
+        # normavdy = norm(diffavd.y)
+        # normavdz = norm(diffavd.z)
+        # normavsx = norm(diffavs.x)
+        # normavsy = norm(diffavs.y)
+        # normavsz = norm(diffavs.z)
+        # print(f'Difference in apd: {normapd:.12f}')
+        # print(f'Difference in aps: {normaps:.12f}')
+        # print(f'Difference in avd.x: {normavdx:.12f}')
+        # print(f'Difference in avd.y: {normavdy:.12f}')
+        # print(f'Difference in avd.z: {normavdz:.12f}')
+        # print(f'Difference in avs.x: {normavsx:.12f}')
+        # print(f'Difference in avs.y: {normavsy:.12f}')
+        # print(f'Difference in avs.z: {normavsz:.12f}')
+
+        # self._diffapd = diffapd
+        # self._diffaps = diffaps
+        # self._diffavdx = diffavd.x
+        # self._diffavdy = diffavd.y
+        # self._diffavdz = diffavd.z
+        # self._diffavsx = diffavs.x
+        # self._diffavsy = diffavs.y
+        # self._diffavsz = diffavs.z
+
+        # self._avdc = avdc
+        # self._avsc = avsc
+
+        # self._apd[mach] = apd
+        # self._aps[mach] = aps
+        # self._avd[mach] = avd
+        # self._avs[mach] = avs
+
+        # self._apd[mach] = apdc
+        # self._aps[mach] = apsc
+        self._avd[mach] = avdc
+        self._avs[mach] = avsc
+
+    def assemble_horseshoes_phi(self, time: bool=True, mach: float = 0.0) -> None:
         if self._aph is None:
             self._aph = {}
-        self._aph[mach] = aph
-        if time:
-            finish = perf_counter()
-            elapsed = finish - start
-            print(f'Horse shoe assembly time is {elapsed:.3f} seconds.')
 
-    def assemble_horseshoes_full(self, time: bool=True, mach: float = 0.0):
-        if time:
-            start = perf_counter()
-        shp = (self.numpnl, self.numpnl)
-        aph = zeros(shp)
-        avh = Vector.zeros(shp)
         betm = betm_from_mach(mach)
-        for i, hsv in enumerate(self.hsvs):
-            aph[:, i], avh[:, i] = hsv.doublet_influence_coefficients(self.pnts, betx=betm)
+
+        # # if time:
+        # start = perf_counter()
+        # shp = (self.numpnl, self.numhsv)
+        # aph = zeros(shp)
+        # for i, hsv in enumerate(self.hsvs):
+        #     aph[:, i] = hsv.doublet_velocity_potentials(self.pnts, betx=betm)
+        # # if time:
+        # finish = perf_counter()
+        # elapsed = finish - start
+        # print(f'Horse shoe assembly time is {elapsed:.3f} seconds.')
+
+        # start = perf_counter()
+
+        pnts = self.pnts.reshape((-1, 1))
+
+        aphc = cwdp(pnts, self.wgrida, self.wgridb, self.wdirl,
+                    betx=betm)
+
+        # finish = perf_counter()
+        # elapsedc = finish - start
+        # print(f'Horse shoe assembly time with cupy is {elapsedc:.3f} seconds.')
+        # print(f'Speedup is {elapsed/elapsedc:.2f}x.')
+
+        # diffaph = aph - aphc
+        # normaph = norm(diffaph)
+        # print(f'Difference in aph: {normaph:.12f}')
+
+        self._aph[mach] = aphc
+
+    def assemble_horseshoes_vel(self, time: bool=True, mach: float = 0.0):
         if self._aph is None:
             self._aph = {}
-        self._aph[mach] = aph
         if self._avh is None:
             self._avh = {}
-        self._avh[mach] = avh
-        if time:
-            finish = perf_counter()
-            elapsed = finish - start
-            print(f'Full horse shoe assembly time is {elapsed:.3f} seconds.')
+
+        betm = betm_from_mach(mach)
+
+        # # if time:
+        # start = perf_counter()
+        # shp = (self.numpnl, self.numhsv)
+        # aph = zeros(shp)
+        # avh = Vector.zeros(shp)
+        # for i, hsv in enumerate(self.hsvs):
+        #     aph[:, i], avh[:, i] = hsv.doublet_influence_coefficients(self.pnts, betx=betm)
+        # # if time:
+        # finish = perf_counter()
+        # elapsed = finish - start
+        # print(f'Full horse shoe assembly time is {elapsed:.3f} seconds.')
+
+        # start = perf_counter()
+
+        pnts = self.pnts.reshape((-1, 1))
+
+        avhc = cwdv(pnts, self.wgrida, self.wgridb, self.wdirl,
+                    betx=betm)
+
+        # finish = perf_counter()
+        # elapsedc = finish - start
+
+        # print(f'Full horse shoe assembly time with cupy is {elapsedc:.3f} seconds.')
+        # print(f'Speedup is {elapsed/elapsedc:.2f}x.')
+
+        # diffaph = aph - aphc
+        # diffavh = avh - avhc
+        # normaph = norm(diffaph)
+        # normavh = norm(diffavh.x) + norm(diffavh.y) + norm(diffavh.z)
+        # print(f'Difference in aph: {normaph:.12f}')
+        # print(f'Difference in avh: {normavh:.12f}')
+
+        # self._aph[mach] = aphc
+        self._avh[mach] = avhc
 
     def solve_system(self, time: bool=True, mach: float = 0.0) -> None:
         if time:
             start = perf_counter()
         self.solve_dirichlet_system(time=False, mach=mach)
+        # self.solve_neumann_system(time=False, mach=mach)
         if time:
             finish = perf_counter()
             elapsed = finish - start
@@ -609,7 +887,13 @@ class PanelSystem():
         self._unmu[mach] = self.bps(mach).solve(self.apm(mach))
         if self._unphi is None:
             self._unphi = {}
-        self._unphi[mach] = self.apm(mach)@self.unmu(mach) + self.bps(mach)
+        self._unphi[mach] = self.apm(mach)@self.unmu(mach) - self.bps(mach)
+        if self._unnvg is None:
+            self._unnvg = {}
+        self._unnvg[mach] = Vector.zeros(self._unphi[mach].shape)
+        # if self._anm is not None and self._bnm is not None:
+        #     if mach in self._anm and mach in self._bnm:
+        # self._unnvg[mach] = self.anm(mach)@self.unmu(mach) - self.bnm(mach)
         if time:
             finish = perf_counter()
             elapsed = finish - start
@@ -623,7 +907,13 @@ class PanelSystem():
         self._unmu[mach] = self.bnm(mach).solve(self.anm(mach))
         if self._unnvg is None:
             self._unnvg = {}
-        self._unnvg[mach] = self.anm(mach)@self.unmu(mach) + self.bnm(mach)
+        self._unnvg[mach] = self.anm(mach)@self.unmu(mach) - self.bnm(mach)
+        if self._unphi is None:
+            self._unphi = {}
+        self._unphi[mach] = Vector.zeros(self._unnvg[mach].shape)
+        # if self._apm is not None and self._bps is not None:
+        #     if mach in self._apm and mach in self._bps:
+        # self._unphi[mach] = self.apm(mach)@self.unmu(mach) - self.bps(mach)
         if time:
             finish = perf_counter()
             elapsed = finish - start
@@ -970,7 +1260,7 @@ class PanelSystem():
         for i in range(len(cases)):
             resdata = cases[i]
             if 'trim' in resdata:
-                PanelTrim.from_dict(self, resdata, trim=False)
+                PanelTrim.from_dict(self, resdata, trim=trim)
             else:
                 PanelResult.from_dict(self, resdata)
 

@@ -141,6 +141,26 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
+        # Panel Normal Velocity
+        mshfile.write('$ElementData\n')
+        mshfile.write('1\n')
+        mshfile.write('"Panel Normal Velocity"\n')
+        mshfile.write('1\n')
+        mshfile.write('0.0\n')
+        mshfile.write('3\n')
+        mshfile.write('0\n')
+        mshfile.write('1\n')
+        mshfile.write('{:d}\n'.format(lenpid))
+        frmstr = '{:d} {:}\n'
+        for pid in pidlst:
+            pnl = psys.pnls[pid]
+            mshfile.write(frmstr.format(pnl.pid, pres.nvg[pnl.ind]))
+        mshfile.write('$EndElementData\n')
+        optstr += 'View[{:d}].Light = 0;\n'.format(view)
+        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
+        optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
+        optstr += 'View[{:d}].Visible = 0;\n'.format(view)
+        view += 1
         # Panel Longitudinal Velocity
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
