@@ -27,8 +27,8 @@ _ = axt.set_xlabel('Span-Wise Coordinate - b (m)')
 pres1 = psys.results['Test Alpha']
 
 # psys.assemble_horseshoes_wash()
-psys.assemble_panels(mach=pres1.mach)
-psys.assemble_horseshoes(mach=pres1.mach)
+psys.assemble_panels_phi(mach=pres1.mach)
+psys.assemble_horseshoes_phi(mach=pres1.mach)
 psys.solve_system(mach=pres1.mach)
 
 display_markdown(pres1)
@@ -42,8 +42,8 @@ panelresult_to_msh(pres1, mshfilepath)
 pres2 = psys.results['Test Alpha Mach']
 
 # psys.assemble_horseshoes_wash()
-psys.assemble_panels(mach=pres2.mach)
-psys.assemble_horseshoes(mach=pres2.mach)
+psys.assemble_panels_phi(mach=pres2.mach)
+psys.assemble_horseshoes_phi(mach=pres2.mach)
 psys.solve_system(mach=pres2.mach)
 
 display_markdown(pres2)
