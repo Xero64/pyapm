@@ -32,7 +32,6 @@ try:
         double ray = py - ay;
         double raz = pz - az;
         double ram = sqrt(rax*rax + ray*ray + raz*raz);
-
         double hax = 0.0;
         double hay = 0.0;
         double haz = 0.0;
@@ -48,7 +47,6 @@ try:
         double rby = py - by;
         double rbz = pz - bz;
         double rbm = sqrt(rbx*rbx + rby*rby + rbz*rbz);
-
         double hbx = 0.0;
         double hby = 0.0;
         double hbz = 0.0;
@@ -64,7 +62,6 @@ try:
         double rcy = -cy;
         double rcz = -cz;
         double rcm = sqrt(rcx*rcx + rcy*rcy + rcz*rcz);
-
         double hcx = 0.0;
         double hcy = 0.0;
         double hcz = 0.0;
