@@ -28,8 +28,8 @@ psys.set_horseshoes(pres.vfs.to_unit())
 
 #%%
 # Assemble and Solve
-psys.assemble_panels()
-psys.assemble_horseshoes()
+psys.assemble_panels_phi()
+psys.assemble_horseshoes_phi()
 psys.solve_system()
 
 #%%

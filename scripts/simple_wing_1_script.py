@@ -84,8 +84,8 @@ rref = Vector(0.25, 0.0, 0.0)
 psys = PanelSystem(name, bref, cref, sref, rref)
 psys.set_mesh(grids, panels)
 
-psys.assemble_panels()
-psys.assemble_horseshoes()
+psys.assemble_panels_phi()
+psys.assemble_horseshoes_phi()
 psys.solve_system()
 
 #%%

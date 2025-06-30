@@ -8,8 +8,8 @@ from pyapm.outputs.msh import panelresult_to_msh
 # Create Panel Mesh
 jsonfilepath = '../files/Prandtl-D2.json'
 psys = PanelSystem.from_json(jsonfilepath)
-psys.assemble_panels()
-psys.assemble_horseshoes()
+psys.assemble_panels_phi()
+psys.assemble_horseshoes_phi()
 psys.solve_system()
 
 #%%

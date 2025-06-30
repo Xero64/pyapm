@@ -35,8 +35,8 @@ _ = axt.set_xlabel('Span-Wise Coordinate - b (m)')
 # Assembly and Solution
 psys.assemble_horseshoes_wash()
 # psys.assemble_panels_wash()
-psys.assemble_panels()
-psys.assemble_horseshoes()
+psys.assemble_panels_phi()
+psys.assemble_horseshoes_phi()
 psys.solve_system()
 
 #%%
