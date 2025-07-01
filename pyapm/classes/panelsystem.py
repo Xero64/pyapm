@@ -27,20 +27,19 @@ if TYPE_CHECKING:
     from .horseshoedoublet import HorseshoeDoublet
     from .panelstrip import PanelStrip
 
-try:
+USE_CUPY = False
+
+if USE_CUPY:
     from ..tools.cupy import cupy_ctdsp as ctdsp
-    from ..tools.cupy import cupy_ctdsf as ctdsf
     from ..tools.cupy import cupy_ctdsv as ctdsv
     from ..tools.cupy import cupy_cwdp as cwdp
-    from ..tools.cupy import cupy_cwdf as cwdf
     from ..tools.cupy import cupy_cwdv as cwdv
-except ImportError:
+else:
     from ..tools.numpy import numpy_ctdsp as ctdsp
-    from ..tools.numpy import numpy_ctdsf as ctdsf
     from ..tools.numpy import numpy_ctdsv as ctdsv
     from ..tools.numpy import numpy_cwdp as cwdp
-    from ..tools.numpy import numpy_cwdf as cwdf
     from ..tools.numpy import numpy_cwdv as cwdv
+
 
 class PanelSystem():
     name: str = None
