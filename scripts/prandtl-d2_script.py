@@ -1,5 +1,6 @@
 #%%
 # Import Dependencies
+from time import perf_counter
 from IPython.display import display_markdown
 from matplotlib.pyplot import figure
 from numpy import zeros
@@ -8,11 +9,18 @@ from pyapm.classes.horseshoevortex2d import HorseshoeVortex2D, Vector2D
 from pyapm.outputs.k3d import PanelPlot
 from pyapm.outputs.msh import panelresult_to_msh
 from pygeom.geom2d import Vector2D
+from pyapm import set_cupy
+
+set_cupy(True)  # Set to True if you want to use CuPy for GPU acceleration
 
 #%%
 # Create Panel Mesh
+start = perf_counter()
 jsonfilepath = '../files/Prandtl-D2.json'
 psys = PanelSystem.from_json(jsonfilepath)
+finish = perf_counter()
+elapsed = finish - start
+print(f'Panel System created in {elapsed:.2f} seconds')
 display_markdown(psys)
 
 #%%

@@ -27,19 +27,6 @@ if TYPE_CHECKING:
     from .horseshoedoublet import HorseshoeDoublet
     from .panelstrip import PanelStrip
 
-USE_CUPY = False
-
-if USE_CUPY:
-    from ..tools.cupy import cupy_ctdsp as ctdsp
-    from ..tools.cupy import cupy_ctdsv as ctdsv
-    from ..tools.cupy import cupy_cwdp as cwdp
-    from ..tools.cupy import cupy_cwdv as cwdv
-else:
-    from ..tools.numpy import numpy_ctdsp as ctdsp
-    from ..tools.numpy import numpy_ctdsv as ctdsv
-    from ..tools.numpy import numpy_cwdp as cwdp
-    from ..tools.numpy import numpy_cwdv as cwdv
-
 
 class PanelSystem():
     name: str = None
@@ -396,6 +383,14 @@ class PanelSystem():
         return self._strps
 
     def assemble_panels_wash(self, time: bool=True) -> None:
+
+        import pyapm
+
+        if pyapm.USE_CUPY:
+            from ..tools.cupy import cupy_ctdsv as ctdsv
+        else:
+            from ..tools.numpy import numpy_ctdsv as ctdsv
+
         # if time:
         start = perf_counter()
         shp = (self.numhsv, self.numpnl)
@@ -661,6 +656,13 @@ class PanelSystem():
 
         betm = betm_from_mach(mach)
 
+        from .. import USE_CUPY
+
+        if USE_CUPY:
+            from ..tools.cupy import cupy_ctdsp as ctdsp
+        else:
+            from ..tools.numpy import numpy_ctdsp as ctdsp
+
         # # if time:
         # start = perf_counter()
         # shp = (self.numpnl, self.numpnl)
@@ -710,6 +712,13 @@ class PanelSystem():
             self._avs = {}
 
         betm = betm_from_mach(mach)
+
+        from .. import USE_CUPY
+
+        if USE_CUPY:
+            from ..tools.cupy import cupy_ctdsv as ctdsv
+        else:
+            from ..tools.numpy import numpy_ctdsv as ctdsv
 
         # # if time:
         # start = perf_counter()
@@ -796,6 +805,13 @@ class PanelSystem():
 
         betm = betm_from_mach(mach)
 
+        from .. import USE_CUPY
+
+        if USE_CUPY:
+            from ..tools.cupy import cupy_cwdp as cwdp
+        else:
+            from ..tools.numpy import numpy_cwdp as cwdp
+
         # # if time:
         # start = perf_counter()
         # shp = (self.numpnl, self.numhsv)
@@ -832,6 +848,13 @@ class PanelSystem():
             self._avh = {}
 
         betm = betm_from_mach(mach)
+
+        from .. import USE_CUPY
+
+        if USE_CUPY:
+            from ..tools.cupy import cupy_cwdv as cwdv
+        else:
+            from ..tools.numpy import numpy_cwdv as cwdv
 
         # # if time:
         # start = perf_counter()
