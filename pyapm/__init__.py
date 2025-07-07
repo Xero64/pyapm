@@ -7,6 +7,6 @@ def set_cupy(use_cupy: bool = True):
     global USE_CUPY
     USE_CUPY = use_cupy
     if USE_CUPY:
-        print('Using cupy for calculations.')
+        print('Using cupy for panel system calculations.')
     else:
-        print('Using numpy for calculations.')
+        print('Using numpy for panel system calculations.')
