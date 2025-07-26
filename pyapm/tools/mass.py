@@ -43,12 +43,12 @@ class Mass():
         I[0, 0] = self.Ixx
         I[1, 1] = self.Iyy
         I[2, 2] = self.Izz
-        I[0, 1] = self.Ixy
-        I[1, 0] = self.Ixy
-        I[0, 2] = self.Ixz
-        I[2, 0] = self.Ixz
-        I[1, 2] = self.Iyz
-        I[2, 1] = self.Iyz
+        I[0, 1] = -self.Ixy
+        I[1, 0] = -self.Ixy
+        I[0, 2] = -self.Ixz
+        I[2, 0] = -self.Ixz
+        I[1, 2] = -self.Iyz
+        I[2, 1] = -self.Iyz
         return I
 
     def __repr__(self):
@@ -118,9 +118,9 @@ class MassCollection(Mass):
         self.Izz = 0.0
         for m in self.masses:
             mass = self.masses[m]
-            x = mass.xcm-self.xcm
-            y = mass.ycm-self.ycm
-            z = mass.zcm-self.zcm
+            x = mass.xcm - self.xcm
+            y = mass.ycm - self.ycm
+            z = mass.zcm - self.zcm
             self.Ixx += mass.Ixx + mass.mass*(y**2 + z**2)
             self.Iyy += mass.Iyy + mass.mass*(z**2 + x**2)
             self.Izz += mass.Izz + mass.mass*(x**2 + y**2)
