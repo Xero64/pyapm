@@ -209,8 +209,8 @@ class Panel(DirichletPoly):
             noload = self.sht.noload
         if self.sct is not None:
             noload = self.sct.noload
-        if self.grp is not None:
-            noload = self.grp.noload
+        # if self.grp is not None:
+        #     noload = self.grp.noload
         return noload
 
     @property
@@ -220,8 +220,8 @@ class Panel(DirichletPoly):
             nohsv = self.sht.nohsv
         if self.sct is not None:
             nohsv = self.sct.nohsv
-        if self.grp is not None:
-            nohsv = self.grp.nohsv
+        # if self.grp is not None:
+        #     nohsv = self.grp.nohsv
         return nohsv
 
     def set_horseshoes(self, diro: Vector):

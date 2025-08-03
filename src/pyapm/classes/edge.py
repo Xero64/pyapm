@@ -8,9 +8,9 @@ from pygeom.geom3d import Coordinate
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
-    from pyapm.classes.grid import Grid
-    from pyapm.classes.panel import Panel
-    from pyapm.classes.panelsystem import PanelSystem
+    from ..classes.grid import Grid
+    from ..classes.panel import Panel
+    from ..classes.panelsystem import PanelSystem
     from pygeom.geom3d import Vector
 
 

@@ -3,7 +3,7 @@ from typing import TYPE_CHECKING, Any
 from pygeom.geom3d import Vector
 
 if TYPE_CHECKING:
-    from pyapm.classes.panel import Panel
+    from ..classes.panel import Panel
 
 
 class PanelControl():

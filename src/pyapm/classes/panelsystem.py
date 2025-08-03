@@ -4,7 +4,7 @@ from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
 from matplotlib.pyplot import figure
-from numpy import zeros, add
+from numpy import add, zeros
 from numpy.linalg import norm
 from py2md.classes import MDTable
 from pygeom.geom3d import Vector
@@ -384,9 +384,9 @@ class PanelSystem():
 
     def assemble_panels_wash(self, time: bool=True) -> None:
 
-        import pyapm
+        from .. import USE_CUPY
 
-        if pyapm.USE_CUPY:
+        if USE_CUPY:
             from ..tools.cupy import cupy_ctdsv as ctdsv
         else:
             from ..tools.numpy import numpy_ctdsv as ctdsv
