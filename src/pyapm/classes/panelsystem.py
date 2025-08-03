@@ -14,6 +14,8 @@ from ..tools.mass import Mass, masses_from_data, masses_from_json
 from .edge import edges_array, edges_from_system
 from .grid import Grid
 from .panel import Panel
+from .panelcontrol import PanelControl
+from .panelgroup import PanelGroup
 from .panelresult import PanelResult
 from .panelsurface import PanelSurface
 from .paneltrim import PanelTrim
@@ -38,6 +40,7 @@ class PanelSystem():
     rref: Vector = None
     ctrls: dict[str, tuple[int]] = None
     srfcs: list['PanelSurface'] = None
+    grps: dict[int, 'PanelGroup'] = None
     results: dict[str, 'PanelResult | PanelTrim'] = None
     masses: dict[str, 'Mass | MassCollection'] = None # Store Mass Options
     mass: 'Mass | MassCollection | None' = None # Mass Object
@@ -621,6 +624,20 @@ class PanelSystem():
                                 dndln = pnl.dndl(ctrl.neggain, ctrl.uhvec)
                                 unsig[ind, ctup[2]] = -dndln
                                 unsig[ind, ctup[3]] = -rrel.cross(dndln)
+            elif self.grps is not None:
+                for grp in self.grps.values():
+                    for control in grp.ctrls:
+                        ctrl = grp.ctrls[control]
+                        ctup = self.ctrls[control]
+                        for pnl in ctrl.pnls:
+                            ind = pnl.ind
+                            rrel = self.rrel[ind]
+                            dndlp = pnl.dndl(ctrl.posgain, ctrl.uhvec)
+                            unsig[ind, ctup[0]] = -dndlp
+                            unsig[ind, ctup[1]] = -rrel.cross(dndlp)
+                            dndln = pnl.dndl(ctrl.neggain, ctrl.uhvec)
+                            unsig[ind, ctup[2]] = -dndln
+                            unsig[ind, ctup[3]] = -rrel.cross(dndln)
             self._unsig[mach] = unsig
         return self._unsig[mach]
 
@@ -1139,43 +1156,75 @@ class PanelSystem():
         rref = Vector(xref, yref, zref)
 
         grds: dict[int, Grid] = {}
-        griddata = sysdct['grids']
+        griddata: dict[str, Any] = sysdct['grids']
         for gidstr, gd in griddata.items():
             gid = int(gidstr)
             if 'te' not in gd:
                 gd['te'] = False
             grds[gid] = Grid(gid, gd['x'], gd['y'], gd['z'], gd['te'])
 
-        grps = {}
-        if 'groups' in sysdct:
-            groupdata = sysdct['groups']
-            for grpidstr, grpdata in groupdata.items():
-                grpid = int(grpidstr)
-                grps[grpid] = grpdata
-                if 'exclude' not in grps[grpid]:
-                    grps[grpid]['exclude'] = False
-                if 'noload' not in grps[grpid]:
-                    grps[grpid]['noload'] = False
+        # grps = {}
+        # if 'groups' in sysdct:
+        #     groupdata = sysdct['groups']
+        #     for grpidstr, grpdata in groupdata.items():
+        #         grpid = int(grpidstr)
+        #         grps[grpid] = grpdata
+        #         if 'exclude' not in grps[grpid]:
+        #             grps[grpid]['exclude'] = False
+        #         if 'noload' not in grps[grpid]:
+        #             grps[grpid]['noload'] = False
+
+        grps: dict[int, PanelGroup] = {}
+        groupdata: dict[int, dict[str, Any]] = sysdct.get('groups', {})
+        for grpidstr, grpdata in groupdata.items():
+            grpid = int(grpidstr)
+            grpname = grpdata.get('name', f'Group {grpid}')
+            grps[grpid] = PanelGroup(grpname)
+            grps[grpid].exclude = grpdata.get('exclude', False)
+            grps[grpid].noload = grpdata.get('noload', False)
+            grps[grpid].nohsv = grpdata.get('nohsv', False)
 
         pnls: dict[int, Panel] = {}
-        paneldata = sysdct['panels']
+        paneldata: dict[int, dict[str, Any]] = sysdct['panels']
         for pidstr, pd in paneldata.items():
             pid = int(pidstr)
             if 'grpid' in pd:
                 grpid = pd['grpid']
                 grp = grps[grpid]
-                if not grp['exclude']:
+                if not grp.exclude:
                     pnlgrds = [grds[gidi] for gidi in pd['gids']]
-                    pnls[pid] = Panel(pid, pnlgrds)
-                    if grp['noload']:
+                    pnl = Panel(pid, pnlgrds)
+                    pnls[pid] = pnl
+                    if grp.noload:
                         pnls[pid].noload = True
-                    pnls[pid].grp = grpid
+                    pnls[pid].grp = grp
+                grp.add_panel(pnl)
             else:
                 pnlgrds = [grds[gidi] for gidi in pd['gids']]
                 pnls[pid] = Panel(pid, pnlgrds)
 
         sys = cls(name, bref, cref, sref, rref)
         sys.set_mesh(grds, pnls)
+        sys.grps = grps
+
+        ind = 2
+        ctrldata: dict[str, dict[str, Any]] = sysdct.get('controls', {})
+        for desc, ctrldct in ctrldata.items():
+            ctrlname = ctrldct.get('name', desc)
+            posgain = ctrldct.get('posgain', 1.0)
+            neggain = ctrldct.get('neggain', 1.0)
+            hvec = Vector.from_dict(ctrldct.get('hvec', {'x': 0.0, 'y': 0.0, 'z': 0.0}))
+            ctrl = PanelControl(ctrlname, posgain, neggain)
+            ctrl.desc = desc
+            ctrl.set_hinge_vector(hvec)
+            grpid = ctrldct.get('group', None)
+            if grpid is not None:
+                grpid = int(grpid)
+                grp = sys.grps[grpid]
+                grp.add_control(ctrl)
+            if ctrlname not in sys.ctrls:
+                sys.ctrls[ctrlname] = (ind, ind+1, ind+2, ind+3)
+                ind += 4
 
         masses = {}
         if 'masses' in sysdct:

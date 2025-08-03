@@ -14,12 +14,14 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from .edge import Edge
+    from .panelgroup import PanelGroup
     from .panelsection import PanelSection
     from .panelsheet import PanelSheet
     from .panelsurface import PanelSurface
 
-oor2 = 1/sqrt(2.0)
-angtol = pi/4
+OOR2 = 1/sqrt(2.0)
+ANGTOL = pi/4
+
 
 class PanelFace:
     fid: int = None
@@ -169,7 +171,7 @@ class Panel(DirichletPoly):
     grds: list[Grid] = None
     gids: list[int] = None
     ind: int = None
-    grp: int = None
+    grp: 'PanelGroup' = None
     sht: 'PanelSheet' = None
     sct: 'PanelSection' = None
     srfc: 'PanelSurface' = None
@@ -209,8 +211,8 @@ class Panel(DirichletPoly):
             noload = self.sht.noload
         if self.sct is not None:
             noload = self.sct.noload
-        # if self.grp is not None:
-        #     noload = self.grp.noload
+        if self.grp is not None:
+            noload = self.grp.noload
         return noload
 
     @property
@@ -220,8 +222,8 @@ class Panel(DirichletPoly):
             nohsv = self.sht.nohsv
         if self.sct is not None:
             nohsv = self.sct.nohsv
-        # if self.grp is not None:
-        #     nohsv = self.grp.nohsv
+        if self.grp is not None:
+            nohsv = self.grp.nohsv
         return nohsv
 
     def set_horseshoes(self, diro: Vector):
@@ -255,7 +257,7 @@ class Panel(DirichletPoly):
 
     def check_angle(self, pnl: 'Panel') -> bool:
         ang = angle_between_vectors(pnl.crd.dirz, self.crd.dirz)
-        angchk = abs(ang) < angtol
+        angchk = abs(ang) < ANGTOL
         return angchk
 
     def check_edge(self, pnl: 'Panel', grda: Grid, grdb: Grid) -> bool:
@@ -270,7 +272,7 @@ class Panel(DirichletPoly):
             dirz = self.nrm
             vecy = dirz.cross(IHAT)
             magy = vecy.return_magnitude()
-            if magy < oor2:
+            if magy < OOR2:
                 vecy = dirz.cross(KHAT)
             vecx = vecy.cross(dirz)
             pntc = self.pnto

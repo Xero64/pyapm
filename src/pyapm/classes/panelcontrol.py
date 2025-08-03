@@ -14,9 +14,10 @@ class PanelControl():
     uhvec: Vector = None
     reverse: bool = None
     pnls: list['Panel'] = None
+    desc: str = None
 
     def __init__(self, name: str, posgain: float, neggain: float,
-                 xhinge: float) -> None:
+                 xhinge: float | None = None) -> None:
         self.name = name
         self.posgain = posgain
         self.neggain = neggain
