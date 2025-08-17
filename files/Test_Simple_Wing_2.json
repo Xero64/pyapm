@@ -20,7 +20,7 @@
                     "ypos": 0.0,
                     "zpos": 0.0,
                     "chord": 1.0,
-                    "bnum": 1,
+                    "bnum": 10,
                     "bspc": "semi-cosine",
                     "airfoil": "NACA 0012",
                     "xoc": 0.25,
