@@ -361,9 +361,9 @@ class ConstantSystem():
         from . import USE_CUPY
 
         if USE_CUPY:
-            from pyapm2.tools.cupy import cupy_ctdsp as ctdsp
+            from pyapm.tools.cupy import cupy_ctdsp as ctdsp
         else:
-            from pyapm2.tools.numpy import numpy_ctdsp as ctdsp
+            from pyapm.tools.numpy import numpy_ctdsp as ctdsp
 
         dpoints = self.dpoints.reshape((self.num_dpanels, 1))
 
@@ -391,9 +391,9 @@ class ConstantSystem():
             from . import USE_CUPY
 
             if USE_CUPY:
-                from pyapm2.tools.cupy import cupy_ctdp as ctdp
+                from pyapm.tools.cupy import cupy_ctdp as ctdp
             else:
-                from pyapm2.tools.numpy import numpy_ctdp as ctdp
+                from pyapm.tools.numpy import numpy_ctdp as ctdp
 
             dpoints = self.dpoints.reshape((self.num_dpanels, 1))
 
@@ -409,9 +409,9 @@ class ConstantSystem():
             from . import USE_CUPY
 
             if USE_CUPY:
-                from pyapm2.tools.cupy import cupy_cwdp as cwdp
+                from pyapm.tools.cupy import cupy_cwdp as cwdp
             else:
-                from pyapm2.tools.numpy import numpy_cwdp as cwdp
+                from pyapm.tools.numpy import numpy_cwdp as cwdp
 
             dpoints = self.dpoints.reshape((self.num_dpanels, 1))
 
@@ -424,9 +424,9 @@ class ConstantSystem():
         from . import USE_CUPY
 
         if USE_CUPY:
-            from pyapm2.tools.cupy import cupy_ctdsv as ctdsv
+            from pyapm.tools.cupy import cupy_ctdsv as ctdsv
         else:
-            from pyapm2.tools.numpy import numpy_ctdsv as ctdsv
+            from pyapm.tools.numpy import numpy_ctdsv as ctdsv
 
         npoints = self.npoints.reshape((self.num_npanels, 1))
 
@@ -459,9 +459,9 @@ class ConstantSystem():
             from . import USE_CUPY
 
             if USE_CUPY:
-                from pyapm2.tools.cupy import cupy_ctdv as ctdv
+                from pyapm.tools.cupy import cupy_ctdv as ctdv
             else:
-                from pyapm2.tools.numpy import numpy_ctdv as ctdv
+                from pyapm.tools.numpy import numpy_ctdv as ctdv
 
             npoints = self.npoints.reshape((self.num_npanels, 1))
 
@@ -479,9 +479,9 @@ class ConstantSystem():
             from . import USE_CUPY
 
             if USE_CUPY:
-                from pyapm2.tools.cupy import cupy_cwdv as cwdv
+                from pyapm.tools.cupy import cupy_cwdv as cwdv
             else:
-                from pyapm2.tools.numpy import numpy_cwdv as cwdv
+                from pyapm.tools.numpy import numpy_cwdv as cwdv
 
             npoints = self.npoints.reshape((self.num_npanels, 1))
 
@@ -494,9 +494,9 @@ class ConstantSystem():
         from . import USE_CUPY
 
         if USE_CUPY:
-            from pyapm2.tools.cupy import cupy_ctdsv as ctdsv
+            from pyapm.tools.cupy import cupy_ctdsv as ctdsv
         else:
-            from pyapm2.tools.numpy import numpy_ctdsv as ctdsv
+            from pyapm.tools.numpy import numpy_ctdsv as ctdsv
 
         dpoints = self.dpoints.reshape((self.num_dpanels, 1))
 
@@ -528,9 +528,9 @@ class ConstantSystem():
             from . import USE_CUPY
 
             if USE_CUPY:
-                from pyapm2.tools.cupy import cupy_ctdv as ctdv
+                from pyapm.tools.cupy import cupy_ctdv as ctdv
             else:
-                from pyapm2.tools.numpy import numpy_ctdv as ctdv
+                from pyapm.tools.numpy import numpy_ctdv as ctdv
 
             dpoints = self.dpoints.reshape((self.num_dpanels, 1))
 
@@ -548,9 +548,9 @@ class ConstantSystem():
             from . import USE_CUPY
 
             if USE_CUPY:
-                from pyapm2.tools.cupy import cupy_cwdv as cwdv
+                from pyapm.tools.cupy import cupy_cwdv as cwdv
             else:
-                from pyapm2.tools.numpy import numpy_cwdv as cwdv
+                from pyapm.tools.numpy import numpy_cwdv as cwdv
 
             dpoints = self.dpoints.reshape((self.num_dpanels, 1))
 
@@ -764,9 +764,9 @@ class ConstantSystem():
         from . import USE_CUPY
 
         if USE_CUPY:
-            from pyapm2.tools.cupy import cupy_ctdsv as ctdsv
+            from pyapm.tools.cupy import cupy_ctdsv as ctdsv
         else:
-            from pyapm2.tools.numpy import numpy_ctdsv as ctdsv
+            from pyapm.tools.numpy import numpy_ctdsv as ctdsv
 
         gridvec = self.gridvec.reshape((self.num_grids, 1))
 
@@ -798,9 +798,9 @@ class ConstantSystem():
             from . import USE_CUPY
 
             if USE_CUPY:
-                from pyapm2.tools.cupy import cupy_ctdv as ctdv
+                from pyapm.tools.cupy import cupy_ctdv as ctdv
             else:
-                from pyapm2.tools.numpy import numpy_ctdv as ctdv
+                from pyapm.tools.numpy import numpy_ctdv as ctdv
 
             gridvec = self.gridvec.reshape((self.num_grids, 1))
 
@@ -818,9 +818,9 @@ class ConstantSystem():
             from . import USE_CUPY
 
             if USE_CUPY:
-                from pyapm2.tools.cupy import cupy_cwdv as cwdv
+                from pyapm.tools.cupy import cupy_cwdv as cwdv
             else:
-                from pyapm2.tools.numpy import numpy_cwdv as cwdv
+                from pyapm.tools.numpy import numpy_cwdv as cwdv
 
             gridvec = self.gridvec.reshape((self.num_grids, 1))
 
