@@ -4,7 +4,7 @@ from typing import TYPE_CHECKING, Any
 from numpy import degrees, radians, zeros
 from numpy.linalg import norm, solve
 
-from ..tools.mass import Mass
+from ..tools.mass import MassObject
 from .panelresult import PanelResult as Result
 
 if TYPE_CHECKING:
@@ -305,16 +305,20 @@ class PanelTrim(Result):
 
         mass = resdict.get('mass', None)
         if isinstance(mass, dict):
-            mass = Mass(**mass)
+            mass = MassObject(**mass)
         elif isinstance(mass, float):
-            mass = Mass(name = trim_condition.name, mass = mass, xcm = system.rref.x,
-                        ycm = system.rref.y, zcm = system.rref.z)
+            mass = MassObject(name = trim_condition.name, mass = mass,
+                              xcm = system.rref.x,
+                              ycm = system.rref.y,
+                              zcm = system.rref.z)
         elif mass is None:
             if system.mass is not None:
                 mass = system.mass
             else:
-                mass = Mass(trim_condition.name, mass = 1.0, xcm = system.rref.x,
-                            ycm = system.rref.y, zcm = system.rref.z)
+                mass = MassObject(trim_condition.name, mass = 1.0,
+                                  xcm = system.rref.x,
+                                  ycm = system.rref.y,
+                                  zcm = system.rref.z)
         trim_condition.set_mass(mass)
 
         trim_result = trim_condition.create_trim_result()

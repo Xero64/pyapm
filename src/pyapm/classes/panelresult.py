@@ -5,7 +5,8 @@ from numpy import cos, pi, radians, sin, square, zeros
 from py2md.classes import MDHeading, MDReport, MDTable
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import Coordinate, Vector
-from ..tools.mass import Mass
+
+from ..tools.mass import MassObject
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -26,7 +27,7 @@ class PanelResult():
     rbo2v: float = None
     ctrls: dict[str, float] = None
     rcg: Vector = None
-    mass: 'Mass' = None
+    mass: 'MassObject' = None
     _acs: Coordinate = None
     _scs: Coordinate = None
     _dacsa: dict[str, Vector] = None

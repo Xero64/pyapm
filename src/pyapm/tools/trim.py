@@ -4,7 +4,7 @@ from py2md.classes import MDReport
 from pygeom.geom3d import Vector
 
 from ..classes import PanelTrim as Trim
-from .mass import Mass, MassCollection
+from .mass import MassObject, MassCollection
 
 if TYPE_CHECKING:
     from ..classes import PanelSystem as System
@@ -18,7 +18,7 @@ class LoopingTrim():
     gravacc: float = None
     speed: float = None
     density: float = None
-    mass: 'Mass | MassCollection | None' = None
+    mass: 'MassObject | MassCollection | None' = None
     loadfac: float = None
     _weight: float = None
     _lift: float = None
@@ -59,13 +59,14 @@ class LoopingTrim():
         self.loadfac = loadfac
         self.reset()
 
-    def set_mass(self, mass: 'Mass | MassCollection | str | float') -> None:
+    def set_mass(self, mass: 'MassObject | MassCollection | str | float') -> None:
         if isinstance(mass, str):
             self.mass = self.sys.masses[mass]
         elif isinstance(mass, float):
-            self.mass = Mass(self.name + ' Mass', mass,
-                             self.sys.rref.x, self.sys.rref.y, self.sys.rref.z)
-        elif isinstance(mass, (Mass, MassCollection)):
+            self.mass = MassObject(self.name + ' Mass', mass,
+                                   self.sys.rref.x, self.sys.rref.y,
+                                   self.sys.rref.z)
+        elif isinstance(mass, (MassObject, MassCollection)):
             self.mass = mass
         self.reset()
 
@@ -178,7 +179,7 @@ class TurningTrim():
     gravacc: float = None
     speed: float = None
     density: float = None
-    mass: 'Mass | MassCollection | None' = None
+    mass: 'MassObject | MassCollection | None' = None
     bankang: float = None
     _loadfac: float = None
     _weight: float = None
@@ -222,13 +223,13 @@ class TurningTrim():
         self.bankang = bankang
         self.reset()
 
-    def set_mass(self, mass: 'Mass | MassCollection | str | float') -> None:
+    def set_mass(self, mass: 'MassObject | MassCollection | str | float') -> None:
         if isinstance(mass, str):
             self.mass = self.sys.masses[mass]
         elif isinstance(mass, float):
-            self.mass = Mass(self.name + ' Mass', mass,
-                             self.sys.rref.x, self.sys.rref.y, self.sys.rref.z)
-        elif isinstance(mass, (Mass, MassCollection)):
+            self.mass = MassObject(self.name + ' Mass', mass,
+                                   self.sys.rref.x, self.sys.rref.y, self.sys.rref.z)
+        elif isinstance(mass, (MassObject, MassCollection)):
             self.mass = mass
         self.reset()
 
@@ -370,7 +371,7 @@ class LevelTrim():
     gravacc: float = None
     speed: float = None
     density: float = None
-    mass: 'Mass | MassCollection | None' = None
+    mass: 'MassObject | MassCollection | None' = None
     _weight: float = None
     _lift: float = None
     _dynpres: float = None
@@ -402,13 +403,13 @@ class LevelTrim():
         self.speed = speed
         self.reset()
 
-    def set_mass(self, mass: 'Mass | MassCollection | str | float') -> None:
+    def set_mass(self, mass: 'MassObject | MassCollection | str | float') -> None:
         if isinstance(mass, str):
             self.mass = self.sys.masses[mass]
         elif isinstance(mass, float):
-            self.mass = Mass(self.name + ' Mass', mass,
-                             self.sys.rref.x, self.sys.rref.y, self.sys.rref.z)
-        elif isinstance(mass, (Mass, MassCollection)):
+            self.mass = MassObject(self.name + ' Mass', mass,
+                                   self.sys.rref.x, self.sys.rref.y, self.sys.rref.z)
+        elif isinstance(mass, (MassObject, MassCollection)):
             self.mass = mass
         self.reset()
 
@@ -503,7 +504,7 @@ class LoadTrim():
     n: float = None
     initstate: dict[str, float] = None
     initctrls: dict[str, float] = None
-    mass: 'Mass | MassCollection | None' = None
+    mass: 'MassObject | MassCollection | None' = None
     _dynpres: float = None
     _CL: float = None
     _CY: float = None

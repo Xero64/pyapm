@@ -10,7 +10,7 @@ from py2md.classes import MDTable
 from pygeom.geom3d import Vector
 
 from ..tools import betm_from_mach
-from ..tools.mass import Mass, masses_from_data, masses_from_json
+from ..tools.mass import MassObject, masses_from_data, masses_from_json
 from .edge import edges_array, edges_from_system
 from .grid import Grid
 from .panel import Panel
@@ -42,8 +42,8 @@ class PanelSystem():
     srfcs: list['PanelSurface'] = None
     grps: dict[int, 'PanelGroup'] = None
     results: dict[str, 'PanelResult | PanelTrim'] = None
-    masses: dict[str, 'Mass | MassCollection'] = None # Store Mass Options
-    mass: 'Mass | MassCollection | None' = None # Mass Object
+    masses: dict[str, 'MassObject | MassCollection'] = None # Store Mass Options
+    mass: 'MassObject | MassCollection | None' = None # Mass Object
     source: str = None
     _hsvs: list['HorseshoeDoublet'] = None
     _numgrd: int = None
@@ -1177,13 +1177,17 @@ class PanelSystem():
         sys.masses = masses
         mass = sysdct.get('mass', None)
         if isinstance(mass, float):
-            sys.mass = Mass(sys.name, mass = mass, xcm = sys.rref.x,
-                        ycm = sys.rref.y, zcm = sys.rref.z)
+            sys.mass = MassObject(sys.name, mass = mass,
+                                  xcm = sys.rref.x,
+                                  ycm = sys.rref.y,
+                                  zcm = sys.rref.z)
         elif isinstance(mass, str):
             sys.mass = masses[mass]
         else:
-            sys.mass = Mass(sys.name, mass = 1.0, xcm = sys.rref.x,
-                        ycm = sys.rref.y, zcm = sys.rref.z)
+            sys.mass = MassObject(sys.name, mass = 1.0,
+                                  xcm = sys.rref.x,
+                                  ycm = sys.rref.y,
+                                  zcm = sys.rref.z)
 
         if 'cases' in sysdct and sysdct:
             sys.results_from_dict(sysdct['cases'], trim = False)

@@ -1,97 +1,150 @@
-from numpy import zeros
+from typing import TYPE_CHECKING
+
+from numpy import asarray
 from py2md.classes import MDTable
 
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
 
-class Mass():
-    name = None
-    mass = None
-    xcm = None
-    ycm = None
-    zcm = None
-    Ixx = None
-    Ixy = None
-    Ixz = None
-    Iyy = None
-    Iyz = None
-    Izz = None
 
-    def __init__(self, name: str, mass: float = 1.0,
+class MassObject():
+    name: str | None
+    mass: float
+    xcm: float
+    ycm: float
+    zcm: float
+    Ixx: float
+    Iyy: float
+    Izz: float
+    Ixy: float
+    Ixz: float
+    Iyz: float
+    _Imat: 'NDArray'
+
+    __slots__ = tuple(__annotations__)
+
+    def __init__(self, name: str | None = None, mass: float = 1.0,
                  xcm: float = 0.0, ycm: float = 0.0, zcm: float = 0.0,
-                 Ixx: float = 1.0, Ixy: float = 0.0, Ixz: float = 0.0,
-                 Iyy: float = 1.0, Iyz: float = 0.0, Izz: float = 1.0) -> None:
+                 Ixx: float = 1.0, Iyy: float = 1.0, Izz: float = 1.0,
+                 Ixy: float = 0.0, Ixz: float = 0.0, Iyz: float = 0.0) -> None:
         self.name = name
         self.mass = mass
         self.xcm = xcm
         self.ycm = ycm
         self.zcm = zcm
         self.Ixx = Ixx
+        self.Iyy = Iyy
+        self.Izz = Izz
         self.Ixy = Ixy
         self.Ixz = Ixz
-        self.Iyy = Iyy
         self.Iyz = Iyz
-        self.Izz = Izz
 
-    def mass_array(self):
-        M = zeros((3, 3))
-        M[0, 0] = self.mass
-        M[1, 1] = self.mass
-        M[2, 2] = self.mass
-        return M
-
-    def moment_of_inertia_array(self):
-        I = zeros((3, 3))
-        I[0, 0] = self.Ixx
-        I[1, 1] = self.Iyy
-        I[2, 2] = self.Izz
-        I[0, 1] = -self.Ixy
-        I[1, 0] = -self.Ixy
-        I[0, 2] = -self.Ixz
-        I[2, 0] = -self.Ixz
-        I[1, 2] = -self.Iyz
-        I[2, 1] = -self.Iyz
-        return I
-
-    def __repr__(self):
-        return '<Mass {:s}>'.format(self.name)
-
-    def __str__(self):
-        frmstr = 'Mass\t{:s}\t{:}'
-        return frmstr.format(self.name, self.mass)
-
-    def __format__(self, format_spec: str):
-        frmstr = 'Mass\t{:s}\t{:'
-        frmstr += format_spec
-        frmstr += '}'
-        return frmstr.format(self.name, self.mass)
+    @property
+    def Imat(self) -> 'NDArray':
+        if not hasattr(self, '_Imat'):
+            self._Imat = asarray([[self.Ixx, -self.Ixy, -self.Ixz],
+                                  [-self.Ixy, self.Iyy, -self.Iyz],
+                                  [-self.Ixz, -self.Iyz, self.Izz]])
+        return self._Imat
 
     @classmethod
-    def from_dict(cls, massdata: dict) -> 'Mass':
-        """Create a Mass object from a dictionary."""
-        name = massdata['name']
-        m = massdata['mass']
-        xcm = massdata['xcm']
-        ycm = massdata['ycm']
-        zcm = massdata['zcm']
-        mass = cls(name, m, xcm, ycm, zcm)
-        if 'Ixx' in massdata:
-            mass.Ixx = massdata['Ixx']
-        if 'Ixy' in massdata:
-            mass.Ixx = massdata['Ixy']
-        if 'Ixz' in massdata:
-            mass.Ixx = massdata['Ixz']
-        if 'Iyy' in massdata:
-            mass.Ixx = massdata['Iyy']
-        if 'Iyz' in massdata:
-            mass.Ixx = massdata['Iyz']
-        if 'Izz' in massdata:
-            mass.Ixx = massdata['Izz']
-        return mass
+    def from_dict(cls, massdict: dict[str, float]) -> 'MassObject':
+        return cls(**massdict)
+
+    def __repr__(self) -> str:
+        return f'<MassObject {self.name}>'
 
 
-class MassCollection(Mass):
-    masses: dict[str, Mass] = None
+# class Mass():
+#     name = None
+#     mass = None
+#     xcm = None
+#     ycm = None
+#     zcm = None
+#     Ixx = None
+#     Ixy = None
+#     Ixz = None
+#     Iyy = None
+#     Iyz = None
+#     Izz = None
 
-    def __init__(self, name: str, masses: dict[str, Mass]) -> None:
+#     def __init__(self, name: str, mass: float = 1.0,
+#                  xcm: float = 0.0, ycm: float = 0.0, zcm: float = 0.0,
+#                  Ixx: float = 1.0, Ixy: float = 0.0, Ixz: float = 0.0,
+#                  Iyy: float = 1.0, Iyz: float = 0.0, Izz: float = 1.0) -> None:
+#         self.name = name
+#         self.mass = mass
+#         self.xcm = xcm
+#         self.ycm = ycm
+#         self.zcm = zcm
+#         self.Ixx = Ixx
+#         self.Ixy = Ixy
+#         self.Ixz = Ixz
+#         self.Iyy = Iyy
+#         self.Iyz = Iyz
+#         self.Izz = Izz
+
+#     def mass_array(self):
+#         M = zeros((3, 3))
+#         M[0, 0] = self.mass
+#         M[1, 1] = self.mass
+#         M[2, 2] = self.mass
+#         return M
+
+#     def moment_of_inertia_array(self):
+#         I = zeros((3, 3))
+#         I[0, 0] = self.Ixx
+#         I[1, 1] = self.Iyy
+#         I[2, 2] = self.Izz
+#         I[0, 1] = -self.Ixy
+#         I[1, 0] = -self.Ixy
+#         I[0, 2] = -self.Ixz
+#         I[2, 0] = -self.Ixz
+#         I[1, 2] = -self.Iyz
+#         I[2, 1] = -self.Iyz
+#         return I
+
+#     def __repr__(self):
+#         return '<Mass {:s}>'.format(self.name)
+
+#     def __str__(self):
+#         frmstr = 'Mass\t{:s}\t{:}'
+#         return frmstr.format(self.name, self.mass)
+
+#     def __format__(self, format_spec: str):
+#         frmstr = 'Mass\t{:s}\t{:'
+#         frmstr += format_spec
+#         frmstr += '}'
+#         return frmstr.format(self.name, self.mass)
+
+#     @classmethod
+#     def from_dict(cls, massdata: dict) -> 'Mass':
+#         """Create a Mass object from a dictionary."""
+#         name = massdata['name']
+#         m = massdata['mass']
+#         xcm = massdata['xcm']
+#         ycm = massdata['ycm']
+#         zcm = massdata['zcm']
+#         mass = cls(name, m, xcm, ycm, zcm)
+#         if 'Ixx' in massdata:
+#             mass.Ixx = massdata['Ixx']
+#         if 'Ixy' in massdata:
+#             mass.Ixx = massdata['Ixy']
+#         if 'Ixz' in massdata:
+#             mass.Ixx = massdata['Ixz']
+#         if 'Iyy' in massdata:
+#             mass.Ixx = massdata['Iyy']
+#         if 'Iyz' in massdata:
+#             mass.Ixx = massdata['Iyz']
+#         if 'Izz' in massdata:
+#             mass.Ixx = massdata['Izz']
+#         return mass
+
+
+class MassCollection(MassObject):
+    masses: dict[str, MassObject] = None
+
+    def __init__(self, name: str, masses: dict[str, MassObject]) -> None:
         super(MassCollection, self).__init__(name)
         self.masses = masses
         self.update()
@@ -155,7 +208,7 @@ class MassCollection(Mass):
         return cls(name, massdict)
 
 
-def masses_from_data(massesdata: dict) -> dict[str, Mass | MassCollection]:
+def masses_from_data(massesdata: dict) -> dict[str, MassObject | MassCollection]:
     masses = {}
     for name, mdata in massesdata.items():
         mdata['name'] = name
@@ -163,7 +216,7 @@ def masses_from_data(massesdata: dict) -> dict[str, Mass | MassCollection]:
             masscol = MassCollection.from_dict(mdata, masses)
             masses[masscol.name] = masscol
         else:
-            mass = Mass.from_dict(mdata)
+            mass = MassObject.from_dict(mdata)
             masses[mass.name] = mass
     return masses
 
