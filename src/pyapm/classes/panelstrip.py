@@ -1,14 +1,19 @@
+from typing import TYPE_CHECKING
+
 from numpy import sqrt
 from pygeom.geom3d import Vector
 
 from .panel import Panel
 from .panelprofile import PanelProfile
 
+if TYPE_CHECKING:
+    from .panelsheet import PanelSheet
+
 
 class PanelStrip():
     prfa: PanelProfile = None
     prfb: PanelProfile = None
-    sht: object = None
+    sht: 'PanelSheet' = None
     pnls: list[Panel] = None
     ind: int = None
     _point: Vector = None
@@ -19,20 +24,20 @@ class PanelStrip():
     _width: float = None
     _area: float = None
 
-    def __init__(self, prfa: PanelProfile, prfb: PanelProfile, sht: object):
+    def __init__(self, prfa: PanelProfile, prfb: PanelProfile, sht: 'PanelSheet') -> None:
         self.prfa = prfa
         self.prfb = prfb
         self.sht = sht
 
     @property
-    def noload(self):
+    def noload(self) -> bool:
         return self.sht.noload
 
     @property
-    def nohsv(self):
+    def nohsv(self) -> bool:
         return self.sht.nohsv
 
-    def mesh_panels(self, pid: int):
+    def mesh_panels(self, pid: int) -> int:
         num = len(self.prfa.grds)-1
         self.pnls = []
         for i in range(num):
@@ -47,49 +52,49 @@ class PanelStrip():
         return pid
 
     @property
-    def point(self):
+    def point(self) -> Vector:
         if self._point is None:
             self._point = (self.prfa.point + self.prfb.point)/2
         return self._point
 
     @property
-    def xpos(self):
+    def xpos(self) -> float:
         return self.point.x
 
     @property
-    def ypos(self):
+    def ypos(self) -> float:
         return self.point.y
 
     @property
-    def zpos(self):
+    def zpos(self) -> float:
         return self.point.z
 
     @property
-    def bpos(self):
+    def bpos(self) -> float:
         if self._bpos is None:
             self._bpos = (self.prfa.bpos + self.prfb.bpos)/2
         return self._bpos
 
     @property
-    def chord(self):
+    def chord(self) -> float:
         if self._chord is None:
             self._chord = (self.prfa.chord + self.prfb.chord)/2
         return self._chord
 
     @property
-    def twist(self):
+    def twist(self) -> float:
         if self._twist is None:
             self._twist = (self.prfa.twist + self.prfb.twist)/2
         return self._twist
 
     @property
-    def tilt(self):
+    def tilt(self) -> float:
         if self._tilt is None:
             self._tilt = (self.prfa.tilt + self.prfb.tilt)/2
         return self._tilt
 
     @property
-    def width(self):
+    def width(self) -> float:
         if self._width is None:
             dy = self.prfb.point.y - self.prfa.point.y
             dz = self.prfb.point.z - self.prfa.point.z
@@ -97,14 +102,17 @@ class PanelStrip():
         return self._width
 
     @property
-    def area(self):
+    def area(self) -> float:
         if self._area is None:
             self._area = self.chord*self.width
         return self._area
 
     @property
-    def pind(self):
+    def pind(self) -> list[int]:
         return [pnl.ind for pnl in self.pnls]
 
+    def __str__(self) -> str:
+        return f'PanelStrip(prfa={self.prfa}, prfb={self.prfb}, sht={self.sht})'
+
     def __repr__(self):
-        return '<pyapm.PanelStrip>'
+        return self.__str__()

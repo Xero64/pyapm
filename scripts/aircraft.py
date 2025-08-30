@@ -93,14 +93,14 @@ axd = ptrm.plot_strip_drag_force_distribution(ax=axd)
 # Display Result
 pnlpl = PanelPlot(psys, pres)
 
-mshplot = Plot()
+mshplot = pnlpl.plot()
 mshplot += pnlpl.panel_mesh()
 mshplot.display()
 
-sigplot = Plot()
+sigplot = pnlpl.plot()
 sigplot += pnlpl.panel_sigma_plot()
 sigplot.display()
 
-muplot = Plot()
+muplot = pnlpl.plot()
 muplot += pnlpl.panel_mu_plot()
 muplot.display()

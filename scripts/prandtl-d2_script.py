@@ -23,6 +23,8 @@ elapsed = finish - start
 print(f'Panel System created in {elapsed:.2f} seconds')
 display_markdown(psys)
 
+psys.save_initial_state(jsonfilepath)
+
 #%%
 # System Plots
 axt1 = psys.plot_twist_distribution()
@@ -51,6 +53,8 @@ psys.solve_system()
 pres = psys.results['Design Point']
 
 display_markdown(pres)
+display_markdown(pres.stability_derivatives)
+display_markdown(pres.control_derivatives)
 display_markdown(pres.surface_loads)
 
 mshfilepath = '../results/' + psys.name + '.msh'
@@ -192,3 +196,41 @@ muplot.display()
 mugplot = pnlpl.plot()
 mugplot += pnlpl.grid_mu_plot()
 mugplot.display()
+
+#%%
+# Longitudinal Stability Analysis
+pres = psys.results['Zero Point']
+wing_force = pres.nfres.nffrctot
+wing_moment = pres.nfres.nfmomtot
+wing_force_alpha = pres.stres.alpha.dfrctot
+wing_moment_alpha = pres.stres.alpha.dmomtot
+el = 0.0
+
+print(f'Wing Force = {wing_force:.4f} N\n')
+print(f'Wing Moment = {wing_moment:.4f} N.m\n')
+print(f'Wing Force Alpha = {wing_force_alpha:.4f} N/rad\n')
+print(f'Wing Moment Alpha = {wing_moment_alpha:.4f} N.m/rad\n')
+
+Cz_wing = wing_force.z/pres.qfs/psys.sref
+Cm_wing = wing_moment.y/pres.qfs/psys.sref/psys.cref
+Cza_wing = wing_force_alpha.z/pres.qfs/psys.sref
+Cma_wing = wing_moment_alpha.y/pres.qfs/psys.sref/psys.cref
+al0_wing = -Cz_wing/Cza_wing
+
+print(f'Cz Wing = {Cz_wing:.6f}\n')
+print(f'Cm Wing = {Cm_wing:.6f}\n')
+print(f'Cza Wing = {Cza_wing:.6f}\n')
+print(f'Cma Wing = {Cma_wing:.6f}\n')
+
+xcg = psys.rref.x
+xac = xcg - Cma_wing/Cza_wing*psys.cref
+xac_wing = xcg - Cma_wing/Cza_wing*psys.cref
+
+xm0 = xcg - Cm_wing/Cz_wing*psys.cref
+xm0_wing = xcg - Cm_wing/Cz_wing*psys.cref
+
+Cm0_wing = Cm_wing + Cz_wing*(xac_wing - xm0_wing)/psys.cref
+
+print(f'xcg = {xcg:.6f} m\n')
+print(f'xac = {xac:.6f} m, xm0 = {xm0:.6f} m\n')
+print(f'xac Wing = {xac_wing:.6f} m, xm0 Wing = {xm0_wing:.6f} m, Cm0 Wing = {Cm0_wing:.6f}\n')

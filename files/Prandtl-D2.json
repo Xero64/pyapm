@@ -4,9 +4,37 @@
     "sref": 0.94064328,
     "cref": 0.2686,
     "bref": 3.749,
-    "xref": 0.3270,
+    "xref": 0.327025,
     "yref": 0.0,
     "zref": 0.0,
+    "CDo": 0.0,
+    "masses": {
+        "Nominal": {
+            "mass": 6.577089,
+            "xcm": 0.327025,
+            "ycm": 0.0,
+            "zcm": 0.0,
+            "Ixx": 7.35531237875,
+            "Iyy": 0.368375737015,
+            "Izz": 7.8881488331,
+            "Ixy": 0.0,
+            "Ixz": 0.68523039193,
+            "Iyz": 0.0
+        },
+        "Neutral": {
+            "mass": 6.577089,
+            "xcm": 0.303505,
+            "ycm": 0.0,
+            "zcm": 0.0,
+            "Ixx": 7.35531237875,
+            "Iyy": 0.368375737015,
+            "Izz": 7.8881488331,
+            "Ixy": 0.0,
+            "Ixz": 0.68523039193,
+            "Iyz": 0.0
+        }
+    },
+    "mass": "Neutral",
     "surfaces": [
         {
             "name": "Wing",
@@ -25,10 +53,41 @@
                     "airfoil": "prandtl_root.dat"
                 },
                 {
+                    "bnum": 25,
+                    "bspc": "cosine",
+                    "bpos": 1.6120872,
+                    "controls": {
+                        "elevator": {
+                            "xhinge": 0.75,
+                            "posgain": 1.0,
+                            "neggain": 1.0,
+                            "reverse": false,
+                            "hvec": {
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            }
+                        },
+                        "aileron": {
+                            "xhinge": 0.75,
+                            "posgain": 1.0,
+                            "neggain": 1.0,
+                            "reverse": true,
+                            "hvec": {
+                                "x": 0.0,
+                                "y": 0.0,
+                                "z": 0.0
+                            }
+                        }
+                    },
+                    "tilt": 2.15
+                },
+                {
                     "xpos": 0.83459,
                     "ypos": 1.87452,
                     "zpos": 0.08177,
                     "chord": 0.10008,
+                    "tilt": 2.5,
                     "airfoil": "prandtl_tip.dat"
                 }
             ],
@@ -43,7 +102,7 @@
                             8.5524,
                             8.7259,
                             8.8441,
-                            8.9030,
+                            8.903,
                             8.8984,
                             8.8257,
                             8.6801,
@@ -68,15 +127,31 @@
     ],
     "cases": [
         {
+            "name": "Zero Point",
+            "speed": 12.64,
+            "density": 1.225
+        },
+        {
             "name": "Design Point",
-            "alpha": 0.0,
-            "speed": 14.129667802639053,
-            "density": 1.1448386410124347
+            "trim": "Looping Trim",
+            "speed": 12.64,
+            "density": 1.225,
+            "load factor": 1.0
         },
         {
             "name": "Roll Case",
             "inherit": "Design Point",
             "pbo2v": 0.1
         }
-    ]
+    ],
+    "state": {
+        "Zero Point": {},
+        "Design Point": {
+            "alpha": 0.0006941702755778081,
+            "elevator": -0.003012812055569468
+        },
+        "Roll Case": {
+            "pbo2v": 0.1
+        }
+    }
 }

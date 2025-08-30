@@ -105,17 +105,3 @@ muplot.display()
 mugplot = pnlpl.plot()
 mugplot += pnlpl.grid_mu_plot()
 mugplot.display()
-
-#%%
-# Loop Through Grids
-# for pid in sorted(psys.pnls):
-#     pnl = psys.pnls[pid]
-
-pnl = psys.pnls[12]
-print(f'{pnl.crd.pnt = }')
-for face in pnl.faces:
-    print(f'{face.cord.pnt = }')
-qx_old, qy_old = pnl.diff_mu_old(pres.mu)
-q = pnl.diff_mu(pres.mu, pres.mug)
-print(f'{qx_old = }, {qy_old = }')
-print(f'{q.x = }, {q.y = }')

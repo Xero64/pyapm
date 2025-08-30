@@ -10,7 +10,7 @@ from .panel import Panel
 from .panelcontrol import PanelControl
 from .panelprofile import PanelProfile
 
-tol = 1e-12
+TOL = 1e-12
 
 
 class PanelSection(PanelProfile):
@@ -32,7 +32,7 @@ class PanelSection(PanelProfile):
     _thkcor: float = None
     _scttyp: str = None
 
-    def __init__(self, point: Vector, chord: float, twist: float):
+    def __init__(self, point: Vector, chord: float, twist: float) -> None:
         super().__init__(point, chord, twist)
         self.point = point
         self.chord = chord
@@ -48,7 +48,7 @@ class PanelSection(PanelProfile):
         self.ctrls = {}
         self.cdo = 0.0
 
-    def mirror_section_in_y(self, ymir: float=0.0):
+    def mirror_section_in_y(self, ymir: float = 0.0) -> 'PanelSection':
         point = Vector(self.point.x, ymir-self.point.y, self.point.z)
         chord = self.chord
         twist = self.twist
@@ -70,11 +70,11 @@ class PanelSection(PanelProfile):
             sect.set_tilt(-self._tilt)
         return sect
 
-    def set_cnum(self, cnum: int):
+    def set_cnum(self, cnum: int) -> None:
         self.cnum = cnum
         self.airfoil.update(self.cnum)
 
-    def offset_position(self, xpos: float, ypos: float, zpos: float):
+    def offset_position(self, xpos: float, ypos: float, zpos: float) -> None:
         self.point.x = self.point.x + xpos
         self.point.y = self.point.y + ypos
         self.point.z = self.point.z + zpos
@@ -110,11 +110,11 @@ class PanelSection(PanelProfile):
     def set_cdo(self, cdo: float) -> None:
         self.cdo = cdo
 
-    def add_control(self, ctrl: PanelControl):
+    def add_control(self, ctrl: PanelControl) -> None:
         self.ctrls[ctrl.name] = ctrl
 
     @property
-    def tilt(self):
+    def tilt(self) -> float:
         if self._tilt is None:
             if self.shta is None and self.shtb is None:
                 pass
@@ -127,7 +127,7 @@ class PanelSection(PanelProfile):
         return self._tilt
 
     @property
-    def thkcor(self):
+    def thkcor(self) -> float:
         if self._thkcor is None:
             self._thkcor = 1.0
             if self.shta is not None and self.shtb is not None:
@@ -136,7 +136,7 @@ class PanelSection(PanelProfile):
         return self._thkcor
 
     @property
-    def scttyp(self):
+    def scttyp(self) -> str:
         if self._scttyp is None:
             if self.shta is None:
                 if self.shtb.nomesh:
@@ -159,7 +159,7 @@ class PanelSection(PanelProfile):
                     self._scttyp = 'notip'
         return self._scttyp
 
-    def get_profile(self, offset: bool=True):
+    def get_profile(self, offset: bool=True) -> Vector:
         num = self.cnum*2+1
         profile = Vector.zeros((1, num))
         for i in range(self.cnum+1):
@@ -167,7 +167,7 @@ class PanelSection(PanelProfile):
             j = n-num
             profile[0, i] = Vector(self.airfoil.xl[j], 0.0, self.airfoil.yl[j])
             profile[0, n] = Vector(self.airfoil.xu[j], 0.0, self.airfoil.yu[j])
-        profile.z[absolute(profile.z) < tol] = 0.0
+        profile.z[absolute(profile.z) < TOL] = 0.0
         profile.z = profile.z*self.thkcor
         if offset:
             offvec = Vector(self.xoc, 0.0, self.zoc)
@@ -195,7 +195,7 @@ class PanelSection(PanelProfile):
             self.grds[-1].te = True
         return gid
 
-    def mesh_panels(self, pid: int):
+    def mesh_panels(self, pid: int) -> int:
         mesh = False
         reverse = False
         if self.scttyp == 'begtip':
@@ -205,12 +205,6 @@ class PanelSection(PanelProfile):
             mesh = True
         self.pnls = []
         if mesh:
-            # if self.shta is None:
-            #     noload = self.shtb.noload
-            # elif self.shtb is None:
-            #     noload = self.shta.noload
-            # else:
-            #     noload = False
             numgrd = len(self.grds)
             n = numgrd-1
             numpnl = int(n/2)
@@ -221,7 +215,7 @@ class PanelSection(PanelProfile):
                 grds.append(self.grds[n-i-1])
                 grds.append(self.grds[n-i])
                 dist = (grds[0]-grds[-1]).return_magnitude()
-                if dist < tol:
+                if dist < TOL:
                     grds = grds[:-1]
                 if reverse:
                     grds.reverse()
@@ -279,5 +273,8 @@ class PanelSection(PanelProfile):
                 sect.add_control(ctrl)
         return sect
 
-    def __repr__(self):
-        return f'<pyapm.PanelSection at {self.point:}>'
+    def __str__(self) -> str:
+        return f'PanelSection({self.point}, {self.chord}, {self.twist})'
+
+    def __repr__(self) -> str:
+        return self.__str__()
