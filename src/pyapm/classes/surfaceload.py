@@ -147,9 +147,9 @@ class SurfaceLoad():
             frc = self.ptfrc[i]
             mom = self.ptmom[i]
             pnt = self.strc.pnts[i]
-            x, y, z = pnt.x, pnt.y, pnt.z
-            Vx, Fy, Vz = frc.x, frc.y, frc.z
-            Mx, Ty, Mz = mom.x, mom.y, mom.z
+            x, y, z = pnt.x.item(), pnt.y.item(), pnt.z.item()
+            Vx, Fy, Vz = frc.x.item(), frc.y.item(), frc.z.item()
+            Mx, Ty, Mz = mom.x.item(), mom.y.item(), mom.z.item()
             table.add_row([i, x, y, z, Vx, Fy, Vz, Mx, Ty, Mz])
         return table
 
