@@ -531,6 +531,20 @@ class LoadTrim():
         self.speed = speed
         self.reset()
 
+    def set_gravitational_acceleration(self, gravacc: float) -> None:
+        self.gravacc = gravacc
+        self.reset()
+
+    def set_mass(self, mass: 'MassObject | MassCollection | str | float') -> None:
+        if isinstance(mass, str):
+            self.mass = self.sys.masses[mass]
+        elif isinstance(mass, float):
+            self.mass = MassObject(self.name + ' Mass', mass,
+                                   self.sys.rref.x, self.sys.rref.y, self.sys.rref.z)
+        elif isinstance(mass, (MassObject, MassCollection)):
+            self.mass = mass
+        self.reset()
+
     def set_loads(self, L: float = None, Y: float = None,
                   l: float = None, m: float = None, n: float = None) -> None:
         self.L = L
