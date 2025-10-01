@@ -209,7 +209,7 @@ class PanelSection(PanelProfile):
             n = numgrd-1
             numpnl = int(n/2)
             for i in range(numpnl):
-                grds = []
+                grds: list[Grid] = []
                 grds.append(self.grds[i])
                 grds.append(self.grds[i+1])
                 grds.append(self.grds[n-i-1])
