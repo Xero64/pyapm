@@ -1612,12 +1612,12 @@ class StripResult():
         pntx = [strp.point.x for strp in sys.strps]
         pnty = [strp.point.y for strp in sys.strps]
         pntz = [strp.point.z for strp in sys.strps]
-        frcx = self.stfrc.x[ind].transpose().tolist()[0]
-        frcy = self.stfrc.y[ind].transpose().tolist()[0]
-        frcz = self.stfrc.z[ind].transpose().tolist()[0]
-        momx = self.stmom.x[ind].transpose().tolist()[0]
-        momy = self.stmom.y[ind].transpose().tolist()[0]
-        momz = self.stmom.z[ind].transpose().tolist()[0]
+        frcx = self.stfrc.x[ind].transpose().tolist()
+        frcy = self.stfrc.y[ind].transpose().tolist()
+        frcz = self.stfrc.z[ind].transpose().tolist()
+        momx = self.stmom.x[ind].transpose().tolist()
+        momy = self.stmom.y[ind].transpose().tolist()
+        momz = self.stmom.z[ind].transpose().tolist()
 
         report = MDReport()
         heading = MDHeading(f'Strip Results {resname} for {sysname}', 1)
