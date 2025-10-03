@@ -276,7 +276,6 @@ class PanelSystem():
         if self._apd is None:
             self._apd = {}
         if mach not in self._apd:
-            # self.assemble_panels(False, mach = mach)
             self.assemble_panels_phi(mach = mach)
         return self._apd[mach]
 
@@ -291,7 +290,6 @@ class PanelSystem():
         if self._aps is None:
             self._aps = {}
         if mach not in self._aps:
-            # self.assemble_panels(False, mach = mach)
             self.assemble_panels_phi(mach = mach)
         return self._aps[mach]
 
@@ -387,12 +385,12 @@ class PanelSystem():
 
     def assemble_panels_wash(self) -> None:
 
-        from .. import USE_CUPY
+        # from .. import USE_CUPY
 
-        if USE_CUPY:
-            from ..tools.cupy import cupy_ctdsv as ctdsv
-        else:
-            from ..tools.numpy import numpy_ctdsv as ctdsv
+        # if USE_CUPY:
+        #     from ..tools.cupy import cupy_ctdsv as ctdsv
+        # else:
+        #     from ..tools.numpy import numpy_ctdsv as ctdsv
 
         start = perf_counter()
         shp = (self.numhsv, self.numpnl)
@@ -407,30 +405,30 @@ class PanelSystem():
         elapsed = finish - start
         print(f'Wash array assembly time is {elapsed:.3f} seconds.')
 
-        start = perf_counter()
+        # start = perf_counter()
 
-        hsvpnts = self.hsvpnts.reshape((-1, 1))
-        hsvnrms = self.hsvnrms.reshape((-1, 1))
+        # hsvpnts = self.hsvpnts.reshape((-1, 1))
+        # hsvnrms = self.hsvnrms.reshape((-1, 1))
 
-        avdc, avsc = ctdsv(hsvpnts, self.tgrida, self.tgridb, self.tgridc)
-        avdc = add.reduceat(avdc, self.triarr, axis=1)
-        avsc = add.reduceat(avsc, self.triarr, axis=1)
-        awdc = hsvnrms.dot(avd)
-        awsc = hsvnrms.dot(avs)
+        # avdc, avsc = ctdsv(hsvpnts, self.tgrida, self.tgridb, self.tgridc)
+        # avdc = add.reduceat(avdc, self.triarr, axis=1)
+        # avsc = add.reduceat(avsc, self.triarr, axis=1)
+        # awdc = hsvnrms.dot(avd)
+        # awsc = hsvnrms.dot(avs)
 
-        finish = perf_counter()
-        elapsedc = finish - start
-        print(f'Wash array assembly time with cupy is {elapsedc:.3f} seconds.')
-        print(f'Speedup is {elapsed/elapsedc:.2f}x.')
+        # finish = perf_counter()
+        # elapsedc = finish - start
+        # print(f'Wash array assembly time with cupy is {elapsedc:.3f} seconds.')
+        # print(f'Speedup is {elapsed/elapsedc:.2f}x.')
 
-        diffawd = self._awd - awdc
-        diffaws = self._aws - awsc
+        # diffawd = self._awd - awdc
+        # diffaws = self._aws - awsc
 
-        normawd = norm(diffawd)
-        normaws = norm(diffaws)
+        # normawd = norm(diffawd)
+        # normaws = norm(diffaws)
 
-        print(f'Difference in awd: {normawd:.12f}')
-        print(f'Difference in aws: {normaws:.12f}')
+        # print(f'Difference in awd: {normawd:.12f}')
+        # print(f'Difference in aws: {normaws:.12f}')
 
     def assemble_horseshoes_wash(self) -> None:
         start = perf_counter()
@@ -442,26 +440,6 @@ class PanelSystem():
         finish = perf_counter()
         elapsed = finish - start
         print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
-
-        # start = perf_counter()
-
-        # hsvpnts = self.hsvpnts.reshape((-1, 1))
-        # hsvnrms = self.hsvnrms.reshape((-1, 1))
-
-        # avhc = cwdv(hsvpnts, self.wgrida, self.wgridb, self.wdirl)
-
-        # awhc = hsvnrms.dot(avhc)
-
-        # finish = perf_counter()
-        # elapsedc = finish - start
-        # print(f'Wash horse shoe assembly time with cupy is {elapsedc:.3f} seconds.')
-        # print(f'Speedup is {elapsed/elapsedc:.2f}x.')
-
-        # diffawh = self._awh - awhc
-
-        # normawh = norm(diffawh)
-
-        # print(f'Difference in awh: {normawh:.12f}')
 
     @property
     def awh(self) -> 'NDArray':

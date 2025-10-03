@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING
 
-from numpy import (absolute, acos, asarray, full, logical_not, minimum, ones,
-                   pi, sqrt)
-from numpy.linalg import solve
+from numpy import absolute, asarray, full, minimum, ones, pi, sqrt, arange, zeros
+from numpy.linalg import solve, inv
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import IHAT, KHAT, Coordinate, Vector
+from pygeom.geom3d.tools import angle_between_vectors
 
 from .dirichletpoly import DirichletPoly
 from .grid import Grid
@@ -43,6 +43,7 @@ class PanelFace:
     _yab: float = None
     _ybc: float = None
     _yca: float = None
+    _baryinv: float = None
 
     def __init__(self, fid: int, grda: Grid, grdb: Grid, pnl: 'Panel') -> None:
         self.fid = fid
@@ -165,8 +166,36 @@ class PanelFace:
         qyJ = mua*self.xcb + mub*self.xac + muc*self.xba
         return Vector2D(qxJ, qyJ)
 
+    @property
+    def baryinv(self) -> 'NDArray':
+        if self._baryinv is None:
+            amat = zeros((3, 3))
+            amat[0, :] = 1.0
+            amat[1, 0] = self.pnta.x
+            amat[2, 0] = self.pnta.y
+            amat[1, 1] = self.pntb.x
+            amat[2, 1] = self.pntb.y
+            amat[1, 2] = self.pntc.x
+            amat[2, 2] = self.pntc.y
+            self._baryinv = inv(amat)
+        return self._baryinv
 
-class Panel(DirichletPoly):
+    def mint_and_absz(self, pnts: Vector) -> tuple['NDArray', 'NDArray']:
+        t123, absz = self.t123_and_absz(pnts)
+        mint = t123.min(axis=1)
+        return mint, absz
+
+    def t123_and_absz(self, pnts: Vector) -> tuple['NDArray', 'NDArray']:
+        pntl = self.cord.point_to_local(pnts)
+        xy1 = ones((*pnts.shape, 3))
+        xy1[..., 1] = pntl.x
+        xy1[..., 2] = pntl.y
+        t123 = xy1@self.baryinv.transpose()
+        absz = absolute(pntl.z)
+        return t123, absz
+
+
+class Panel():#(DirichletPoly):
     pid: int = None
     grds: list[Grid] = None
     gids: list[int] = None
@@ -175,14 +204,21 @@ class Panel(DirichletPoly):
     sht: 'PanelSheet' = None
     sct: 'PanelSection' = None
     srfc: 'PanelSurface' = None
-    # _num: int = None
-    # _pnto: Vector = None
-    # _grdr: Vector = None
-    # _vecab: Vector = None
-    # _vecaxb: Vector = None
-    # _sumaxb: Vector = None
-    # _area: float = None
-    # _nrm: Vector = None
+    _grdvec: Vector = None
+    _num: int = None
+    _pnto: Vector = None
+    _grdrel: Vector = None
+    _veca: Vector = None
+    _vecb: Vector = None
+    _vecab: Vector = None
+    _vecaxb: Vector = None
+    _sumaxb: Vector = None
+    _dirxab: Vector = None
+    _diryab: Vector = None
+    _dirzab: Vector = None
+    _baryinv: 'NDArray' = None
+    _area: float = None
+    _nrm: Vector = None
     _crd: Coordinate = None
     _faces: list[PanelFace] = None
     _edges: list['Edge'] = None
@@ -212,71 +248,125 @@ class Panel(DirichletPoly):
     def dndl(self, gain: float, hvec: Vector) -> Vector:
         return gain*hvec.cross(self.nrm)
 
-    # @property
-    # def num(self):
-    #     if self._num is None:
-    #         self._num = len(self.grds)
-    #     return self._num
+    @property
+    def grdvec(self) -> Vector:
+        if self._grdvec is None:
+            self._grdvec = Vector.from_iter(self.grds)
+        return self._grdvec
+
+    @property
+    def num(self) -> int:
+        if self._num is None:
+            self._num = self.grdvec.size
+        return self._num
+
+    @property
+    def pnto(self) -> Vector:
+        if self._pnto is None:
+            self._pnto = self.grdvec.sum()/self.num
+        return self._pnto
+
+    @property
+    def grdrel(self) -> Vector:
+        if self._grdrel is None:
+            self._grdrel = self.grdvec - self.pnto
+        return self._grdrel
+
+    @property
+    def veca(self) -> Vector:
+        if self._veca is None:
+            inda = arange(-1, self.num-1)
+            self._veca = self.grdvec[inda]
+        return self._veca
+
+    @property
+    def vecb(self) -> Vector:
+        if self._vecb is None:
+            indb = arange(0, self.num)
+            self._vecb = self.grdvec[indb]
+        return self._vecb
+
+    @property
+    def vecab(self):
+        if self._vecab is None:
+            self._vecab = self.vecb - self.veca
+        return self._vecab
+
+    @property
+    def vecaxb(self):
+        if self._vecaxb is None:
+            self._vecaxb = self.veca.cross(self.vecb)
+        return self._vecaxb
+
+    @property
+    def dirxab(self):
+        if self._dirxab is None:
+            self._dirxab = self.vecab.to_unit()
+        return self._dirxab
+
+    @property
+    def diryab(self):
+        if self._diryab is None:
+            self._diryab = self.dirzab.cross(self.dirxab)
+        return self._diryab
+
+    @property
+    def dirzab(self):
+        if self._dirzab is None:
+            self._dirzab = self.vecaxb.to_unit()
+        return self._dirzab
 
     # @property
-    # def pnto(self) -> Vector:
-    #     if self._pnto is None:
-    #         self._pnto = sum(self.grds, start=Vector(0.0, 0.0, 0.0))/self.num
-    #     return self._pnto
-
-    # @property
-    # def grdr(self):
-    #     if self._grdr is None:
-    #         self._grdr = Vector.zeros(self.num)
+    # def baryinv(self):
+    #     if self._baryinv is None:
+    #         self._baryinv = []
+    #         print(self.pid)
     #         for i in range(self.num):
-    #             self._grdr[i] = self.grds[i] - self.pnto
-    #     return self._grdr
+    #             print(self.grds[i])
+    #         print(f'grdrel = \n{self.grdrel}\n')
+    #         print(f'dirxab = \n{self.dirxab}\n')
+    #         print(f'diryab = \n{self.diryab}\n')
+    #         print(f'dirzab = \n{self.dirzab}\n')
+    #         for i in range(self.num):
+    #             dirx = self.dirxab[i]
+    #             diry = self.diryab[i]
+    #             dirz = self.dirzab[i]
+    #             grda = self.grdrel[i-1]
+    #             grdb = self.grdrel[i]
+    #             grdal = Vector(grda.dot(dirx), grda.dot(diry), grda.dot(dirz))
+    #             grdbl = Vector(grdb.dot(dirx), grdb.dot(diry), grdb.dot(dirz))
+    #             print(f'{grdal = }')
+    #             print(f'{grdbl = }')
+    #             amat = zeros((3, 3))
+    #             amat[0, :] = 1.0
+    #             amat[1, 1] = grdal.x
+    #             amat[2, 1] = grdal.y
+    #             amat[1, 2] = grdbl.x
+    #             amat[2, 2] = grdbl.y
+    #             print(f'amat = \n{amat}\n')
+    #             self._baryinv.append(inv(amat))
+    #     return self._baryinv
 
-    # def edge_cross(self, grds: Vector) -> Vector:
-    #     vecaxb = Vector.zeros(self.num)
-    #     for i in range(self.num):
-    #         veca = grds[i-1]
-    #         vecb = grds[i]
-    #         vecaxb[i] = veca.cross(vecb)
-    #     return vecaxb
+    @property
+    def sumaxb(self) -> Vector:
+        if self._sumaxb is None:
+            self._sumaxb = self.vecaxb.sum()
+        return self._sumaxb
 
-    # def edge_vector(self, grds: Vector) -> Vector:
-    #     vecab = Vector.zeros(self.num)
-    #     for i in range(self.num):
-    #         veca = grds[i-1]
-    #         vecb = grds[i]
-    #         vecab[i] = vecb - veca
-    #     return vecab
+    @property
+    def area(self):
+        if self._area is None:
+            if self.noload:
+                self._area = 0.0
+            else:
+                self._area = self.sumaxb.return_magnitude()/2
+        return self._area
 
-    # @property
-    # def vecab(self):
-    #     if self._vecab is None:
-    #         self._vecab = self.edge_vector(self.grdr)
-    #     return self._vecab
-
-    # @property
-    # def vecaxb(self):
-    #     if self._vecaxb is None:
-    #         self._vecaxb = self.edge_cross(self.grdr)
-    #     return self._vecaxb
-
-    # @property
-    # def sumaxb(self):
-    #     if self._sumaxb is None:
-    #         self._sumaxb = self.vecaxb.sum()
-    #     return self._sumaxb
-
-    # @property
-    # def area(self):
-    #     if self._area is None:
-    #         self._area = self.sumaxb.return_magnitude()/2
-    #     return self._area
-
-    # @property
-    # def nrm(self):
-    #     if self._nrm is None:
-    #         self._nrm = self.sumaxb.to_unit()
-    #     return self._nrm
+    @property
+    def nrm(self) -> Vector:
+        if self._nrm is None:
+            self._nrm = self.sumaxb.to_unit()
+        return self._nrm
 
     @property
     def noload(self) -> bool:
@@ -417,14 +507,6 @@ class Panel(DirichletPoly):
         return self._hsvs
 
     @property
-    def area(self) -> float:
-        if self.noload:
-            area = 0.0
-        else:
-            area = super().area
-        return area
-
-    @property
     def grdlocs(self) -> list[Vector2D]:
         if self._grdlocs is None:
             self._grdlocs = []
@@ -531,98 +613,13 @@ class Panel(DirichletPoly):
         qjac = Vector2D(0.0, 0.0)
         jac = 0.0
         i = 0
-        # print(f'{self.pid = }')
         for face in self.faces:
-            # print(f'{i = }')
             i += 1
             qxJ = face.face_qxJ(mu, mug)
             qjac += qxJ
             jac += face.jac
         q = qjac/jac
         return q
-
-    # def diff_mu_old(self, mu: 'NDArray', display: bool = False):
-    #     pnlmu = mu[self.ind]
-    #     if display:
-    #         print(f'pnlmu = {pnlmu}')
-    #     edgmu = self.edge_mu(mu)
-    #     if display:
-    #         print(f'edgmu = {edgmu}')
-    #     edgx = [pnt.x for pnt in self.edgpntl]
-    #     edgy = [pnt.y for pnt in self.edgpntl]
-    #     Js = 0.0
-    #     qxJs = 0.0
-    #     qyJs = 0.0
-    #     # print(f'{self.pid = }')
-    #     for i in range(self.num):
-    #         # print(f'{i = }')
-    #         a = i-1
-    #         b = i
-    #         mua = edgmu[a]
-    #         mub = edgmu[b]
-    #         if mua is not None and mub is not None:
-    #             muc = pnlmu
-    #             xa = edgx[a]
-    #             xb = edgx[b]
-    #             xc = 0.0
-    #             ya = edgy[a]
-    #             yb = edgy[b]
-    #             yc = 0.0
-    #             J = xa*yb - xa*yc - xb*ya + xb*yc + xc*ya - xc*yb
-    #             # print(f'{J = }')
-    #             Js += J
-    #             ybc = yb - yc
-    #             yca = yc - ya
-    #             yab = ya - yb
-    #             xcb = xc - xb
-    #             xac = xa - xc
-    #             xba = xb - xa
-    #             # print(f'{self.edginds = }')
-    #             # print(f'{mua = }, {mub = }, {muc = }')
-    #             # print(f'{ybc = }, {yca = }, {yab = }')
-    #             # print(f'{xcb = }, {xac = }, {xba = }')
-    #             qxJ = mua*ybc + mub*yca + muc*yab
-    #             qxJs += qxJ
-    #             qyJ = mua*xcb + mub*xac + muc*xba
-    #             qyJs += qyJ
-    #             # print(f'{qxJ = }, {qyJ = }')
-    #     if Js == 0.0:
-    #         for i in range(self.num):
-    #             a = i-1
-    #             b = i
-    #             mua = edgmu[a]
-    #             if mua is None:
-    #                 mua = pnlmu
-    #             mub = edgmu[b]
-    #             if mub is None:
-    #                 mub = pnlmu
-    #             muc = pnlmu
-    #             xa = edgx[a]
-    #             xb = edgx[b]
-    #             xc = 0.0
-    #             ya = edgy[a]
-    #             yb = edgy[b]
-    #             yc = 0.0
-    #             J = xa*yb - xa*yc - xb*ya + xb*yc + xc*ya - xc*yb
-    #             # print(f'{J = }')
-    #             Js += J
-    #             ybc = yb - yc
-    #             yca = yc - ya
-    #             yab = ya - yb
-    #             xcb = xc - xb
-    #             xac = xa - xc
-    #             xba = xb - xa
-    #             # print(f'{mua = }, {mub = }, {muc = }')
-    #             # print(f'{ybc = }, {yca = }, {yab = }')
-    #             # print(f'{xcb = }, {xac = }, {xba = }')
-    #             qxJ = mua*ybc + mub*yca + muc*yab
-    #             qxJs += qxJ
-    #             qyJ = mua*xcb + mub*xac + muc*xba
-    #             qyJs += qyJ
-    #             # print(f'{qxJ = }, {qyJ = }')
-    #     qx = -qxJs/Js
-    #     qy = -qyJs/Js
-    #     return qx, qy
 
     @property
     def grdpnls(self) -> list[list['Panel']]:
@@ -675,47 +672,27 @@ class Panel(DirichletPoly):
         return grdres
 
     def within_and_absz_ttol(self, pnts: Vector, ttol: float=0.1) -> tuple['NDArray', 'NDArray']:
-        shp = pnts.shape
-        # pnts = pnts.reshape((-1, 1))
-        rgcs = pnts - self.pnto
+        nttol = -ttol
         wint = full(pnts.shape, False)
         absz = full(pnts.shape, float('inf'))
-        for i in range(self.num):
-            dirx = self.dirxab[0, i]
-            diry = self.diryab[0, i]
-            dirz = self.dirzab[0, i]
-            xy1 = ones((pnts.shape[0], 3))
-            xy1[:, 1] = rgcs.dot(dirx)
-            xy1[:, 2] = rgcs.dot(diry)
-            t123 = xy1@self.baryinv[i].transpose()
-            mint = t123.min(axis=1)
-            chk = mint > -ttol
+        for face in self.faces:
+            mintf, abszf = face.mint_and_absz(pnts)
+            chk = mintf > nttol
             wint[chk] = True
-            abszi = absolute(rgcs.dot(dirz))
-            abszi[logical_not(chk)] = float('inf')
-            absz = minimum(absz, abszi)
-        wint = wint.reshape(shp)
-        absz = absz.reshape(shp)
+            absz = minimum(absz, abszf)
         return wint, absz
 
     def point_res(self, pnlres: 'NDArray', pnt: Vector, ttol: float=0.1) -> float:
-        vecg = pnt - self.pnto
         gres = self.grid_res(pnlres)
         pres = pnlres[self.ind]
         r = 0.0
-        for i in range(self.num):
-            dirx = self.dirxab[0, i]
-            diry = self.diryab[0, i]
-            dirz = self.dirzab[0, i]
-            vecl = Vector(vecg.dot(dirx), vecg.dot(diry), vecg.dot(dirz))
-            ainv = self.baryinv[i]
-            bmat = asarray([[1.0], [vecl.x], [vecl.y]])
-            tmat = ainv*bmat
-            to, ta, tb = tmat[0, 0], tmat[1, 0], tmat[2, 0]
-            mint = min(to, ta, tb)
+        for i, face in enumerate(self.faces):
+            t123, _ = face.t123_and_absz(pnt)
+            ta, tb, tc = t123[0], t123[1], t123[2]
+            mint = min(ta, tb, tc)
             if mint > -ttol:
-                ro, ra, rb = pres, gres[i-1], gres[i]
-                r = ro*to + ra*ta + rb*tb
+                ra, rb, rc = gres[i-1], gres[i], pres
+                r = ra*ta + rb*tb + rc*tc
                 break
         return r
 
@@ -724,14 +701,3 @@ class Panel(DirichletPoly):
 
     def __repr__(self) -> str:
         return self.__str__()
-
-
-def angle_between_vectors(veca: Vector, vecb: Vector) -> float:
-    unta = veca.to_unit()
-    untb = vecb.to_unit()
-    adb = unta.dot(untb)
-    if adb > 1.0:
-        adb = 1.0
-    elif adb < -1.0:
-        adb = -1.0
-    return acos(adb)

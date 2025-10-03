@@ -17,14 +17,9 @@ def fetch_pids_ttol(pnts: Vector, psys: PanelSystem, ztol: float=0.01, ttol: flo
     pidm = zeros((1, numpnl), dtype=int)
     wintm = zeros((numpnt, numpnl), dtype=bool)
     abszm = zeros((numpnt, numpnl))
-    if isinstance(psys.pnls, dict):
-        for pnl in psys.pnls.values():
-            pidm[0, pnl.ind] = pnl.pid
-            wintm[:, pnl.ind], abszm[:, pnl.ind] = pnl.within_and_absz_ttol(pnts[:, 0], ttol=ttol)
-    elif isinstance(psys.pnls, list):
-        for pnl in psys.pnls:
-            pidm[0, pnl.ind] = pnl.pid
-            wintm[:, pnl.ind], abszm[:, pnl.ind] = pnl.within_and_absz_ttol(pnts[:, 0], ttol=ttol)
+    for pnl in psys.pnls.values():
+        pidm[0, pnl.ind] = pnl.pid
+        wintm[:, pnl.ind], abszm[:, pnl.ind] = pnl.within_and_absz_ttol(pnts[:, 0], ttol=ttol)
     abszm[wintm is False] = float('inf')
     minm = argmin(abszm, axis=1)
     minm = asarray(minm).flatten()
