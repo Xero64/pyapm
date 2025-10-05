@@ -11,7 +11,7 @@ try:
     from cupy import ElementwiseKernel, asarray
 
     # Create wake for compiling
-    pnts = Vector.zeros((1, ))
+    pnts = Vector.zeros()
     veca = Vector(-1.2, 1.0, 0.0)
     vecb = Vector(-0.8, -1.0, 0.0)
     dirw = Vector(1.0, -0.25, 0.0).to_unit()

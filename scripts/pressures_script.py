@@ -2,7 +2,7 @@
 # Import Dependencies
 from IPython.display import display_markdown
 from pyapm.classes import PanelSystem
-from pyapm.outputs.msh import panelresult_to_msh
+from pyapm.outputs.k3d import PanelPlot
 from pyapm.tools.points import fetch_pids_ttol, point_results
 from pygeom.geom3d import Vector
 
@@ -43,6 +43,25 @@ prs = point_results(pnts, psys, pids, chkz, pres.nfres.nfprs)
 print(f'prs = \n{prs}\n')
 
 #%%
-# Output MSH File
-mshfilepath = '../results/' + psys.name + '.msh'
-panelresult_to_msh(pres, mshfilepath)
+# Display Result
+pnlpl = PanelPlot(psys, pres)
+
+mshplot = pnlpl.plot()
+mshplot += pnlpl.panel_mesh()
+mshplot.display()
+
+sigplot = pnlpl.plot()
+sigplot += pnlpl.panel_sigma_plot()
+sigplot.display()
+
+siggplot = pnlpl.plot()
+siggplot += pnlpl.grid_sigma_plot()
+siggplot.display()
+
+muplot = pnlpl.plot()
+muplot += pnlpl.panel_mu_plot()
+muplot.display()
+
+mugplot = pnlpl.plot()
+mugplot += pnlpl.grid_mu_plot()
+mugplot.display()

@@ -6,7 +6,7 @@ from k3d.colormaps import matplotlib_color_maps
 from numpy import concatenate, float32, uint32, zeros
 
 if TYPE_CHECKING:
-    from k3d.factory import Mesh, Vectors
+    from k3d.objects import Mesh, Vectors
     from numpy.typing import NDArray
     from pygeom.geom3d import Vector
 

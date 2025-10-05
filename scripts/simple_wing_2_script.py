@@ -1,7 +1,7 @@
 #%%
 # Import Dependencies
 from IPython.display import display_markdown
-from pyapm.classes import PanelSystem  # , PanelResult
+from pyapm.classes import PanelSystem
 from pyapm.outputs.k3d import PanelPlot
 from pyapm.outputs.msh import panelresult_to_msh
 

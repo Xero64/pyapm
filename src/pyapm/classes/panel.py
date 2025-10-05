@@ -1,12 +1,12 @@
 from typing import TYPE_CHECKING
 
-from numpy import absolute, asarray, full, minimum, ones, pi, sqrt, arange, zeros
-from numpy.linalg import solve, inv
+from numpy import (absolute, arange, asarray, full, minimum, ones, pi, sqrt,
+                   zeros)
+from numpy.linalg import inv, solve
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import IHAT, KHAT, Coordinate, Vector
 from pygeom.geom3d.tools import angle_between_vectors
 
-from .dirichletpoly import DirichletPoly
 from .grid import Grid
 from .horseshoedoublet import HorseshoeDoublet
 
@@ -182,7 +182,7 @@ class PanelFace:
 
     def mint_and_absz(self, pnts: Vector) -> tuple['NDArray', 'NDArray']:
         t123, absz = self.t123_and_absz(pnts)
-        mint = t123.min(axis=1)
+        mint = t123.min(axis=-1)
         return mint, absz
 
     def t123_and_absz(self, pnts: Vector) -> tuple['NDArray', 'NDArray']:
@@ -195,10 +195,9 @@ class PanelFace:
         return t123, absz
 
 
-class Panel():#(DirichletPoly):
+class Panel():
     pid: int = None
     grds: list[Grid] = None
-    gids: list[int] = None
     ind: int = None
     grp: 'PanelGroup' = None
     sht: 'PanelSheet' = None
@@ -224,14 +223,6 @@ class Panel():#(DirichletPoly):
     _edges: list['Edge'] = None
     _panel_gradient: 'NDArray' = None
     _hsvs: list[HorseshoeDoublet] = None
-    _grdlocs: list[Vector] = None
-    _edgpnls: list['Panel'] = None
-    _edginds: list[list[int]] = None
-    _edgpnts: list[Vector] = None
-    _edgdist: list[float] = None
-    _edgfacs: list[float] = None
-    _edgpntl: list[Vector] = None
-    _edglens: list[float] = None
     _grdpnls: list[list['Panel']] = None
     _grdinds: list[list[int]] = None
     _grdfacs: list[list[float]] = None
@@ -297,55 +288,6 @@ class Panel():#(DirichletPoly):
         if self._vecaxb is None:
             self._vecaxb = self.veca.cross(self.vecb)
         return self._vecaxb
-
-    @property
-    def dirxab(self):
-        if self._dirxab is None:
-            self._dirxab = self.vecab.to_unit()
-        return self._dirxab
-
-    @property
-    def diryab(self):
-        if self._diryab is None:
-            self._diryab = self.dirzab.cross(self.dirxab)
-        return self._diryab
-
-    @property
-    def dirzab(self):
-        if self._dirzab is None:
-            self._dirzab = self.vecaxb.to_unit()
-        return self._dirzab
-
-    # @property
-    # def baryinv(self):
-    #     if self._baryinv is None:
-    #         self._baryinv = []
-    #         print(self.pid)
-    #         for i in range(self.num):
-    #             print(self.grds[i])
-    #         print(f'grdrel = \n{self.grdrel}\n')
-    #         print(f'dirxab = \n{self.dirxab}\n')
-    #         print(f'diryab = \n{self.diryab}\n')
-    #         print(f'dirzab = \n{self.dirzab}\n')
-    #         for i in range(self.num):
-    #             dirx = self.dirxab[i]
-    #             diry = self.diryab[i]
-    #             dirz = self.dirzab[i]
-    #             grda = self.grdrel[i-1]
-    #             grdb = self.grdrel[i]
-    #             grdal = Vector(grda.dot(dirx), grda.dot(diry), grda.dot(dirz))
-    #             grdbl = Vector(grdb.dot(dirx), grdb.dot(diry), grdb.dot(dirz))
-    #             print(f'{grdal = }')
-    #             print(f'{grdbl = }')
-    #             amat = zeros((3, 3))
-    #             amat[0, :] = 1.0
-    #             amat[1, 1] = grdal.x
-    #             amat[2, 1] = grdal.y
-    #             amat[1, 2] = grdbl.x
-    #             amat[2, 2] = grdbl.y
-    #             print(f'amat = \n{amat}\n')
-    #             self._baryinv.append(inv(amat))
-    #     return self._baryinv
 
     @property
     def sumaxb(self) -> Vector:
@@ -476,7 +418,6 @@ class Panel():#(DirichletPoly):
             y_lst = [0.0]
             o_lst = [1.0]
             for edge in self.edges:
-                # print(f'{edge.panela = }, {edge.panelb = }, {edge.panel = }')
                 if edge.panel is None:
                     pnte = self.crd.point_to_local(edge.edge_point)
                     xe = pnte.x
@@ -493,9 +434,7 @@ class Panel():#(DirichletPoly):
             amat = asarray([[sum_xx, sum_xy, sum_x],
                             [sum_xy, sum_yy, sum_y],
                             [sum_x, sum_y, n]])
-            # print(f'amat = \n{amat}\n')
             bmat = asarray([x_lst, y_lst, o_lst])
-            # print(f'bmat = \n{bmat}\n')
             cmat = solve(amat, bmat)
             self._panel_gradient = cmat
         return self._panel_gradient
@@ -505,109 +444,6 @@ class Panel():#(DirichletPoly):
         if self._hsvs is None:
             self.set_horseshoes(IHAT)
         return self._hsvs
-
-    @property
-    def grdlocs(self) -> list[Vector2D]:
-        if self._grdlocs is None:
-            self._grdlocs = []
-            for grd in self.grds:
-                self._grdlocs.append(self.crd.point_to_local(grd))
-        return self._grdlocs
-
-    @property
-    def edgpnls(self) -> list[list['Panel']]:
-        if self._edgpnls is None:
-            self._edgpnls = []
-            for i in range(self.num):
-                grda = self.grds[i-1]
-                grdb = self.grds[i]
-                pnls = grda.pnls & grdb.pnls
-                pnllst = list(pnls)
-                self._edgpnls.append(pnllst)
-        return self._edgpnls
-
-    @property
-    def edginds(self) -> list[list[int]]:
-        if self._edginds is None:
-            self._edginds = []
-            for i in range(self.num):
-                self._edginds.append([])
-                for pnl in self.edgpnls[i]:
-                    self._edginds[i].append(pnl.ind)
-        return self._edginds
-
-    @property
-    def edgpnts(self) -> list[Vector2D]:
-        if self._edgpnts is None:
-            self._edgpnts = []
-            for i in range(self.num):
-                grda = self.grds[i-1]
-                grdb = self.grds[i]
-                if len(self.edgpnls[i]) == 2:
-                    pnla = self.edgpnls[i][-1]
-                    pnlb = self.edgpnls[i][-2]
-                    dirx = (grdb-grda).to_unit()
-                    dirza = pnla.nrm
-                    dirzb = pnlb.nrm
-                    dirya = dirza.cross(dirx)
-                    diryb = dirzb.cross(dirx)
-                    veca = pnla.pnto - grda
-                    vecb = pnlb.pnto - grda
-                    xa = veca.dot(dirx)
-                    xb = vecb.dot(dirx)
-                    ya = veca.dot(dirya)
-                    yb = vecb.dot(diryb)
-                    xc = xa - (xb-xa)/(yb-ya)*ya
-                    self._edgpnts.append(grda + dirx*xc)
-                else:
-                    self._edgpnts.append((grda + grdb)/2)
-        return self._edgpnts
-
-    @property
-    def edgdist(self) -> list[list[float]]:
-        if self._edgdist is None:
-            self._edgdist = []
-            for i, pnt in enumerate(self.edgpnts):
-                self._edgdist.append([])
-                for pnl in self.edgpnls[i]:
-                    self._edgdist[i].append((pnt-pnl.pnto).return_magnitude())
-        return self._edgdist
-
-    @property
-    def edgfacs(self) -> list[list[float]]:
-        if self._edgfacs is None:
-            self._edgfacs = []
-            for i in range(self.num):
-                self._edgfacs.append([])
-                if len(self.edgdist[i]) == 1:
-                    self._edgfacs[i].append(1.0)
-                elif len(self.edgdist[i]) == 2:
-                    totdist = self.edgdist[i][0] + self.edgdist[i][1]
-                    self._edgfacs[i].append(self.edgdist[i][1]/totdist)
-                    self._edgfacs[i].append(self.edgdist[i][0]/totdist)
-                else:
-                    ValueError(f'Too many panels associated to edge {i:d} of panel {self.pid:d}.')
-        return self._edgfacs
-
-    def edge_mu(self, mu: 'NDArray', display: bool = False) -> list[float | None]:
-        edgmu = []
-        if display:
-            print(f'edgpnls = {self.edgpnls}')
-            print(f'edginds = {self.edginds}')
-        for i in range(self.num):
-            if len(self.edginds[i]) == 0:
-                edgmu.append(None)
-            else:
-                edgmu.append(0.0)
-                for ind, fac in zip(self.edginds[i], self.edgfacs[i]):
-                    edgmu[i] += mu[ind]*fac
-        return edgmu
-
-    @property
-    def edgpntl(self) -> list[Vector2D]:
-        if self._edgpntl is None:
-            self._edgpntl = [self.crd.point_to_local(pnt) for pnt in self.edgpnts]
-        return self._edgpntl
 
     def diff_mu(self, mu: 'NDArray', mug: 'NDArray') -> Vector2D:
         qjac = Vector2D(0.0, 0.0)
