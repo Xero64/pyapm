@@ -22,7 +22,7 @@ def numpy_cwdp(pnts: Vector, veca: Vector, vecb: Vector,
     vecab = vecb - veca
     vecac = dirw
     vecz = vecab.cross(vecac)
-    dirz = vecz.to_unit()
+    dirz, magz = vecz.to_unit(return_magnitude=True)
 
     a = pnts - veca
     b = pnts - vecb
@@ -64,11 +64,12 @@ def numpy_cwdp(pnts: Vector, veca: Vector, vecb: Vector,
 
     numiszero = absolute(num) < tol
     deniszero = absolute(den) < tol
+    magznotzero = magz > tol
 
     num = where(numiszero, 0.0, num)
     den = where(deniszero, 0.0, den)
 
-    edgecheck = logical_and(numiszero, deniszero)
+    edgecheck = logical_and(logical_and(numiszero, deniszero), magznotzero)
 
     phid = arctan2(num, den)/TWOPI
     phid = where(edgecheck, 0.25, phid)
@@ -144,7 +145,7 @@ def numpy_cwdf(pnts: Vector, veca: Vector, vecb: Vector,
     vecab = vecb - veca
     vecac = dirw
     vecz = vecab.cross(vecac)
-    dirz = vecz.to_unit()
+    dirz, magz = vecz.to_unit(return_magnitude=True)
 
     a = pnts - veca
     b = pnts - vecb
@@ -208,11 +209,12 @@ def numpy_cwdf(pnts: Vector, veca: Vector, vecb: Vector,
 
     numiszero = absolute(num) < tol
     deniszero = absolute(den) < tol
+    magznotzero = magz > tol
 
     num = where(numiszero, 0.0, num)
     den = where(deniszero, 0.0, den)
 
-    edgecheck = logical_and(numiszero, deniszero)
+    edgecheck = logical_and(logical_and(numiszero, deniszero), magznotzero)
 
     phid = arctan2(num, den)/TWOPI
     phid = where(edgecheck, 0.25, phid)
@@ -296,7 +298,7 @@ def numpy_ctdp(pnts: Vector, veca: Vector, vecb: Vector,
     vecab = vecb - veca
     vecac = vecc - veca
     vecz = vecab.cross(vecac)
-    dirz = vecz.to_unit()
+    dirz, magz = vecz.to_unit(return_magnitude=True)
 
     a = pnts - veca
     b = pnts - vecb
@@ -350,11 +352,12 @@ def numpy_ctdp(pnts: Vector, veca: Vector, vecb: Vector,
 
     numiszero = absolute(num) < tol
     deniszero = absolute(den) < tol
+    magznotzero = magz > tol
 
     num = where(numiszero, 0.0, num)
     den = where(deniszero, 0.0, den)
 
-    edgecheck = logical_and(numiszero, deniszero)
+    edgecheck = logical_and(logical_and(numiszero, deniszero), magznotzero)
 
     phid = arctan2(num, den)/TWOPI
     phid = where(edgecheck, 0.25, phid)
@@ -371,7 +374,7 @@ def numpy_ctdf(pnts: Vector, veca: Vector, vecb: Vector,
     vecab = vecb - veca
     vecac = vecc - veca
     vecz = vecab.cross(vecac)
-    dirz = vecz.to_unit()
+    dirz, magz = vecz.to_unit(return_magnitude=True)
 
     a = pnts - veca
     b = pnts - vecb
@@ -447,11 +450,12 @@ def numpy_ctdf(pnts: Vector, veca: Vector, vecb: Vector,
 
     numiszero = absolute(num) < tol
     deniszero = absolute(den) < tol
+    magznotzero = magz > tol
 
     num = where(numiszero, 0.0, num)
     den = where(deniszero, 0.0, den)
 
-    edgecheck = logical_and(numiszero, deniszero)
+    edgecheck = logical_and(logical_and(numiszero, deniszero), magznotzero)
 
     phid = arctan2(num, den)/TWOPI
     phid = where(edgecheck, 0.25, phid)
@@ -525,6 +529,7 @@ def numpy_ctsp(pnts: Vector, veca: Vector, vecb: Vector,
 
     tfm = Transform(dirab, dirbc)
     dirz = tfm.dirz
+    magz = dirz.return_magnitude()
 
     Qab = calculate_Q(am, a.dot(dirab), bm, b.dot(dirab), tol=tol)
     Qbc = calculate_Q(bm, b.dot(dirbc), cm, c.dot(dirbc), tol=tol)
@@ -560,11 +565,12 @@ def numpy_ctsp(pnts: Vector, veca: Vector, vecb: Vector,
 
     numiszero = absolute(num) < tol
     deniszero = absolute(den) < tol
+    magznotzero = magz > tol
 
     num = where(numiszero, 0.0, num)
     den = where(deniszero, 0.0, den)
 
-    edgecheck = logical_and(numiszero, deniszero)
+    edgecheck = logical_and(logical_and(numiszero, deniszero), magznotzero)
 
     phid = arctan2(num, den)/TWOPI
     phid = where(edgecheck, 0.25, phid)
@@ -614,6 +620,7 @@ def numpy_ctsv(pnts: Vector, veca: Vector, vecb: Vector,
 
     tfm = Transform(dirab, dirbc)
     dirz = tfm.dirz
+    magz = dirz.return_magnitude()
 
     Qab = calculate_Q(am, a.dot(dirab), bm, b.dot(dirab), tol=tol)
     Qbc = calculate_Q(bm, b.dot(dirbc), cm, c.dot(dirbc), tol=tol)
@@ -645,11 +652,12 @@ def numpy_ctsv(pnts: Vector, veca: Vector, vecb: Vector,
 
     numiszero = absolute(num) < tol
     deniszero = absolute(den) < tol
+    magznotzero = magz > tol
 
     num = where(numiszero, 0.0, num)
     den = where(deniszero, 0.0, den)
 
-    edgecheck = logical_and(numiszero, deniszero)
+    edgecheck = logical_and(logical_and(numiszero, deniszero), magznotzero)
 
     phid = arctan2(num, den)/TWOPI
     phid = where(edgecheck, 0.25, phid)
@@ -712,6 +720,7 @@ def numpy_ctsf(pnts: Vector, veca: Vector, vecb: Vector,
 
     tfm = Transform(dirab, dirbc)
     dirz = tfm.dirz
+    magz = dirz.return_magnitude()
 
     Qab = calculate_Q(am, a.dot(dirab), bm, b.dot(dirab), tol=tol)
     Qbc = calculate_Q(bm, b.dot(dirbc), cm, c.dot(dirbc), tol=tol)
@@ -747,11 +756,12 @@ def numpy_ctsf(pnts: Vector, veca: Vector, vecb: Vector,
 
     numiszero = absolute(num) < tol
     deniszero = absolute(den) < tol
+    magznotzero = magz > tol
 
     num = where(numiszero, 0.0, num)
     den = where(deniszero, 0.0, den)
 
-    edgecheck = logical_and(numiszero, deniszero)
+    edgecheck = logical_and(logical_and(numiszero, deniszero), magznotzero)
 
     phid = arctan2(num, den)/TWOPI
     phid = where(edgecheck, 0.25, phid)
@@ -816,6 +826,7 @@ def numpy_ctdsp(pnts: Vector, veca: Vector, vecb: Vector,
 
     tfm = Transform(dirab, dirbc)
     dirz = tfm.dirz
+    magz = dirz.return_magnitude()
 
     Qab = calculate_Q(am, a.dot(dirab), bm, b.dot(dirab), tol=tol)
     Qbc = calculate_Q(bm, b.dot(dirbc), cm, c.dot(dirbc), tol=tol)
@@ -851,11 +862,12 @@ def numpy_ctdsp(pnts: Vector, veca: Vector, vecb: Vector,
 
     numiszero = absolute(num) < tol
     deniszero = absolute(den) < tol
+    magznotzero = magz > tol
 
     num = where(numiszero, 0.0, num)
     den = where(deniszero, 0.0, den)
 
-    edgecheck = logical_and(numiszero, deniszero)
+    edgecheck = logical_and(logical_and(numiszero, deniszero), magznotzero)
 
     phid = arctan2(num, den)/TWOPI
     phid = where(edgecheck, 0.25, phid)
@@ -940,6 +952,7 @@ def numpy_ctdsv(pnts: Vector, veca: Vector, vecb: Vector,
 
     tfm = Transform(dirab, dirbc)
     dirz = tfm.dirz
+    magz = dirz.return_magnitude()
 
     Qab = calculate_Q(am, a.dot(dirab), bm, b.dot(dirab), tol=tol)
     Qbc = calculate_Q(bm, b.dot(dirbc), cm, c.dot(dirbc), tol=tol)
@@ -971,11 +984,12 @@ def numpy_ctdsv(pnts: Vector, veca: Vector, vecb: Vector,
 
     numiszero = absolute(num) < tol
     deniszero = absolute(den) < tol
+    magznotzero = magz > tol
 
     num = where(numiszero, 0.0, num)
     den = where(deniszero, 0.0, den)
 
-    edgecheck = logical_and(numiszero, deniszero)
+    edgecheck = logical_and(logical_and(numiszero, deniszero), magznotzero)
 
     phid = arctan2(num, den)/TWOPI
     phid = where(edgecheck, 0.25, phid)
@@ -1073,6 +1087,7 @@ def numpy_ctdsf(pnts: Vector, veca: Vector, vecb: Vector,
 
     tfm = Transform(dirab, dirbc)
     dirz = tfm.dirz
+    magz = dirz.return_magnitude()
 
     Qab = calculate_Q(am, a.dot(dirab), bm, b.dot(dirab), tol=tol)
     Qbc = calculate_Q(bm, b.dot(dirbc), cm, c.dot(dirbc), tol=tol)
@@ -1108,11 +1123,12 @@ def numpy_ctdsf(pnts: Vector, veca: Vector, vecb: Vector,
 
     numiszero = absolute(num) < tol
     deniszero = absolute(den) < tol
+    magznotzero = magz > tol
 
     num = where(numiszero, 0.0, num)
     den = where(deniszero, 0.0, den)
 
-    edgecheck = logical_and(numiszero, deniszero)
+    edgecheck = logical_and(logical_and(numiszero, deniszero), magznotzero)
 
     phid = arctan2(num, den)/TWOPI
     phid = where(edgecheck, 0.25, phid)

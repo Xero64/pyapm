@@ -165,7 +165,7 @@ try:
 
         phd = atan2(num, den)/twopi;
 
-        if (absnum < tol && absden < tol) {
+        if (absnum < tol && absden < tol && vzm > tol) {
             phd = 0.25;
         }
 
@@ -465,7 +465,7 @@ try:
 
         phd = atan2(num, den)/twopi;
 
-        if (absnum < tol && absden < tol) {
+        if (absnum < tol && absden < tol && vzm > tol) {
             phd = 0.25;
         }
 
@@ -660,7 +660,7 @@ try:
 
         phd = atan2(num, den)/twopi;
 
-        if (absnum < tol && absden < tol) {
+        if (absnum < tol && absden < tol && vzm > tol) {
             phd = 0.25;
         }
 
@@ -968,7 +968,7 @@ try:
 
         phd = atan2(num, den)/twopi;
 
-        if (absnum < tol && absden < tol) {
+        if (absnum < tol && absden < tol && vzm > tol) {
             phd = 0.25;
         }
 
@@ -1266,9 +1266,7 @@ try:
 
         double adz = rax * dzx + ray * dzy + raz * dzz;
 
-        double absadz = abs(adz);
-
-        if (absnum < tol && absden < tol) {
+        if (absnum < tol && absden < tol && vzm > tol) {
             phd = 0.25;
         }
 
@@ -1553,9 +1551,7 @@ try:
 
         double adz = rax * dzx + ray * dzy + raz * dzz;
 
-        double absadz = abs(adz);
-
-        if (absnum < tol && absden < tol) {
+        if (absnum < tol && absden < tol && vzm > tol) {
             phd = 0.25;
         }
 
@@ -1867,9 +1863,7 @@ try:
 
         double adz = rax * dzx + ray * dzy + raz * dzz;
 
-        double absadz = abs(adz);
-
-        if (absnum < tol && absden < tol) {
+        if (absnum < tol && absden < tol && vzm > tol) {
             phd = 0.25;
         }
 
@@ -2184,9 +2178,7 @@ try:
 
         double adz = rax * dzx + ray * dzy + raz * dzz;
 
-        double absadz = abs(adz);
-
-        if (absnum < tol && absden < tol) {
+        if (absnum < tol && absden < tol && vzm > tol) {
             phd = 0.25;
         }
 
@@ -2525,9 +2517,7 @@ try:
 
         double adz = rax * dzx + ray * dzy + raz * dzz;
 
-        double absadz = abs(adz);
-
-        if (absnum < tol && absden < tol) {
+        if (absnum < tol && absden < tol && vzm > tol) {
             phd = 0.25;
         }
 
@@ -2885,9 +2875,7 @@ try:
 
         double adz = rax * dzx + ray * dzy + raz * dzz;
 
-        double absadz = abs(adz);
-
-        if (absnum < tol && absden < tol) {
+        if (absnum < tol && absden < tol && vzm > tol) {
             phd = 0.25;
         }
 
