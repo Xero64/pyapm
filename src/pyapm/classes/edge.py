@@ -1,4 +1,3 @@
-from time import perf_counter
 from typing import TYPE_CHECKING
 
 from numpy import sort, unique, zeros

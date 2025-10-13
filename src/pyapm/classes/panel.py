@@ -13,6 +13,7 @@ from .horseshoedoublet import HorseshoeDoublet
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
+    from ..core.flow import Flow
     from .edge import Edge
     from .panelgroup import PanelGroup
     from .panelsection import PanelSection
@@ -197,25 +198,28 @@ class PanelFace:
 
 class Panel():
     pid: int = None
-    grds: list[Grid] = None
+    grids: list[Grid] = None
+    group: 'PanelGroup' = None
+    sheet: 'PanelSheet' = None
+    section: 'PanelSection' = None
+    surface: 'PanelSurface' = None
     ind: int = None
-    grp: 'PanelGroup' = None
-    sht: 'PanelSheet' = None
-    sct: 'PanelSection' = None
-    srfc: 'PanelSurface' = None
-    _grdvec: Vector = None
+    _gridvec: Vector = None
     _num: int = None
     _pnto: Vector = None
     _grdrel: Vector = None
     _veca: Vector = None
     _vecb: Vector = None
-    _vecab: Vector = None
+    _vecas: Vector = None
+    _vecbs: Vector = None
+    _veccs: Vector = None
+    # _vecab: Vector = None
     _vecaxb: Vector = None
     _sumaxb: Vector = None
-    _dirxab: Vector = None
-    _diryab: Vector = None
-    _dirzab: Vector = None
-    _baryinv: 'NDArray' = None
+    # _dirxab: Vector = None
+    # _diryab: Vector = None
+    # _dirzab: Vector = None
+    # _baryinv: 'NDArray' = None
     _area: float = None
     _nrm: Vector = None
     _crd: Coordinate = None
@@ -227,54 +231,58 @@ class Panel():
     _grdinds: list[list[int]] = None
     _grdfacs: list[list[float]] = None
 
-    def __init__(self, pid: int, grds: list[Grid]) -> None:
+    def __init__(self, pid: int, grids: list[Grid]) -> None:
         self.pid = pid
-        self.grds = grds
-        for grd in self.grds:
-            grd.pnls.add(self)
+        self.grids = grids
+        self.link()
 
-    def set_index(self, ind: int) -> None:
-        self.ind = ind
+    def link(self) -> None:
+        for grid in self.grids:
+            grid.panels.add(self)
+
+    def unlink(self) -> None:
+        for grid in self.grids:
+            grid.panels.remove(self)
 
     def dndl(self, gain: float, hvec: Vector) -> Vector:
         return gain*hvec.cross(self.nrm)
 
     @property
-    def grdvec(self) -> Vector:
-        if self._grdvec is None:
-            self._grdvec = Vector.from_iter(self.grds)
-        return self._grdvec
+    def gridvec(self) -> Vector:
+        if self._gridvec is None:
+            self._gridvec = Vector.from_iter(self.grids)
+        return self._gridvec
 
     @property
     def num(self) -> int:
         if self._num is None:
-            self._num = self.grdvec.size
+            self._num = self.gridvec.size
         return self._num
 
     @property
     def pnto(self) -> Vector:
         if self._pnto is None:
-            self._pnto = self.grdvec.sum()/self.num
+            self._pnto = self.gridvec.sum()/self.num
         return self._pnto
 
     @property
-    def grdrel(self) -> Vector:
-        if self._grdrel is None:
-            self._grdrel = self.grdvec - self.pnto
-        return self._grdrel
+    def gridrel(self) -> Vector:
+        if self._gridrel is None:
+            self._gridrel = self.gridvec - self.pnto
+        return self._gridrel
 
     @property
     def veca(self) -> Vector:
         if self._veca is None:
             inda = arange(-1, self.num-1)
-            self._veca = self.grdvec[inda]
+            self._veca = self.gridvec[inda]
         return self._veca
 
     @property
     def vecb(self) -> Vector:
         if self._vecb is None:
             indb = arange(0, self.num)
-            self._vecb = self.grdvec[indb]
+            self._vecb = self.gridvec[indb]
         return self._vecb
 
     @property
@@ -313,47 +321,62 @@ class Panel():
     @property
     def noload(self) -> bool:
         noload = False
-        if self.sht is not None:
-            noload = self.sht.noload
-        if self.sct is not None:
-            noload = self.sct.noload
-        if self.grp is not None:
-            noload = self.grp.noload
+        if self.sheet is not None:
+            noload = self.sheet.noload
+        if self.section is not None:
+            noload = self.section.noload
+        if self.group is not None:
+            noload = self.group.noload
         return noload
 
     @property
     def nohsv(self) -> bool:
         nohsv = False
-        if self.sht is not None:
-            nohsv = self.sht.nohsv
-        if self.sct is not None:
-            nohsv = self.sct.nohsv
-        if self.grp is not None:
-            nohsv = self.grp.nohsv
+        if self.sheet is not None:
+            nohsv = self.sheet.nohsv
+        if self.section is not None:
+            nohsv = self.section.nohsv
+        if self.group is not None:
+            nohsv = self.group.nohsv
         return nohsv
 
-    def set_horseshoes(self, diro: Vector) -> None:
-        self._hsvs = []
-        if not self.nohsv:
-            for i in range(self.num):
-                grda = self.grds[i]
-                grdb = self.grds[i-1]
-                if grda.te and grdb.te:
-                    self._hsvs.append(HorseshoeDoublet(grda, grdb, diro, self.ind))
+    @property
+    def vecas(self) -> Vector:
+        if self._vecas is None:
+            self._vecas = Vector.zeros(self.num)
+            for i, face in enumerate(self.faces):
+                self._vecas[i] = face.grda
+        return self._vecas
+
+    @property
+    def vecbs(self) -> Vector:
+        if self._vecbs is None:
+            self._vecbs = Vector.zeros(self.num)
+            for i, face in enumerate(self.faces):
+                self._vecbs[i] = face.grdb
+        return self._vecbs
+
+    @property
+    def veccs(self) -> Vector:
+        if self._veccs is None:
+            self._veccs = Vector.zeros(self.num)
+            for i, face in enumerate(self.faces):
+                self._veccs[i] = face.grdc
+        return self._veccs
 
     def check_panel(self, pnl: 'Panel') -> tuple[bool, bool, bool]:
-        if pnl.grp is not None and self.grp is not None:
-            grpchk = pnl.grp == self.grp
+        if pnl.group is not None and self.group is not None:
+            grpchk = pnl.group == self.group
         else:
             grpchk = False
-        if pnl.srfc is not None and self.srfc is not None:
-            srfchk = pnl.srfc == self.srfc
+        if pnl.surface is not None and self.surface is not None:
+            srfchk = pnl.surface == self.surface
         else:
             srfchk = False
         if srfchk:
-            if pnl.sht is not None and self.sht is not None:
+            if pnl.sheet is not None and self.sheet is not None:
                 typchk = True
-            elif pnl.sct is not None and self.sct is not None:
+            elif pnl.section is not None and self.section is not None:
                 typchk = True
             else:
                 typchk = False
@@ -368,7 +391,7 @@ class Panel():
 
     def check_edge(self, pnl: 'Panel', grda: Grid, grdb: Grid) -> bool:
         edgchk = False
-        if grda in pnl.grds and grdb in pnl.grds:
+        if grda in pnl.grids and grdb in pnl.grids:
             edgchk = True
         return edgchk
 
@@ -398,8 +421,8 @@ class Panel():
             for i in range(self.num):
                 a = i - 1
                 b = i
-                grda = self.grds[a]
-                grdb = self.grds[b]
+                grda = self.grids[a]
+                grdb = self.grids[b]
                 face = PanelFace(i, grda, grdb, self)
                 face.set_dirl(self.crd.dirx)
                 self._faces.append(face)
@@ -439,12 +462,6 @@ class Panel():
             self._panel_gradient = cmat
         return self._panel_gradient
 
-    @property
-    def hsvs(self) -> list[float | None]:
-        if self._hsvs is None:
-            self.set_horseshoes(IHAT)
-        return self._hsvs
-
     def diff_mu(self, mu: 'NDArray', mug: 'NDArray') -> Vector2D:
         qjac = Vector2D(0.0, 0.0)
         jac = 0.0
@@ -461,21 +478,16 @@ class Panel():
     def grdpnls(self) -> list[list['Panel']]:
         if self._grdpnls is None:
             self._grdpnls = []
-            for i, grd in enumerate(self.grds):
+            for i, grid in enumerate(self.grids):
                 self._grdpnls.append([])
-                for pnl in grd.pnls:
+                for pnl in grid.panels:
                     grpchk, srfchk, typchk = self.check_panel(pnl)
                     if grpchk:
                         angchk = self.check_angle(pnl)
                         if angchk:
                             self._grdpnls[i].append(pnl)
                     elif srfchk and typchk:
-                        if grd.te:
-                            angchk = self.check_angle(pnl)
-                            if angchk:
-                                self._grdpnls[i].append(pnl)
-                        else:
-                            self._grdpnls[i].append(pnl)
+                        self._grdpnls[i].append(pnl)
         return self._grdpnls
 
     @property
@@ -492,9 +504,9 @@ class Panel():
     def grdfacs(self) -> list[list[float]]:
         if self._grdfacs is None:
             self._grdfacs = []
-            for i, grd in enumerate(self.grds):
-                pnldist = [(grd-pnl.pnto).return_magnitude() for pnl in self.grdpnls[i]]
-                pnlinvd = [1/dist for dist in pnldist]
+            for i, grid in enumerate(self.grids):
+                pnldist = [(grid - pnl.pnto).return_magnitude() for pnl in self.grdpnls[i]]
+                pnlinvd = [1 / dist for dist in pnldist]
                 suminvd = sum(pnlinvd)
                 self._grdfacs.append([invd/suminvd for invd in pnlinvd])
         return self._grdfacs
@@ -504,7 +516,7 @@ class Panel():
         for i in range(self.num):
             grdres.append(0.0)
             for ind, fac in zip(self.grdinds[i], self.grdfacs[i]):
-                grdres[i] += pnlres[ind]*fac
+                grdres[i] += pnlres[ind] * fac
         return grdres
 
     def within_and_absz_ttol(self, pnts: Vector, ttol: float=0.1) -> tuple['NDArray', 'NDArray']:
@@ -531,6 +543,90 @@ class Panel():
                 r = ra*ta + rb*tb + rc*tc
                 break
         return r
+
+    def constant_doublet_source_phi(self, pnts: Vector,
+                                    **kwargs: dict[str, float]) -> tuple['NDArray':, 'NDArray']:
+
+        from pyapm import USE_CUPY
+
+        if USE_CUPY:
+            from pyapm.tools.cupy import cupy_ctdsp as ctdsp
+        else:
+            from pyapm.tools.numpy import numpy_ctdsp as ctdsp
+
+        shp = pnts.shape
+        ndm = pnts.ndim
+
+        pntshp = (*shp, 1)
+        pnts = pnts.reshape(pntshp)
+
+        vecshp = (*ones(ndm, dtype=int), self.num)
+        vecas = self.vecas.reshape(vecshp)
+        vecbs = self.vecbs.reshape(vecshp)
+        veccs = self.veccs.reshape(vecshp)
+
+        aphidi, aphisi = ctdsp(pnts, vecas, vecbs, veccs, **kwargs)
+
+        aphid = aphidi.sum(axis=-1)
+        aphis = aphisi.sum(axis=-1)
+
+        return aphid, aphis
+
+    def constant_doublet_source_vel(self, pnts: Vector,
+                                    **kwargs: dict[str, float]) -> tuple[Vector, Vector]:
+
+        from pyapm import USE_CUPY
+
+        if USE_CUPY:
+            from pyapm.tools.cupy import cupy_ctdsv as ctdsv
+        else:
+            from pyapm.tools.numpy import numpy_ctdsv as ctdsv
+
+        shp = pnts.shape
+        ndm = pnts.ndim
+
+        pntshp = (*shp, 1)
+        pnts = pnts.reshape(pntshp)
+
+        vecshp = (*ones(ndm, dtype=int), 4*self.num)
+        vecas = self.vecas.reshape(vecshp)
+        vecbs = self.vecbs.reshape(vecshp)
+        veccs = self.veccs.reshape(vecshp)
+
+        aveldi, avelsi = ctdsv(pnts, vecas, vecbs, veccs, **kwargs)
+
+        aveld = aveldi.sum(axis=-1)
+        avels = avelsi.sum(axis=-1)
+
+        return aveld, avels
+
+    def constant_doublet_source_flow(self, pnts: Vector,
+                                     **kwargs: dict[str, float]) -> tuple['Flow', 'Flow']:
+
+        from pyapm import USE_CUPY
+
+        if USE_CUPY:
+            from pyapm.tools.cupy import cupy_ctdsf as ctdsf
+        else:
+            from pyapm.tools.numpy import numpy_ctdsf as ctdsf
+
+        shp = pnts.shape
+        ndm = pnts.ndim
+
+        pntshp = (*shp, 1)
+        pnts = pnts.reshape(pntshp)
+
+        vecshp = (*ones(ndm, dtype=int), 4*self.num)
+        vecas = self.vecas.reshape(vecshp)
+        vecbs = self.vecbs.reshape(vecshp)
+        veccs = self.veccs.reshape(vecshp)
+
+        aflwdi, aflwsi = ctdsf(pnts, vecas, vecbs, veccs, **kwargs)
+
+        afldw = aflwdi.sum(axis=-1)
+        aflds = aflwsi.sum(axis=-1)
+
+        return afldw, aflds
 
     def __str__(self) -> str:
         return f'Panel({self.pid:d})'

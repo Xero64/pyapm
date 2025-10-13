@@ -1,4 +1,4 @@
-from typing import Any
+from typing import Any, TYPE_CHECKING
 
 from numpy import absolute, cos, radians
 from pygeom.geom3d import Vector
@@ -9,6 +9,10 @@ from .grid import Grid
 from .panel import Panel
 from .panelcontrol import PanelControl
 from .panelprofile import PanelProfile
+
+if TYPE_CHECKING:
+    from numpy.typing import NDArray
+    from ..classes.panelsheet import PanelSheet
 
 TOL = 1e-12
 
@@ -21,14 +25,14 @@ class PanelSection(PanelProfile):
     cnum: int = None
     xoc: float = None
     zoc: float = None
-    shta: object = None
-    shtb: object = None
-    grds: list[Grid] = None
-    pnls: list[Panel] = None
+    sheet_a: 'PanelSheet' = None
+    sheet_b: 'PanelSheet' = None
+    grids: list[Grid] = None
+    dpanels: list[Panel] = None
     ruled: bool = None
     noload: bool = None
     nomesh: bool = None
-    ctrls: dict[str, PanelControl] = None
+    controls: dict[str, PanelControl] = None
     _thkcor: float = None
     _scttyp: str = None
 
@@ -45,7 +49,7 @@ class PanelSection(PanelProfile):
         self.airfoil = NACA4('0012')
         self.nomesh = False
         self.nohsv = False
-        self.ctrls = {}
+        self.controls = {}
         self.cdo = 0.0
 
     def mirror_section_in_y(self, ymir: float = 0.0) -> 'PanelSection':
@@ -65,7 +69,7 @@ class PanelSection(PanelProfile):
         sect.zoc = self.zoc
         sect.bval = self.bval
         sect.bpos = -self.bpos
-        sect.ctrls = self.ctrls
+        sect.controls = self.controls
         if self.tilt is not None:
             sect.set_tilt(-self._tilt)
         return sect
@@ -110,89 +114,91 @@ class PanelSection(PanelProfile):
     def set_cdo(self, cdo: float) -> None:
         self.cdo = cdo
 
-    def add_control(self, ctrl: PanelControl) -> None:
-        self.ctrls[ctrl.name] = ctrl
+    def add_control(self, control: PanelControl) -> None:
+        self.controls[control.name] = control
 
     @property
     def tilt(self) -> float:
         if self._tilt is None:
-            if self.shta is None and self.shtb is None:
+            if self.sheet_a is None and self.sheet_b is None:
                 pass
-            elif self.shtb is None:
-                self._tilt = self.shta.tilt
-            elif self.shta is None:
-                self._tilt = self.shtb.tilt
+            elif self.sheet_b is None:
+                self._tilt = self.sheet_a.tilt
+            elif self.sheet_a is None:
+                self._tilt = self.sheet_b.tilt
             else:
-                self._tilt = (self.shta.tilt + self.shtb.tilt)/2
+                self._tilt = (self.sheet_a.tilt + self.sheet_b.tilt)/2
         return self._tilt
 
     @property
     def thkcor(self) -> float:
         if self._thkcor is None:
             self._thkcor = 1.0
-            if self.shta is not None and self.shtb is not None:
-                halfdelta = (self.shtb.tilt - self.shta.tilt)/2
-                self._thkcor = 1.0/cos(radians(halfdelta))
+            if self.sheet_a is not None and self.sheet_b is not None:
+                halfdelta = (self.sheet_b.tilt - self.sheet_a.tilt)/2
+                self._thkcor = 1.0 / cos(radians(halfdelta))
         return self._thkcor
 
     @property
     def scttyp(self) -> str:
         if self._scttyp is None:
-            if self.shta is None:
-                if self.shtb.nomesh:
+            if self.sheet_a is None:
+                if self.sheet_b.nomesh:
                     self._scttyp = 'notip'
                 else:
                     self._scttyp = 'begtip'
-            elif self.shtb is None:
-                if self.shta.nomesh:
+            elif self.sheet_b is None:
+                if self.sheet_a.nomesh:
                     self._scttyp = 'notip'
                 else:
                     self._scttyp = 'endtip'
             else:
-                if self.shta.nomesh and self.shtb.nomesh:
+                if self.sheet_a.nomesh and self.sheet_b.nomesh:
                     self._scttyp = 'notip'
-                elif self.shta.nomesh:
+                elif self.sheet_a.nomesh:
                     self._scttyp = 'begtip'
-                elif self.shtb.nomesh:
+                elif self.sheet_b.nomesh:
                     self._scttyp = 'endtip'
                 else:
                     self._scttyp = 'notip'
         return self._scttyp
 
     def get_profile(self, offset: bool=True) -> Vector:
-        num = self.cnum*2+1
-        profile = Vector.zeros((1, num))
-        for i in range(self.cnum+1):
-            n = num-i-1
-            j = n-num
-            profile[0, i] = Vector(self.airfoil.xl[j], 0.0, self.airfoil.yl[j])
-            profile[0, n] = Vector(self.airfoil.xu[j], 0.0, self.airfoil.yu[j])
+        num = self.cnum*2 + 1
+        profile = Vector.zeros(num)
+        for i in range(self.cnum + 1):
+            n = num - i - 1
+            j = n - num
+            profile[i] = Vector(self.airfoil.xl[j], 0.0, self.airfoil.yl[j])
+            profile[n] = Vector(self.airfoil.xu[j], 0.0, self.airfoil.yu[j])
         profile.z[absolute(profile.z) < TOL] = 0.0
         profile.z = profile.z*self.thkcor
         if offset:
             offvec = Vector(self.xoc, 0.0, self.zoc)
-            profile = profile-offvec
+            profile = profile - offvec
         return profile
 
     def mesh_grids(self, gid: int) -> int:
-        shp = self.get_shape()
-        num = shp.shape[1]
+        shape = self.get_shape()
+        num = shape.size
         tip_te_closed = False
         if self.scttyp == 'begtip' or self.scttyp == 'endtip':
-            vec = shp[0, -1] - shp[0, 0]
+            vec = shape[-1] - shape[0]
             if vec.return_magnitude() < 1e-12:
                 tip_te_closed = True
                 num -= 1
-        self.grds = []
-        te = False
+        self.grids = []
         for i in range(num):
-            self.grds.append(Grid(gid, shp[0, i].x, shp[0, i].y, shp[0, i].z, te))
+            self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
             gid += 1
         if tip_te_closed:
-            self.grds.append(self.grds[0])
-        if not self.nohsv:
-            self.grds[0].te = True
-            self.grds[-1].te = True
+            self.grids.append(self.grids[0])
+
+        # Mesh Trailing Edge Grid
+        tevec = (shape[0] + shape[-1])/2
+        self.tegrd = Grid(gid, tevec.x, tevec.y, tevec.z)
+        gid += 1
+
         return gid
 
     def mesh_panels(self, pid: int) -> int:
@@ -203,18 +209,18 @@ class PanelSection(PanelProfile):
             reverse = True
         elif self.scttyp == 'endtip':
             mesh = True
-        self.pnls = []
+        self.dpanels = []
         if mesh:
-            numgrd = len(self.grds)
+            numgrd = len(self.grids)
             n = numgrd-1
             numpnl = int(n/2)
             for i in range(numpnl):
                 grds: list[Grid] = []
-                grds.append(self.grds[i])
-                grds.append(self.grds[i+1])
-                grds.append(self.grds[n-i-1])
-                grds.append(self.grds[n-i])
-                dist = (grds[0]-grds[-1]).return_magnitude()
+                grds.append(self.grids[i])
+                grds.append(self.grids[i+1])
+                grds.append(self.grids[n-i-1])
+                grds.append(self.grids[n-i])
+                dist = (grds[0] - grds[-1]).return_magnitude()
                 if dist < TOL:
                     grds = grds[:-1]
                 if reverse:
@@ -224,8 +230,8 @@ class PanelSection(PanelProfile):
                     if grd not in pnlgrds:
                         pnlgrds.append(grd)
                 pnl = Panel(pid, pnlgrds)
-                pnl.sct = self
-                self.pnls.append(pnl)
+                pnl.section = self
+                self.dpanels.append(pnl)
                 pid += 1
         return pid
 
@@ -242,36 +248,36 @@ class PanelSection(PanelProfile):
         airfoil = sectdata.get('airfoil', defaults.get('airfoil', None))
         cdo = sectdata.get('cdo', defaults.get('cdo', 0.0))
         noload = sectdata.get('noload', defaults.get('noload', False))
-        sect = PanelSection(point, chord, twist)
-        sect.bpos = sectdata.get('bpos', None)
-        sect.xoc = sectdata.get('xoc', defaults.get('xoc', None))
-        sect.zoc = sectdata.get('zoc', defaults.get('zoc', None))
-        sect.set_cdo(cdo)
-        sect.set_noload(noload)
-        sect.set_airfoil(airfoil)
+        section = PanelSection(point, chord, twist)
+        section.bpos = sectdata.get('bpos', None)
+        section.xoc = sectdata.get('xoc', defaults.get('xoc', None))
+        section.zoc = sectdata.get('zoc', defaults.get('zoc', None))
+        section.set_cdo(cdo)
+        section.set_noload(noload)
+        section.set_airfoil(airfoil)
         if 'bnum' in sectdata and 'bspc' in sectdata:
             bnum = sectdata['bnum']
             bspc = sectdata['bspc']
             if bspc == 'equal':
-                sect.set_span_equal_spacing(bnum)
+                section.set_span_equal_spacing(bnum)
             elif bspc in ('full-cosine', 'cosine'):
-                sect.set_span_cosine_spacing(bnum)
+                section.set_span_cosine_spacing(bnum)
             elif bspc == 'semi-cosine':
-                sect.set_span_semi_cosine_spacing(bnum)
+                section.set_span_semi_cosine_spacing(bnum)
         if 'tilt' in sectdata:
-            sect.set_tilt(sectdata['tilt'])
+            section.set_tilt(sectdata['tilt'])
         if 'nohsv' in sectdata:
-            sect.nohsv = sectdata['nohsv']
+            section.nohsv = sectdata['nohsv']
         if 'nomesh' in sectdata:
-            sect.nomesh = sectdata['nomesh']
-            if sect.nomesh:
-                sect.noload = True
-                # sect.nohsv = True
+            section.nomesh = sectdata['nomesh']
+            if section.nomesh:
+                section.noload = True
+                # section.nohsv = True
         if 'controls' in sectdata:
             for name in sectdata['controls']:
-                ctrl = PanelControl.from_dict(name, sectdata['controls'][name])
-                sect.add_control(ctrl)
-        return sect
+                control = PanelControl.from_dict(name, sectdata['controls'][name])
+                section.add_control(control)
+        return section
 
     def __str__(self) -> str:
         return f'PanelSection({self.point}, {self.chord}, {self.twist})'

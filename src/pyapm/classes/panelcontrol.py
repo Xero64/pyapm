@@ -13,7 +13,7 @@ class PanelControl():
     xhinge: float = None
     uhvec: Vector = None
     reverse: bool = None
-    pnls: list['Panel'] = None
+    panels: list['Panel'] = None
     desc: str = None
 
     def __init__(self, name: str, posgain: float, neggain: float,
@@ -22,7 +22,7 @@ class PanelControl():
         self.posgain = posgain
         self.neggain = neggain
         self.xhinge = xhinge
-        self.pnls = []
+        self.panels = []
 
     def set_hinge_vector(self, hvec: Vector) -> None:
         if hvec.return_magnitude() != 0.0:
@@ -44,8 +44,8 @@ class PanelControl():
         ctrl.set_hinge_vector(uhvec)
         return ctrl
 
-    def add_panel(self, pnl: 'Panel') -> None:
-        self.pnls.append(pnl)
+    def add_panel(self, panel: 'Panel') -> None:
+        self.panels.append(panel)
 
     @classmethod
     def from_dict(cls, name: str, control_dict: dict[str, Any]) -> 'PanelControl':
@@ -63,4 +63,4 @@ class PanelControl():
         return f'PanelControl({self.name})'
 
     def __str__(self):
-        return f'PanelControl({self.name})'
+        return self.__repr__()

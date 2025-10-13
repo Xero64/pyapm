@@ -1,11 +1,11 @@
 from json import dump, load
 from os.path import dirname, exists, join
-from time import perf_counter
+# from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
 from matplotlib.pyplot import figure
-from numpy import add, zeros
-from numpy.linalg import norm
+from numpy import zeros, eye
+from numpy.linalg import inv
 from py2md.classes import MDTable
 from pygeom.geom3d import Vector
 
@@ -26,74 +26,78 @@ if TYPE_CHECKING:
 
     from ..tools.mass import MassCollection
     from .edge import Edge
-    from .horseshoedoublet import HorseshoeDoublet
     from .panelstrip import PanelStrip
+    from .wakepanel import WakePanel
 
 
 class PanelSystem():
     name: str = None
-    grds: dict[int, Grid] = None
-    pnls: dict[int, Panel] = None
+    grids: dict[int, Grid] = None
+    dpanels: dict[int, Panel] = None
+    wpanels: dict[int, 'WakePanel'] = None
     bref: float = None
     cref: float = None
     sref: float = None
     rref: Vector = None
-    ctrls: dict[str, tuple[int]] = None
-    srfcs: list['PanelSurface'] = None
-    grps: dict[int, 'PanelGroup'] = None
+    controls: dict[str, tuple[int]] = None
+    surfaces: list['PanelSurface'] = None
+    groups: dict[int, 'PanelGroup'] = None
     results: dict[str, 'PanelResult | PanelTrim'] = None
     masses: dict[str, 'MassObject | MassCollection'] = None # Store Mass Options
     mass: 'MassObject | MassCollection | None' = None # Mass Object
     source: str = None
-    _hsvs: list['HorseshoeDoublet'] = None
-    _numgrd: int = None
-    _numpnl: int = None
-    _numhsv: int = None
-    _numctrl: int = None
-    _pnts: Vector = None
-    _pnla: 'NDArray' = None
-    _nrms: Vector = None
+    _num_grids: int = None
+    _num_dpanels: int = None
+    _num_wpanels: int = None
+    _num_controls: int = None
+    _points: Vector = None
+    _panel_area: 'NDArray' = None
+    _normals: Vector = None
     _rrel: Vector = None
-    _apd: 'NDArray' = None
-    _aps: 'NDArray' = None
-    _aph: 'NDArray' = None
-    _apm: 'NDArray' = None
-    _bps: dict[float, Vector] = None
-    _avd: dict[float, Vector] = None
-    _avs: dict[float, Vector] = None
-    _avh: dict[float, Vector] = None
-    _avm: dict[float, Vector] = None
-    _ans: 'NDArray' = None
-    _anm: 'NDArray' = None
-    _bnm: 'NDArray' = None
+    _aphdd: dict[float, 'NDArray'] = None
+    _aphsd: dict[float, 'NDArray'] = None
+    _aphdw: dict[float, 'NDArray'] = None
+    # _aph: 'NDArray' = None
+    # _apm: 'NDArray' = None
+    _bphs: dict[float, Vector] = None
+    _ainv: dict[float, 'NDArray'] = None
+    _cmat: 'NDArray' = None
+    # _avd: dict[float, Vector] = None
+    # _avs: dict[float, Vector] = None
+    # _avh: dict[float, Vector] = None
+    # _avm: dict[float, Vector] = None
+    # _ans: 'NDArray' = None
+    # _anm: 'NDArray' = None
+    # _bnm: 'NDArray' = None
     _unsig: dict[float, Vector] = None
-    _unmu: dict[float, Vector] = None
-    _unphi: dict[float, Vector] = None
-    _unnvg: dict[float, Vector] = None
-    _hsvpnts: Vector = None
-    _hsvnrms: Vector = None
-    _awd: 'NDArray' = None
-    _aws: 'NDArray' = None
-    _awh: 'NDArray' = None
-    _adh: 'NDArray' = None
-    _ash: 'NDArray' = None
-    _alh: 'NDArray' = None
+    _unmud: dict[float, Vector] = None
+    _unmuw: dict[float, Vector] = None
+    # _unphi: dict[float, Vector] = None
+    # _unnvg: dict[float, Vector] = None
+    # _hsvpnts: Vector = None
+    # _hsvnrms: Vector = None
+    # _awd: 'NDArray' = None
+    # _aws: 'NDArray' = None
+    # _awh: 'NDArray' = None
+    # _adh: 'NDArray' = None
+    # _ash: 'NDArray' = None
+    # _alh: 'NDArray' = None
     _ar: float = None
     _area: float = None
-    _strps: list['PanelStrip'] = None
-    _phind: dict[int, list[int]] = None
-    _pnldirx: Vector = None
-    _pnldiry: Vector = None
-    _pnldirz: Vector = None
+    # _strps: list['PanelStrip'] = None
+    # _phind: dict[int, list[int]] = None
+    # _pnldirx: Vector = None
+    # _pnldiry: Vector = None
+    # _pnldirz: Vector = None
     _edges: list['Edge'] = None
     _edges_array: 'NDArray' = None
-    _triarr: 'NDArray' = None
-    _tgrida: Vector = None
-    _tgridb: Vector = None
-    _tgridc: Vector = None
-    _wgrida: Vector = None
-    _wgridb: Vector = None
-    _wdirl: Vector = None
+    # _triarr: 'NDArray' = None
+    # _tgrida: Vector = None
+    # _tgridb: Vector = None
+    # _tgridc: Vector = None
+    # _wgrida: Vector = None
+    # _wgridb: Vector = None
+    # _wdirl: Vector = None
 
     def __init__(self, name: str, bref: float, cref: float,
                  sref: float, rref: Vector) -> None:
@@ -105,46 +109,31 @@ class PanelSystem():
         self.ctrls = {}
         self.results = {}
 
-    def set_mesh(self, grds: dict[int, Grid], pnls: dict[int, Panel]) -> None:
-        self.grds = grds
-        self.pnls = pnls
+    def set_mesh(self, grids: dict[int, Grid],
+                 dpanels: dict[int, Panel],
+                 wpanels: dict[int, 'WakePanel']) -> None:
+        self.grids = grids
+        self.dpanels = dpanels
+        self.wpanels = wpanels
         self.update()
 
-    def set_geom(self, srfcs: list['PanelSurface']=None) -> None:
-        self.srfcs = srfcs
+    def set_geom(self, surfaces: list['PanelSurface']=None) -> None:
+        self.surfaces = surfaces
         self.mesh()
         self.update()
 
     def update(self) -> None:
-        for ind, grd in enumerate(self.grds.values()):
-            grd.set_index(ind)
-        for ind, pnl in enumerate(self.pnls.values()):
-            pnl.set_index(ind)
+        for ind, grid in enumerate(self.grids.values()):
+            grid.ind = ind
+        for ind, panel in enumerate(self.dpanels.values()):
+            panel.ind = ind
+        for ind, panel in enumerate(self.wpanels.values()):
+            panel.ind = ind
 
     def reset(self) -> None:
         for attr in self.__dict__:
-            if attr[0] == '_':
+            if attr.startswith('_'):
                 self.__dict__[attr] = None
-
-    def set_horseshoes(self, diro: Vector) -> None:
-        for pnl in self.pnls.values():
-            pnl.set_horseshoes(diro)
-        self._hsvs = None
-        self._numhsv = None
-        self._aph = None
-        self._avh = None
-        self._apm = None
-        self._avm = None
-        self._anm = None
-        self._hsvpnts = None
-        self._hsvnrms = None
-        self._awd = None
-        self._aws = None
-        self._awh = None
-        self._adh = None
-        self._ash = None
-        self._alh = None
-        self._phind = None
 
     @property
     def ar(self) -> float:
@@ -156,332 +145,319 @@ class PanelSystem():
     def area(self) -> float:
         if self._area is None:
             self._area = 0.0
-            for pnl in self.pnls.values():
-                self._area += pnl.area
+            for panel in self.dpanels.values():
+                self._area += panel.area
         return self._area
 
     @property
-    def numgrd(self) -> int:
-        if self._numgrd is None:
-            self._numgrd = len(self.grds)
-        return self._numgrd
+    def num_grids(self) -> int:
+        if self._num_grids is None:
+            self._num_grids = len(self.grids)
+        return self._num_grids
 
     @property
-    def numpnl(self) -> int:
-        if self._numpnl is None:
-            self._numpnl = len(self.pnls)
-        return self._numpnl
+    def num_dpanels(self) -> int:
+        if self._num_dpanels is None:
+            self._num_dpanels = len(self.dpanels)
+        return self._num_dpanels
 
     @property
-    def numhsv(self) -> int:
-        if self._numhsv is None:
-            self._numhsv = len(self.hsvs)
-        return self._numhsv
+    def num_wpanels(self) -> int:
+        if self._num_wpanels is None:
+            self._num_wpanels = len(self.wpanels)
+        return self._num_wpanels
 
     @property
-    def numctrl(self) -> int:
-        if self._numctrl is None:
-            self._numctrl = len(self.ctrls)
-        return self._numctrl
+    def num_controls(self) -> int:
+        if self._num_controls is None:
+            self._num_controls = len(self.ctrls)
+        return self._num_controls
 
     @property
-    def pnts(self) -> Vector:
-        if self._pnts is None:
-            self._pnts = Vector.zeros(self.numpnl)
-            for pnl in self.pnls.values():
-                self._pnts[pnl.ind] = pnl.pnto
-        return self._pnts
+    def points(self) -> Vector:
+        if self._points is None:
+            self._points = Vector.zeros(self.num_dpanels)
+            for panel in self.dpanels.values():
+                self._points[panel.ind] = panel.pnto
+        return self._points
 
     @property
     def rrel(self) -> Vector:
         if self._rrel is None:
-            self._rrel = self.pnts - self.rref
+            self._rrel = self.points - self.rref
         return self._rrel
 
     @property
-    def nrms(self) -> Vector:
-        if self._nrms is None:
-            self._nrms = Vector.zeros(self.numpnl)
-            for pnl in self.pnls.values():
-                self._nrms[pnl.ind] = pnl.nrm
-        return self._nrms
+    def normals(self) -> Vector:
+        if self._normals is None:
+            self._normals = Vector.zeros(self.num_dpanels)
+            for panel in self.dpanels.values():
+                self._normals[panel.ind] = panel.nrm
+        return self._normals
 
     @property
-    def pnla(self) -> 'NDArray':
-        if self._pnla is None:
-            self._pnla = zeros(self.numpnl)
-            for pnl in self.pnls.values():
-                self._pnla[pnl.ind] = pnl.area
-        return self._pnla
+    def panel_area(self) -> 'NDArray':
+        if self._panel_area is None:
+            self._panel_area = zeros(self.num_dpanels)
+            for panel in self.dpanels.values():
+                self._panel_area[panel.ind] = panel.area
+        return self._panel_area
 
-    @property
-    def hsvs(self) -> list['HorseshoeDoublet']:
-        if self._hsvs is None:
-            self._hsvs = []
-            for pnl in self.pnls.values():
-                self._hsvs = self._hsvs + pnl.hsvs
-        return self._hsvs
+    # @property
+    # def pnldirx(self) -> Vector:
+    #     if self._pnldirx is None:
+    #         self._pnldirx = Vector.zeros(self.num_dpanels)
+    #         for panel in self.dpanels.values():
+    #             self._pnldirx[panel.ind] = panel.crd.dirx
+    #     return self._pnldirx
 
-    @property
-    def phind(self) -> dict[int, int]:
-        if self._phind is None:
-            self._phind = {}
-            for i, hsv in enumerate(self.hsvs):
-                pind = hsv.ind
-                if pind in self._phind:
-                    self._phind[pind].append(i)
-                else:
-                    self._phind[pind] = [i]
-        return self._phind
+    # @property
+    # def pnldiry(self) -> Vector:
+    #     if self._pnldiry is None:
+    #         self._pnldiry = Vector.zeros(self.num_dpanels)
+    #         for panel in self.dpanels.values():
+    #             self._pnldiry[panel.ind] = panel.crd.diry
+    #     return self._pnldiry
 
-    @property
-    def pnldirx(self) -> Vector:
-        if self._pnldirx is None:
-            self._pnldirx = Vector.zeros(self.numpnl)
-            for pnl in self.pnls.values():
-                self._pnldirx[pnl.ind] = pnl.crd.dirx
-        return self._pnldirx
+    # @property
+    # def pnldirz(self) -> Vector:
+    #     if self._pnldirz is None:
+    #         self._pnldirz = Vector.zeros(self.num_dpanels)
+    #         for panel in self.dpanels.values():
+    #             self._pnldirz[panel.ind] = panel.crd.dirz
+    #     return self._pnldirz
 
-    @property
-    def pnldiry(self) -> Vector:
-        if self._pnldiry is None:
-            self._pnldiry = Vector.zeros(self.numpnl)
-            for pnl in self.pnls.values():
-                self._pnldiry[pnl.ind] = pnl.crd.diry
-        return self._pnldiry
+    def bphs(self, mach: float = 0.0) -> Vector:
+        if self._bphs is None:
+            self._bphs = {}
+        if mach not in self._bphs:
+            self._bphs[mach] = -self.aphsd(mach)@self.unsig(mach)
+        return self._bphs[mach]
 
-    @property
-    def pnldirz(self) -> Vector:
-        if self._pnldirz is None:
-            self._pnldirz = Vector.zeros(self.numpnl)
-            for pnl in self.pnls.values():
-                self._pnldirz[pnl.ind] = pnl.crd.dirz
-        return self._pnldirz
+    # def bnm(self, mach: float = 0.0) -> Vector:
+    #     if self._bnm is None:
+    #         self._bnm = {}
+    #     if mach not in self._bnm:
+    #         self._bnm[mach] = -self.normals.reshape((-1, 1)) - self.ans(mach)@self.unsig(mach)
+    #     return self._bnm[mach]
 
-    def bps(self, mach: float = 0.0) -> Vector:
-        if self._bps is None:
-            self._bps = {}
-        if mach not in self._bps:
-            self._bps[mach] = -self.aps(mach)@self.unsig(mach)
-        return self._bps[mach]
-
-    def bnm(self, mach: float = 0.0) -> Vector:
-        if self._bnm is None:
-            self._bnm = {}
-        if mach not in self._bnm:
-            self._bnm[mach] = -self.nrms.reshape((-1, 1)) - self.ans(mach)@self.unsig(mach)
-        return self._bnm[mach]
-
-    def apd(self, mach: float = 0.0) -> 'NDArray':
-        if self._apd is None:
-            self._apd = {}
-        if mach not in self._apd:
+    def aphdd(self, mach: float = 0.0) -> 'NDArray':
+        if self._aphdd is None:
+            self._aphdd = {}
+        if mach not in self._aphdd:
             self.assemble_panels_phi(mach = mach)
-        return self._apd[mach]
+        return self._aphdd[mach]
 
-    def avd(self, mach: float = 0.0) -> Vector:
-        if self._avd is None:
-            self._avd = {}
-        if mach not in self._avd:
-            self.assemble_panels_vel(mach = mach)
-        return self._avd[mach]
+    # def avd(self, mach: float = 0.0) -> Vector:
+    #     if self._avd is None:
+    #         self._avd = {}
+    #     if mach not in self._avd:
+    #         self.assemble_panels_vel(mach = mach)
+    #     return self._avd[mach]
 
-    def aps(self, mach: float = 0.0) -> 'NDArray':
-        if self._aps is None:
-            self._aps = {}
-        if mach not in self._aps:
+    def aphsd(self, mach: float = 0.0) -> 'NDArray':
+        if self._aphsd is None:
+            self._aphsd = {}
+        if mach not in self._aphsd:
             self.assemble_panels_phi(mach = mach)
-        return self._aps[mach]
+        return self._aphsd[mach]
 
-    def avs(self, mach: float = 0.0) -> Vector:
-        if self._avs is None:
-            self._avs = {}
-        if mach not in self._avs:
-            self.assemble_panels_vel(mach = mach)
-        return self._avs[mach]
+    def aphdw(self, mach: float = 0.0) -> 'NDArray':
+        if self._aphdw is None:
+            self._aphdw = {}
+        if mach not in self._aphdw:
+            self.assemble_panels_phi(mach = mach)
+        return self._aphdw[mach]
 
-    def aph(self, mach: float = 0.0) -> 'NDArray':
-        if self._aph is None:
-            self._aph = {}
-        if mach not in self._aph:
-            self.assemble_horseshoes_phi(mach = mach)
-        return self._aph[mach]
+    # def avs(self, mach: float = 0.0) -> Vector:
+    #     if self._avs is None:
+    #         self._avs = {}
+    #     if mach not in self._avs:
+    #         self.assemble_panels_vel(mach = mach)
+    #     return self._avs[mach]
 
-    def avh(self, mach: float = 0.0) -> Vector:
-        if self._avh is None:
-            self._avh = {}
-        if mach not in self._avh:
-            self.assemble_horseshoes_vel(mach = mach)
-        return self._avh[mach]
+    # def aph(self, mach: float = 0.0) -> 'NDArray':
+    #     if self._aph is None:
+    #         self._aph = {}
+    #     if mach not in self._aph:
+    #         self.assemble_horseshoes_phi(mach = mach)
+    #     return self._aph[mach]
 
-    def apm(self, mach: float = 0.0) -> 'NDArray':
-        if self._apm is None:
-            self._apm = {}
-        if mach not in self._apm:
-            apm = self.apd(mach).copy()
-            aph = self.aph(mach)
-            for i, hsv in enumerate(self.hsvs):
-                ind = hsv.ind
-                apm[:, ind] = apm[:, ind] + aph[:, i]
-            self._apm[mach] = apm
-        return self._apm[mach]
+    # def avh(self, mach: float = 0.0) -> Vector:
+    #     if self._avh is None:
+    #         self._avh = {}
+    #     if mach not in self._avh:
+    #         self.assemble_horseshoes_vel(mach = mach)
+    #     return self._avh[mach]
 
-    def avm(self, mach: float = 0.0) -> 'NDArray':
-        if self._avm is None:
-            self._avm = {}
-        if mach not in self._avm:
-            avm = self.avd(mach).copy()
-            avh = self.avh(mach)
-            for i, hsv in enumerate(self.hsvs):
-                ind = hsv.ind
-                avm[:, ind] = avm[:, ind] + avh[:, i]
-            self._avm[mach] = avm
-        return self._avm[mach]
+    # def apm(self, mach: float = 0.0) -> 'NDArray':
+    #     if self._apm is None:
+    #         self._apm = {}
+    #     if mach not in self._apm:
+    #         apm = self.apd(mach).copy()
+    #         aph = self.aph(mach)
+    #         for i, hsv in enumerate(self.hsvs):
+    #             ind = hsv.ind
+    #             apm[:, ind] = apm[:, ind] + aph[:, i]
+    #         self._apm[mach] = apm
+    #     return self._apm[mach]
 
-    def ans(self, mach: float = 0.0) -> 'NDArray':
-        if self._ans is None:
-            self._ans = {}
-        if mach not in self._ans:
-            nrms = self.nrms.reshape((-1, 1)).repeat(self.numpnl, axis=1)
-            self._ans[mach] = nrms.dot(self.avs(mach))
-        return self._ans[mach]
+    # def avm(self, mach: float = 0.0) -> 'NDArray':
+    #     if self._avm is None:
+    #         self._avm = {}
+    #     if mach not in self._avm:
+    #         avm = self.avd(mach).copy()
+    #         avh = self.avh(mach)
+    #         for i, hsv in enumerate(self.hsvs):
+    #             ind = hsv.ind
+    #             avm[:, ind] = avm[:, ind] + avh[:, i]
+    #         self._avm[mach] = avm
+    #     return self._avm[mach]
 
-    def anm(self, mach: float = 0.0) -> 'NDArray':
-        if self._anm is None:
-            self._anm = {}
-        if mach not in self._anm:
-            nrms = self.nrms.reshape((-1, 1)).repeat(self.numpnl, axis=1)
-            self._anm[mach] = nrms.dot(self.avm(mach))
-        return self._anm[mach]
+    # def ans(self, mach: float = 0.0) -> 'NDArray':
+    #     if self._ans is None:
+    #         self._ans = {}
+    #     if mach not in self._ans:
+    #         nrms = self.nrms.reshape((-1, 1)).repeat(self.numpnl, axis=1)
+    #         self._ans[mach] = nrms.dot(self.avs(mach))
+    #     return self._ans[mach]
 
-    @property
-    def hsvpnts(self) -> Vector:
-        if self._hsvpnts is None:
-            self._hsvpnts = Vector.zeros(self.numhsv)
-            for i, hsv in enumerate(self.hsvs):
-                self._hsvpnts[i] = hsv.pnto
-        return self._hsvpnts
+    # def anm(self, mach: float = 0.0) -> 'NDArray':
+    #     if self._anm is None:
+    #         self._anm = {}
+    #     if mach not in self._anm:
+    #         nrms = self.nrms.reshape((-1, 1)).repeat(self.numpnl, axis=1)
+    #         self._anm[mach] = nrms.dot(self.avm(mach))
+    #     return self._anm[mach]
 
-    @property
-    def hsvnrms(self) -> Vector:
-        if self._hsvnrms is None:
-            self._hsvnrms = Vector.zeros(self.numhsv)
-            for i, hsv in enumerate(self.hsvs):
-                self._hsvnrms[i] = hsv.nrm
-        return self._hsvnrms
+    # @property
+    # def hsvpnts(self) -> Vector:
+    #     if self._hsvpnts is None:
+    #         self._hsvpnts = Vector.zeros(self.numhsv)
+    #         for i, hsv in enumerate(self.hsvs):
+    #             self._hsvpnts[i] = hsv.pnto
+    #     return self._hsvpnts
 
-    @property
-    def strps(self) -> list['PanelStrip']:
-        if self._strps is None:
-            if self.srfcs is not None:
-                self._strps = []
-                ind = 0
-                for srfc in self.srfcs:
-                    for strp in srfc.strps:
-                        strp.ind = ind
-                        self._strps.append(strp)
-                        ind += 1
-        return self._strps
+    # @property
+    # def hsvnrms(self) -> Vector:
+    #     if self._hsvnrms is None:
+    #         self._hsvnrms = Vector.zeros(self.numhsv)
+    #         for i, hsv in enumerate(self.hsvs):
+    #             self._hsvnrms[i] = hsv.nrm
+    #     return self._hsvnrms
 
-    def assemble_panels_wash(self) -> None:
+    # @property
+    # def strips(self) -> list['PanelStrip']:
+    #     if self._strips is None:
+    #         if self.surfaces is not None:
+    #             self._strips = []
+    #             ind = 0
+    #             for surface in self.surfaces:
+    #                 for strp in surface.strips:
+    #                     strp.ind = ind
+    #                     self._strips.append(strp)
+    #                     ind += 1
+    #     return self._strips
 
-        # from .. import USE_CUPY
+    # def assemble_panels_wash(self) -> None:
 
-        # if USE_CUPY:
-        #     from ..tools.cupy import cupy_ctdsv as ctdsv
-        # else:
-        #     from ..tools.numpy import numpy_ctdsv as ctdsv
+    #     # from .. import USE_CUPY
 
-        start = perf_counter()
-        shp = (self.numhsv, self.numpnl)
-        self._awd = zeros(shp)
-        self._aws = zeros(shp)
-        for pnl in self.pnls.values():
-            ind = pnl.ind
-            _, _, avd, avs = pnl.influence_coefficients(self.hsvpnts)
-            self._awd[:, ind] = avd.dot(self.hsvnrms)
-            self._aws[:, ind] = avs.dot(self.hsvnrms)
-        finish = perf_counter()
-        elapsed = finish - start
-        print(f'Wash array assembly time is {elapsed:.3f} seconds.')
+    #     # if USE_CUPY:
+    #     #     from ..tools.cupy import cupy_ctdsv as ctdsv
+    #     # else:
+    #     #     from ..tools.numpy import numpy_ctdsv as ctdsv
 
-        # start = perf_counter()
+    #     start = perf_counter()
+    #     shp = (self.numhsv, self.numpnl)
+    #     self._awd = zeros(shp)
+    #     self._aws = zeros(shp)
+    #     for pnl in self.pnls.values():
+    #         ind = pnl.ind
+    #         _, _, avd, avs = pnl.influence_coefficients(self.hsvpnts)
+    #         self._awd[:, ind] = avd.dot(self.hsvnrms)
+    #         self._aws[:, ind] = avs.dot(self.hsvnrms)
+    #     finish = perf_counter()
+    #     elapsed = finish - start
+    #     print(f'Wash array assembly time is {elapsed:.3f} seconds.')
 
-        # hsvpnts = self.hsvpnts.reshape((-1, 1))
-        # hsvnrms = self.hsvnrms.reshape((-1, 1))
+    #     # start = perf_counter()
 
-        # avdc, avsc = ctdsv(hsvpnts, self.tgrida, self.tgridb, self.tgridc)
-        # avdc = add.reduceat(avdc, self.triarr, axis=1)
-        # avsc = add.reduceat(avsc, self.triarr, axis=1)
-        # awdc = hsvnrms.dot(avd)
-        # awsc = hsvnrms.dot(avs)
+    #     # hsvpnts = self.hsvpnts.reshape((-1, 1))
+    #     # hsvnrms = self.hsvnrms.reshape((-1, 1))
 
-        # finish = perf_counter()
-        # elapsedc = finish - start
-        # print(f'Wash array assembly time with cupy is {elapsedc:.3f} seconds.')
-        # print(f'Speedup is {elapsed/elapsedc:.2f}x.')
+    #     # avdc, avsc = ctdsv(hsvpnts, self.tgrida, self.tgridb, self.tgridc)
+    #     # avdc = add.reduceat(avdc, self.triarr, axis=1)
+    #     # avsc = add.reduceat(avsc, self.triarr, axis=1)
+    #     # awdc = hsvnrms.dot(avd)
+    #     # awsc = hsvnrms.dot(avs)
 
-        # diffawd = self._awd - awdc
-        # diffaws = self._aws - awsc
+    #     # finish = perf_counter()
+    #     # elapsedc = finish - start
+    #     # print(f'Wash array assembly time with cupy is {elapsedc:.3f} seconds.')
+    #     # print(f'Speedup is {elapsed/elapsedc:.2f}x.')
 
-        # normawd = norm(diffawd)
-        # normaws = norm(diffaws)
+    #     # diffawd = self._awd - awdc
+    #     # diffaws = self._aws - awsc
 
-        # print(f'Difference in awd: {normawd:.12f}')
-        # print(f'Difference in aws: {normaws:.12f}')
+    #     # normawd = norm(diffawd)
+    #     # normaws = norm(diffaws)
 
-    def assemble_horseshoes_wash(self) -> None:
-        start = perf_counter()
-        shp = (self.numhsv, self.numhsv)
-        self._awh = zeros(shp)
-        for i, hsv in enumerate(self.hsvs):
-            avh = hsv.trefftz_plane_velocities(self.hsvpnts)
-            self._awh[:, i] = avh.dot(self.hsvnrms)
-        finish = perf_counter()
-        elapsed = finish - start
-        print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
+    #     # print(f'Difference in awd: {normawd:.12f}')
+    #     # print(f'Difference in aws: {normaws:.12f}')
 
-    @property
-    def awh(self) -> 'NDArray':
-        if self._awh is None:
-            self.assemble_horseshoes_wash()
-        return self._awh
+    # def assemble_horseshoes_wash(self) -> None:
+    #     start = perf_counter()
+    #     shp = (self.numhsv, self.numhsv)
+    #     self._awh = zeros(shp)
+    #     for i, hsv in enumerate(self.hsvs):
+    #         avh = hsv.trefftz_plane_velocities(self.hsvpnts)
+    #         self._awh[:, i] = avh.dot(self.hsvnrms)
+    #     finish = perf_counter()
+    #     elapsed = finish - start
+    #     print(f'Wash horse shoe assembly time is {elapsed:.3f} seconds.')
 
-    @property
-    def awd(self) -> 'NDArray':
-        if self._awd is None:
-            self.assemble_panels_wash()
-        return self._awd
+    # @property
+    # def awh(self) -> 'NDArray':
+    #     if self._awh is None:
+    #         self.assemble_horseshoes_wash()
+    #     return self._awh
 
-    @property
-    def aws(self) -> 'NDArray':
-        if self._aws is None:
-            self.assemble_panels_wash()
-        return self._aws
+    # @property
+    # def awd(self) -> 'NDArray':
+    #     if self._awd is None:
+    #         self.assemble_panels_wash()
+    #     return self._awd
 
-    @property
-    def adh(self) -> 'NDArray':
-        if self._adh is None:
-            self._adh = zeros(self.awh.shape)
-            for i, hsv in enumerate(self.hsvs):
-                self._adh[:, i] = -self._awh[:, i]*hsv.width
-        return self._adh
+    # @property
+    # def aws(self) -> 'NDArray':
+    #     if self._aws is None:
+    #         self.assemble_panels_wash()
+    #     return self._aws
 
-    @property
-    def ash(self) -> 'NDArray':
-        if self._ash is None:
-            self._ash = zeros(self.numhsv)
-            for i, hsv in enumerate(self.hsvs):
-                self._ash[i] = -hsv.vecab.z
-        return self._ash
+    # @property
+    # def adh(self) -> 'NDArray':
+    #     if self._adh is None:
+    #         self._adh = zeros(self.awh.shape)
+    #         for i, hsv in enumerate(self.hsvs):
+    #             self._adh[:, i] = -self._awh[:, i]*hsv.width
+    #     return self._adh
 
-    @property
-    def alh(self) -> 'NDArray':
-        if self._alh is None:
-            self._alh = zeros(self.numhsv)
-            for i, hsv in enumerate(self.hsvs):
-                self._alh[i] = hsv.vecab.y
-        return self._alh
+    # @property
+    # def ash(self) -> 'NDArray':
+    #     if self._ash is None:
+    #         self._ash = zeros(self.numhsv)
+    #         for i, hsv in enumerate(self.hsvs):
+    #             self._ash[i] = -hsv.vecab.z
+    #     return self._ash
+
+    # @property
+    # def alh(self) -> 'NDArray':
+    #     if self._alh is None:
+    #         self._alh = zeros(self.numhsv)
+    #         for i, hsv in enumerate(self.hsvs):
+    #             self._alh[i] = hsv.vecab.y
+    #     return self._alh
 
     @property
     def edges(self) -> list['Edge']:
@@ -546,267 +522,306 @@ class PanelSystem():
     #         self.calc_triarr()
     #     return self._tgridc
 
-    def calc_wpanel(self) -> 'NDArray':
-        self._wgrida = Vector.zeros((1, self.numhsv))
-        self._wgridb = Vector.zeros((1, self.numhsv))
-        self._wdirl = Vector.zeros((1, self.numhsv))
-        for i, hsv in enumerate(self.hsvs):
-            self._wgrida[0, i] = hsv.grda
-            self._wgridb[0, i] = hsv.grdb
-            self._wdirl[0, i] = hsv.diro
+    # def calc_wpanel(self) -> 'NDArray':
+    #     self._wgrida = Vector.zeros((1, self.numhsv))
+    #     self._wgridb = Vector.zeros((1, self.numhsv))
+    #     self._wdirl = Vector.zeros((1, self.numhsv))
+    #     for i, hsv in enumerate(self.hsvs):
+    #         self._wgrida[0, i] = hsv.grda
+    #         self._wgridb[0, i] = hsv.grdb
+    #         self._wdirl[0, i] = hsv.diro
 
-    @property
-    def wgrida(self) -> Vector:
-        if self._wgrida is None:
-            self.calc_wpanel()
-        return self._wgrida
+    # @property
+    # def wgrida(self) -> Vector:
+    #     if self._wgrida is None:
+    #         self.calc_wpanel()
+    #     return self._wgrida
 
-    @property
-    def wgridb(self) -> Vector:
-        if self._wgridb is None:
-            self.calc_wpanel()
-        return self._wgridb
+    # @property
+    # def wgridb(self) -> Vector:
+    #     if self._wgridb is None:
+    #         self.calc_wpanel()
+    #     return self._wgridb
 
-    @property
-    def wdirl(self) -> Vector:
-        if self._wdirl is None:
-            self.calc_wpanel()
-        return self._wdirl
+    # @property
+    # def wdirl(self) -> Vector:
+    #     if self._wdirl is None:
+    #         self.calc_wpanel()
+    #     return self._wdirl
 
     def unsig(self, mach: float = 0.0) -> Vector:
         if self._unsig is None:
             self._unsig = {}
         if mach not in self._unsig:
-            unsig = Vector.zeros((self.numpnl, 2 + 4*self.numctrl))
-            unsig[:, 0] = -self.nrms
-            unsig[:, 1] = self.rrel.cross(self.nrms)
-            if self.srfcs is not None:
-                for srfc in self.srfcs:
-                    for sht in srfc.shts:
-                        for control in sht.ctrls:
-                            ctrl = sht.ctrls[control]
-                            ctup = self.ctrls[control]
-                            for pnl in ctrl.pnls:
-                                ind = pnl.ind
+            unsig = Vector.zeros((self.num_dpanels, 2 + 4*self.num_controls))
+            unsig[:, 0] = -self.normals
+            unsig[:, 1] = self.rrel.cross(self.normals)
+            if self.surfaces is not None:
+                for surface in self.surfaces:
+                    for sheet in surface.sheets:
+                        for control in sheet.controls.values():
+                            control = sheet.controls[control.name]
+                            ctuple = self.controls[control.name]
+                            for panel in control.panels:
+                                ind = panel.ind
                                 rrel = self.rrel[ind]
-                                dndlp = pnl.dndl(ctrl.posgain, ctrl.uhvec)
-                                unsig[ind, ctup[0]] = -dndlp
-                                unsig[ind, ctup[1]] = -rrel.cross(dndlp)
-                                dndln = pnl.dndl(ctrl.neggain, ctrl.uhvec)
-                                unsig[ind, ctup[2]] = -dndln
-                                unsig[ind, ctup[3]] = -rrel.cross(dndln)
-            elif self.grps is not None:
-                for grp in self.grps.values():
-                    for control in grp.ctrls:
-                        ctrl = grp.ctrls[control]
-                        ctup = self.ctrls[control]
-                        for pnl in ctrl.pnls:
-                            ind = pnl.ind
+                                dndlp = panel.dndl(control.posgain, control.uhvec)
+                                unsig[ind, ctuple[0]] = -dndlp
+                                unsig[ind, ctuple[1]] = -rrel.cross(dndlp)
+                                dndln = panel.dndl(control.neggain, control.uhvec)
+                                unsig[ind, ctuple[2]] = -dndln
+                                unsig[ind, ctuple[3]] = -rrel.cross(dndln)
+            elif self.groups is not None:
+                for group in self.groups.values():
+                    for control in group.controls.values():
+                        control = group.controls[control.name]
+                        ctuple = self.controls[control.name]
+                        for panel in control.panels:
+                            ind = panel.ind
                             rrel = self.rrel[ind]
-                            dndlp = pnl.dndl(ctrl.posgain, ctrl.uhvec)
-                            unsig[ind, ctup[0]] = -dndlp
-                            unsig[ind, ctup[1]] = -rrel.cross(dndlp)
-                            dndln = pnl.dndl(ctrl.neggain, ctrl.uhvec)
-                            unsig[ind, ctup[2]] = -dndln
-                            unsig[ind, ctup[3]] = -rrel.cross(dndln)
+                            dndlp = panel.dndl(control.posgain, control.uhvec)
+                            unsig[ind, ctuple[0]] = -dndlp
+                            unsig[ind, ctuple[1]] = -rrel.cross(dndlp)
+                            dndln = panel.dndl(control.neggain, control.uhvec)
+                            unsig[ind, ctuple[2]] = -dndln
+                            unsig[ind, ctuple[3]] = -rrel.cross(dndln)
             self._unsig[mach] = unsig
         return self._unsig[mach]
 
-    def unmu(self, mach: float = 0.0) -> Vector:
-        if self._unmu is None:
-            self._unmu = {}
-        if mach not in self._unmu:
+    def unmud(self, mach: float = 0.0) -> Vector:
+        if self._unmud is None:
+            self._unmud = {}
+        if mach not in self._unmud:
             self.solve_dirichlet_system(mach = mach)
             # self.solve_neumann_system(mach = mach)
-        return self._unmu[mach]
+        return self._unmud[mach]
 
-    def unphi(self, mach: float = 0.0) -> Vector:
-        if self._unphi is None:
-            self._unphi = {}
-        if mach not in self._unphi:
+    def unmuw(self, mach: float = 0.0) -> Vector:
+        if self._unmuw is None:
+            self._unmuw = {}
+        if mach not in self._unmuw:
             self.solve_dirichlet_system(mach = mach)
             # self.solve_neumann_system(mach = mach)
-        return self._unphi[mach]
+        return self._unmuw[mach]
 
-    def unnvg(self, mach: float = 0.0) -> Vector:
-        if self._unphi is None:
-            self._unphi = {}
-        if mach not in self._unnvg:
-            self.solve_dirichlet_system(mach = mach)
-            # self.solve_neumann_system(mach = mach)
-        return self._unnvg[mach]
+    # def unphi(self, mach: float = 0.0) -> Vector:
+    #     if self._unphi is None:
+    #         self._unphi = {}
+    #     if mach not in self._unphi:
+    #         self.solve_dirichlet_system(mach = mach)
+    #         # self.solve_neumann_system(mach = mach)
+    #     return self._unphi[mach]
+
+    # def unnvg(self, mach: float = 0.0) -> Vector:
+    #     if self._unphi is None:
+    #         self._unphi = {}
+    #     if mach not in self._unnvg:
+    #         self.solve_dirichlet_system(mach = mach)
+    #         # self.solve_neumann_system(mach = mach)
+    #     return self._unnvg[mach]
 
     def assemble_panels_phi(self, *, mach: float = 0.0) -> None:
-        if self._apd is None:
-            self._apd = {}
-        if self._aps is None:
-            self._aps = {}
 
         betm = betm_from_mach(mach)
 
-        from .. import USE_CUPY
+        if self._aphdd is None:
+            self._aphdd = {}
+        if self._aphsd is None:
+            self._aphsd = {}
 
-        if USE_CUPY:
-            from ..tools.cupy import cupy_ctdsp as ctdsp
-        else:
-            from ..tools.numpy import numpy_ctdsp as ctdsp
+        aphdd = zeros((self.num_dpanels, self.num_dpanels))
+        aphsd = zeros((self.num_dpanels, self.num_dpanels))
 
-        pnts = self.pnts.reshape((-1, 1))
+        for panel in self.dpanels.values():
+            aphdp, aphsp = panel.constant_doublet_source_phi(self.points, betx = betm)
+            aphdd[:, panel.ind] = aphdp
+            aphsd[:, panel.ind] = aphsp
 
-        apdc = zeros((self.numpnl, self.numpnl))
-        apsc = zeros((self.numpnl, self.numpnl))
+        self._aphdd[mach] = aphdd
+        self._aphsd[mach] = aphsd
 
-        for pnl in self.pnls.values():
-            if pnl.num == 3:
-                grda = pnl.grds[0]
-                grdb = pnl.grds[1]
-                grdc = pnl.grds[2]
-            else:
-                grda = Vector.zeros((1, pnl.num))
-                grdb = Vector.zeros((1, pnl.num))
-                grdc = Vector.zeros((1, pnl.num))
-                for i in range(-1, pnl.num-1):
-                    grda[0, i] = pnl.grds[i-1]
-                    grdb[0, i] = pnl.grds[i]
-                    grdc[0, i] = pnl.pnto
-            apdcp, apscp = ctdsp(pnts, grda, grdb, grdc,
-                                 betx=betm, cond=-1.0)
-            apdc[:, pnl.ind] += apdcp.sum(axis=1)
-            apsc[:, pnl.ind] += apscp.sum(axis=1)
+        if self._aphdw is None:
+            self._aphdw = {}
 
-        # apdc, apsc = ctdsp(pnts, self.tgrida, self.tgridb, self.tgridc,
-        #                    betx=betm, cond=-1.0)
+        aphdw = zeros((self.num_dpanels, self.num_wpanels))
 
-        # apdc = add.reduceat(apdc, self.triarr, axis=1)
-        # apsc = add.reduceat(apsc, self.triarr, axis=1)
+        for panel in self.wpanels.values():
+            aphdp = panel.constant_doublet_phi(self.points, betx = betm)
+            aphdw[:, panel.ind] += aphdp
 
-        self._apd[mach] = apdc
-        self._aps[mach] = apsc
+        self._aphdw[mach] = aphdw
 
-    def assemble_panels_vel(self, *, mach: float = 0.0) -> None:
-        if self._apd is None:
-            self._apd = {}
-        if self._aps is None:
-            self._aps = {}
-        if self._avd is None:
-            self._avd = {}
-        if self._avs is None:
-            self._avs = {}
+    def ainv(self, mach: float = 0.0) -> 'NDArray':
+        if self._ainv is None:
+            self._ainv = {}
+        if mach not in self._ainv:
+            self._ainv[mach] = inv(self.aphdd(mach))
+        return self._ainv[mach]
 
-        betm = betm_from_mach(mach)
+    def bmat(self, mach: float = 0.0) -> 'NDArray':
+        return self.aphdw(mach)
 
-        from .. import USE_CUPY
+    @property
+    def cmat(self) -> 'NDArray':
+        if self._cmat is None:
+            self._cmat = zeros((self.num_wpanels, self.num_dpanels))
+            for wpanel in self.wpanels.values():
+                adjpanels = wpanel.adjpanels
+                dpanel = adjpanels[0]
+                self._cmat[wpanel.ind, dpanel.ind] = -1.0
+                if len(adjpanels) == 2:
+                    dpanel = adjpanels[1]
+                    self._cmat[wpanel.ind, dpanel.ind] = 1.0
+        return self._cmat
 
-        if USE_CUPY:
-            from ..tools.cupy import cupy_ctdsv as ctdsv
-        else:
-            from ..tools.numpy import numpy_ctdsv as ctdsv
+    # def assemble_panels_vel(self, *, mach: float = 0.0) -> None:
+    #     if self._apd is None:
+    #         self._apd = {}
+    #     if self._aps is None:
+    #         self._aps = {}
+    #     if self._avd is None:
+    #         self._avd = {}
+    #     if self._avs is None:
+    #         self._avs = {}
 
-        pnts = self.pnts.reshape((-1, 1))
+    #     betm = betm_from_mach(mach)
 
-        avdc = Vector.zeros((1, self.numpnl))
-        avsc = Vector.zeros((1, self.numpnl))
+    #     from .. import USE_CUPY
 
-        for pnl in self.pnls.values():
-            if pnl.num == 3:
-                grda = pnl.grds[0]
-                grdb = pnl.grds[1]
-                grdc = pnl.grds[2]
-            else:
-                grda = Vector.zeros((1, pnl.num))
-                grdb = Vector.zeros((1, pnl.num))
-                grdc = Vector.zeros((1, pnl.num))
-                for i in range(-1, pnl.num-1):
-                    grda[i+1] = pnl.grds[i]
-                    grdb[i+1] = pnl.grds[i+1]
-                    grdc[i+1] = pnl.pnto
-            avdcp, avscp = ctdsv(pnts, grda, grdb, grdc,
-                                 betx=betm, cond=1.0)
-            avdc[:, pnl.ind] += avdcp.sum(axis=1)
-            avsc[:, pnl.ind] += avscp.sum(axis=1)
+    #     if USE_CUPY:
+    #         from ..tools.cupy import cupy_ctdsv as ctdsv
+    #     else:
+    #         from ..tools.numpy import numpy_ctdsv as ctdsv
 
-        # avdc, avsc = ctdsv(pnts, self.tgrida, self.tgridb, self.tgridc,
-        #                    betx=betm, cond=1.0)
+    #     pnts = self.pnts.reshape((-1, 1))
 
-        # # apdc = add.reduceat(apdc, self.triarr, axis=1)
-        # avdc = Vector(add.reduceat(avdc.x, self.triarr, axis=1),
-        #               add.reduceat(avdc.y, self.triarr, axis=1),
-        #               add.reduceat(avdc.z, self.triarr, axis=1))
-        # # apsc = add.reduceat(apsc, self.triarr, axis=1)
-        # avsc = Vector(add.reduceat(avsc.x, self.triarr, axis=1),
-        #               add.reduceat(avsc.y, self.triarr, axis=1),
-        #               add.reduceat(avsc.z, self.triarr, axis=1))
+    #     avdc = Vector.zeros((1, self.numpnl))
+    #     avsc = Vector.zeros((1, self.numpnl))
 
-        self._avd[mach] = avdc
-        self._avs[mach] = avsc
+    #     for pnl in self.pnls.values():
+    #         if pnl.num == 3:
+    #             grda = pnl.grds[0]
+    #             grdb = pnl.grds[1]
+    #             grdc = pnl.grds[2]
+    #         else:
+    #             grda = Vector.zeros((1, pnl.num))
+    #             grdb = Vector.zeros((1, pnl.num))
+    #             grdc = Vector.zeros((1, pnl.num))
+    #             for i in range(-1, pnl.num-1):
+    #                 grda[i+1] = pnl.grds[i]
+    #                 grdb[i+1] = pnl.grds[i+1]
+    #                 grdc[i+1] = pnl.pnto
+    #         avdcp, avscp = ctdsv(pnts, grda, grdb, grdc,
+    #                              betx=betm, cond=1.0)
+    #         avdc[:, pnl.ind] += avdcp.sum(axis=1)
+    #         avsc[:, pnl.ind] += avscp.sum(axis=1)
 
-    def assemble_horseshoes_phi(self, *, mach: float = 0.0) -> None:
-        if self._aph is None:
-            self._aph = {}
+    #     # avdc, avsc = ctdsv(pnts, self.tgrida, self.tgridb, self.tgridc,
+    #     #                    betx=betm, cond=1.0)
 
-        betm = betm_from_mach(mach)
+    #     # # apdc = add.reduceat(apdc, self.triarr, axis=1)
+    #     # avdc = Vector(add.reduceat(avdc.x, self.triarr, axis=1),
+    #     #               add.reduceat(avdc.y, self.triarr, axis=1),
+    #     #               add.reduceat(avdc.z, self.triarr, axis=1))
+    #     # # apsc = add.reduceat(apsc, self.triarr, axis=1)
+    #     # avsc = Vector(add.reduceat(avsc.x, self.triarr, axis=1),
+    #     #               add.reduceat(avsc.y, self.triarr, axis=1),
+    #     #               add.reduceat(avsc.z, self.triarr, axis=1))
 
-        from .. import USE_CUPY
+    #     self._avd[mach] = avdc
+    #     self._avs[mach] = avsc
 
-        if USE_CUPY:
-            from ..tools.cupy import cupy_cwdp as cwdp
-        else:
-            from ..tools.numpy import numpy_cwdp as cwdp
+    # def assemble_horseshoes_phi(self, *, mach: float = 0.0) -> None:
+    #     if self._aph is None:
+    #         self._aph = {}
 
-        pnts = self.pnts.reshape((-1, 1))
+    #     betm = betm_from_mach(mach)
 
-        aphc = cwdp(pnts, self.wgrida, self.wgridb, self.wdirl,
-                    betx=betm)
+    #     from .. import USE_CUPY
 
-        self._aph[mach] = aphc
+    #     if USE_CUPY:
+    #         from ..tools.cupy import cupy_cwdp as cwdp
+    #     else:
+    #         from ..tools.numpy import numpy_cwdp as cwdp
 
-    def assemble_horseshoes_vel(self, *, mach: float = 0.0) -> None:
-        if self._aph is None:
-            self._aph = {}
-        if self._avh is None:
-            self._avh = {}
+    #     pnts = self.pnts.reshape((-1, 1))
 
-        betm = betm_from_mach(mach)
+    #     aphc = cwdp(pnts, self.wgrida, self.wgridb, self.wdirl,
+    #                 betx=betm)
 
-        from .. import USE_CUPY
+    #     self._aph[mach] = aphc
 
-        if USE_CUPY:
-            from ..tools.cupy import cupy_cwdv as cwdv
-        else:
-            from ..tools.numpy import numpy_cwdv as cwdv
+    # def assemble_horseshoes_vel(self, *, mach: float = 0.0) -> None:
+    #     if self._aph is None:
+    #         self._aph = {}
+    #     if self._avh is None:
+    #         self._avh = {}
 
-        pnts = self.pnts.reshape((-1, 1))
+    #     betm = betm_from_mach(mach)
 
-        avhc = cwdv(pnts, self.wgrida, self.wgridb, self.wdirl,
-                    betx=betm)
+    #     from .. import USE_CUPY
 
-        self._avh[mach] = avhc
+    #     if USE_CUPY:
+    #         from ..tools.cupy import cupy_cwdv as cwdv
+    #     else:
+    #         from ..tools.numpy import numpy_cwdv as cwdv
+
+    #     pnts = self.pnts.reshape((-1, 1))
+
+    #     avhc = cwdv(pnts, self.wgrida, self.wgridb, self.wdirl,
+    #                 betx=betm)
+
+    #     self._avh[mach] = avhc
 
     def solve_system(self, *, mach: float = 0.0) -> None:
         self.solve_dirichlet_system(mach = mach)
         # self.solve_neumann_system(mach = mach)
 
     def solve_dirichlet_system(self, mach: float = 0.0) -> None:
-        if self._unmu is None:
-            self._unmu = {}
-        self._unmu[mach] = self.bps(mach).solve(self.apm(mach))
-        if self._unphi is None:
-            self._unphi = {}
-        self._unphi[mach] = self.apm(mach)@self.unmu(mach) - self.bps(mach)
-        if self._unnvg is None:
-            self._unnvg = {}
-        self._unnvg[mach] = Vector.zeros(self._unphi[mach].shape)
 
-    def solve_neumann_system(self, mach: float = 0.0) -> None:
-        if self._unmu is None:
-            self._unmu = {}
-        self._unmu[mach] = self.bnm(mach).solve(self.anm(mach))
-        if self._unnvg is None:
-            self._unnvg = {}
-        self._unnvg[mach] = self.anm(mach)@self.unmu(mach) - self.bnm(mach)
-        if self._unphi is None:
-            self._unphi = {}
-        self._unphi[mach] = Vector.zeros(self._unnvg[mach].shape)
+        if self._unmud is None:
+            self._unmud = {}
+        if self._unmuw is None:
+            self._unmuw = {}
+
+        Ai = self.ainv(mach)
+        Bm = self.bmat(mach)
+        Cm = self.cmat
+        Dm = eye(self.num_wpanels)
+        Em = self.bphs(mach)
+        Fm = zeros((self.num_wpanels, 2 + 4*self.num_controls))
+
+        Km = Cm@Ai
+
+        Gm = Dm - Km@Bm
+        Gi = inv(Gm)
+
+        Lm = Bm@Gi
+
+        Hm = Km@Em - Fm
+        Im = Ai@Em + Ai@Lm@Hm
+        Jm = Gi@Fm - Gi@Km@Em
+
+        self._unmud[mach] = Im
+        self._unmuw[mach] = Jm
+
+        # if self._unphi is None:
+        #     self._unphi = {}
+        # self._unphi[mach] = self.apm(mach)@self.unmu(mach) - self.bps(mach)
+        # if self._unnvg is None:
+        #     self._unnvg = {}
+        # self._unnvg[mach] = Vector.zeros(self._unphi[mach].shape)
+
+    # def solve_neumann_system(self, mach: float = 0.0) -> None:
+    #     if self._unmu is None:
+    #         self._unmu = {}
+    #     self._unmu[mach] = self.bnm(mach).solve(self.anm(mach))
+    #     if self._unnvg is None:
+    #         self._unnvg = {}
+    #     self._unnvg[mach] = self.anm(mach)@self.unmu(mach) - self.bnm(mach)
+    #     if self._unphi is None:
+    #         self._unphi = {}
+    #     self._unphi[mach] = Vector.zeros(self._unnvg[mach].shape)
 
     def plot_twist_distribution(self, ax: 'Axes'=None, axis: str='b',
                                 surfaces: list['PanelSurface']=None) -> 'Axes':
@@ -934,21 +949,23 @@ class PanelSystem():
         return ax
 
     def mesh(self) -> None:
-        if self.srfcs is not None:
+        if self.surfaces is not None:
             gid, pid = 1, 1
-            for surface in self.srfcs:
+            for surface in self.surfaces:
                 gid = surface.mesh_grids(gid)
                 pid = surface.mesh_panels(pid)
-            self.grds, self.pnls = {}, {}
-            for surface in self.srfcs:
-                for grd in surface.grds:
-                    self.grds[grd.gid] = grd
-                for pnl in surface.pnls:
-                    self.pnls[pnl.pid] = pnl
+            self.grids = {}
+            self.dpanels = {}
+            self.wpanels = {}
+            for surface in self.surfaces:
+                for grid in surface.grids:
+                    self.grids[grid.gid] = grid
+                for panel in surface.dpanels:
+                    self.dpanels[panel.pid] = panel
             ind = 2
-            for srfc in self.srfcs:
-                for sht in srfc.shts:
-                    for control in sht.ctrls:
+            for surface in self.surfaces:
+                for sheet in surface.sheets:
+                    for control in sheet.controls:
                         if control not in self.ctrls:
                             self.ctrls[control] = (ind, ind+1, ind+2, ind+3)
                             ind += 4
@@ -1011,18 +1028,7 @@ class PanelSystem():
             gid = int(gidstr)
             if 'te' not in gd:
                 gd['te'] = False
-            grds[gid] = Grid(gid, gd['x'], gd['y'], gd['z'], gd['te'])
-
-        # grps = {}
-        # if 'groups' in sysdct:
-        #     groupdata = sysdct['groups']
-        #     for grpidstr, grpdata in groupdata.items():
-        #         grpid = int(grpidstr)
-        #         grps[grpid] = grpdata
-        #         if 'exclude' not in grps[grpid]:
-        #             grps[grpid]['exclude'] = False
-        #         if 'noload' not in grps[grpid]:
-        #             grps[grpid]['noload'] = False
+            grds[gid] = Grid(gid, gd['x'], gd['y'], gd['z'])
 
         grps: dict[int, PanelGroup] = {}
         groupdata: dict[int, dict[str, Any]] = sysdct.get('groups', {})

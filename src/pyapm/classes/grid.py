@@ -8,28 +8,19 @@ if TYPE_CHECKING:
 
 class Grid(Vector):
     gid: int = None
-    te: bool = None
     ind: int = None
-    pnls: set['Panel'] = None
+    panels: set['Panel'] = None
 
-    def __init__(self, gid: int, x: float, y: float, z: float, te: bool=False):
+    def __init__(self, gid: int, x: float, y: float, z: float) -> None:
         self.gid = gid
-        self.te = te
         super().__init__(x, y, z)
-        self.pnls = set()
+        self.panels = set()
 
-    def set_index(self, ind: int):
-        self.ind = ind
+    def __repr__(self) -> str:
+        return f'Grid({self.gid}, {self.x}, {self.y}, {self.z})'
 
-    def __str__(self):
-        outstr = '{:}: <{:}, {:}, {:}>'.format(self.gid, self.x, self.y, self.z)
-        if self.te:
-            outstr += ', Trailing Edge: True'
-        return outstr
+    def __str__(self) -> str:
+        return self.__repr__()
 
-    def __format__(self, format_spec):
-        frmstr = '{:}: <{:'+format_spec+'}, {:'+format_spec+'}, {:'+format_spec+'}>'
-        outstr = frmstr.format(self.gid, self.x, self.y, self.z)
-        if self.te:
-            outstr += ', Trailing Edge: True'
-        return outstr
+    def __format__(self, frm: str) -> str:
+        return f'Grid({self.gid:d}, {self.x:{frm}}, {self.y:{frm}}, {self.z:{frm}})'

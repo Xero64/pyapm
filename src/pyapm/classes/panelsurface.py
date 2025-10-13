@@ -26,157 +26,151 @@ class PanelSurface():
     point: Vector = None
     twist: float = None
     mirror: bool = None
-    scts: list[PanelSection] = None
-    fncs: dict[str, 'SurfaceFunction'] = None
+    sections: list[PanelSection] = None
+    functions: dict[str, 'SurfaceFunction'] = None
     close: bool = None
     cnum: int = None
     cspc: str = None
     twist: float = None
-    _shts: list[PanelSheet] = None
-    _strps: list[PanelStrip] = None
-    _prfs: list[PanelProfile] = None
+    _sheets: list[PanelSheet] = None
+    _strips: list[PanelStrip] = None
+    _profiles: list[PanelProfile] = None
     _area: float = None
-    grds: list[Grid] = None
-    pnls: list[Panel] = None
+    grids: list[Grid] = None
+    dpanels: list[Panel] = None
+    wpanels: list[Panel] = None
 
     def __init__(self, name: str, point: Vector, twist: float, mirror: bool,
-                 scts: list[PanelSection], fncs: list['SurfaceFunction'], close: bool):
+                 sections: list[PanelSection], functions: list['SurfaceFunction'], close: bool):
         self.name = name
         self.point = point
         self.twist = twist
-        self.scts = scts
+        self.sections = sections
         self.mirror = mirror
-        self.fncs = fncs
+        self.functions = functions
         self.close = close
         self.update()
 
     def update(self):
         bval = 0.0
-        for i in range(len(self.scts)):
-            self.scts[i].bval = bval
-            self.scts[i].bpos = bval
-            if i < len(self.scts)-1:
-                delx = self.scts[i+1].point.x - self.scts[i].point.x
-                dely = self.scts[i+1].point.y - self.scts[i].point.y
-                delz = self.scts[i+1].point.z - self.scts[i].point.z
+        for i in range(len(self.sections)):
+            self.sections[i].bval = bval
+            self.sections[i].bpos = bval
+            if i < len(self.sections) - 1:
+                delx = self.sections[i+1].point.x - self.sections[i].point.x
+                dely = self.sections[i+1].point.y - self.sections[i].point.y
+                delz = self.sections[i+1].point.z - self.sections[i].point.z
                 bval += sqrt(delx**2 + dely**2 + delz**2)
-        # for fnc in self.fncs.values():
-        #     fnc.set_spline(bval)
-        #     if fnc.var == 'twist':
-        #         for sct in self.scts:
-        #             sct.twist = fnc.interpolate(sct.bval)
-        #     if fnc.var == 'chord':
-        #         for sct in self.scts:
-        #             sct.chord = fnc.interpolate(sct.bval)
-        #     if fnc.var == 'tilt':
-        #         for sct in self.scts:
-        #             sct.set_tilt(fnc.interpolate(sct.bval))
         if self.mirror:
-            ymir = self.scts[0].point.y
-            scts = [sct.mirror_section_in_y(ymir=ymir) for sct in self.scts]
-            scts.reverse()
-            self.scts = scts[:-1] + self.scts
+            ymir = self.sections[0].point.y
+            sections = [sct.mirror_section_in_y(ymir=ymir) for sct in self.sections]
+            sections.reverse()
+            self.sections = sections[:-1] + self.sections
 
     def set_chord_spacing(self, cnum: int):
         self.cnum = cnum
-        for sct in self.scts:
-            sct.set_cnum(self.cnum)
+        for section in self.sections:
+            section.set_cnum(self.cnum)
 
     @property
-    def shts(self):
-        if self._shts is None:
-            self._shts = []
-            for i in range(len(self.scts)-1):
-                self._shts.append(PanelSheet(self.scts[i], self.scts[i+1]))
-                self._shts[i].fncs = self.fncs
-        return self._shts
+    def sheets(self):
+        if self._sheets is None:
+            self._sheets = []
+            for i in range(len(self.sections) - 1):
+                self._sheets.append(PanelSheet(self.sections[i], self.sections[i+1]))
+                self._sheets[i].functions = self.functions
+        return self._sheets
 
     @property
-    def strps(self):
-        if self._strps is None:
-            self._strps = []
-            for sht in self.shts:
-                self._strps += sht.strps
-        return self._strps
+    def strips(self):
+        if self._strips is None:
+            self._strips = []
+            for sheet in self.sheets:
+                self._strips += sheet.strips
+        return self._strips
 
     @property
-    def prfs(self):
-        if self._prfs is None:
-            self._prfs = []
-            for sht in self.shts:
-                sct1 = sht.sct1
-                sct2 = sht.sct2
-                self._prfs.append(sct1)
-                self._prfs += sht.prfs
-            self._prfs.append(sct2)
-        return self._prfs
+    def profiles(self):
+        if self._profiles is None:
+            self._profiles = []
+            for sheet in self.sheets:
+                sct1 = sheet.sct1
+                sct2 = sheet.sct2
+                self._profiles.append(sct1)
+                self._profiles += sheet.profiles
+            self._profiles.append(sct2)
+        return self._profiles
 
     @property
-    def strpb(self) -> list[float]:
-        return [strp.bpos for strp in self.strps]
+    def strips_b(self) -> list[float]:
+        return [strip.bpos for strip in self.strips]
 
     @property
-    def strpy(self) -> list[float]:
-        return [strp.ypos for strp in self.strps]
+    def strips_y(self) -> list[float]:
+        return [strip.ypos for strip in self.strips]
 
     @property
-    def strpz(self) -> list[float]:
-        return [strp.zpos for strp in self.strps]
+    def strips_z(self) -> list[float]:
+        return [strip.zpos for strip in self.strips]
 
     @property
     def prfb(self) -> list[float]:
-        return [prf.bpos for prf in self.prfs]
+        return [prf.bpos for prf in self.profiles]
 
     @property
     def prfy(self) -> list[float]:
-        return [prf.point.y for prf in self.prfs]
+        return [prf.point.y for prf in self.profiles]
 
     @property
     def prfz(self) -> list[float]:
-        return [prf.point.z for prf in self.prfs]
+        return [prf.point.z for prf in self.profiles]
 
     @property
     def area(self) -> float:
         if self._area is None:
             self._area = 0.0
-            for sht in self.shts:
-                self._area += sht.area
+            for sheet in self.sheets:
+                self._area += sheet.area
         return self._area
 
     def mesh_grids(self, gid: int):
-        self.grds = []
-        for sht in self.shts:
-            sct1 = sht.sct1
-            sct2 = sht.sct2
-            gid = sct1.mesh_grids(gid)
-            self.grds += sct1.grds
-            gid = sht.mesh_grids(gid)
-            self.grds += sht.grds
-        gid = sct2.mesh_grids(gid)
-        self.grds += sct2.grds
+        self.grids = []
+        for sheet in self.sheets:
+            section_1 = sheet.section_1
+            section_2 = sheet.section_2
+            gid = section_1.mesh_grids(gid)
+            self.grids += section_1.grids
+            gid = sheet.mesh_grids(gid)
+            self.grids += sheet.grids
+        gid = section_2.mesh_grids(gid)
+        self.grids += section_2.grids
         return gid
 
     def mesh_panels(self, pid: int):
-        self.pnls = []
-        for sht in self.shts:
-            pid = sht.mesh_panels(pid)
-            for pnl in sht.pnls:
-                pnl.srfc = self
-                self.pnls.append(pnl)
-            sht.set_control_panels()
+        self.dpanels = []
+        self.wpanels = []
+        for sheet in self.sheets:
+            pid = sheet.mesh_panels(pid)
+            for panel in sheet.dpanels:
+                panel.surface = self
+                self.dpanels.append(panel)
+            sheet.set_control_panels()
+            for panel in sheet.wpanels:
+                panel.surface = self
+                self.wpanels.append(panel)
         if self.close:
-            for sct in self.scts:
+            for sct in self.sections:
                 pid = sct.mesh_panels(pid)
-                for pnl in sct.pnls:
-                    pnl.srfc = self
-                    self.pnls.append(pnl)
+                for panel in sct.dpanels:
+                    panel.surface = self
+                    self.dpanels.append(panel)
         return pid
 
     @property
     def pinds(self):
         pinds = []
-        for pnl in self.pnls:
-            pinds.append(pnl.ind)
+        for panel in self.panels:
+            pinds.append(panel.ind)
         return pinds
 
     @classmethod
@@ -199,27 +193,27 @@ class PanelSurface():
             if var not in defaults:
                 defaults[var] = 0.0
         # Read Section Variables
-        sects: list[PanelSection] = []
+        sections: list[PanelSection] = []
         for sectdata in surfdata['sections']:
-            sect = PanelSection.from_dict(sectdata, defaults=defaults)
-            sects.append(sect)
-            if sect.airfoil is not None:
-                sect.airfoil.update(cnum)
+            section = PanelSection.from_dict(sectdata, defaults=defaults)
+            sections.append(section)
+            if section.airfoil is not None:
+                section.airfoil.update(cnum)
         # Linear Interpolate Missing Variables
         x, y, z = [], [], []
         c, a, af = [], [], []
         cmb, xoc, zoc = [], [], []
         b = []
-        for sect in sects:
-            x.append(sect.point.x)
-            y.append(sect.point.y)
-            z.append(sect.point.z)
-            c.append(sect.chord)
-            a.append(sect.twist)
-            af.append(sect.airfoil)
-            b.append(sect.bpos)
-            xoc.append(sect.xoc)
-            zoc.append(sect.zoc)
+        for section in sections:
+            x.append(section.point.x)
+            y.append(section.point.y)
+            z.append(section.point.z)
+            c.append(section.chord)
+            a.append(section.twist)
+            af.append(section.airfoil)
+            b.append(section.bpos)
+            xoc.append(section.xoc)
+            zoc.append(section.zoc)
         # Check for None values in the first and last sections
         if y[0] is None or z[0] is None:
             raise ValueError('Need at least ypos or zpos specified in the first section.')
@@ -276,17 +270,17 @@ class PanelSurface():
             print(f'{cmb = }')
             print(f'{xoc = }')
             print(f'{zoc = }')
-        for i, sect in enumerate(sects):
-            sect.point.x = x[i]
-            sect.point.y = y[i]
-            sect.point.z = z[i]
-            sect.chord = c[i]
-            sect.twist = a[i]
-            sect.xoc = xoc[i]
-            sect.zoc = zoc[i]
-            sect.airfoil = af[i]
-            sect.bpos = b[i]
-            # sect.bval = abs(b[i])
+        for i, section in enumerate(sections):
+            section.point.x = x[i]
+            section.point.y = y[i]
+            section.point.z = z[i]
+            section.chord = c[i]
+            section.twist = a[i]
+            section.xoc = xoc[i]
+            section.zoc = zoc[i]
+            section.airfoil = af[i]
+            section.bpos = b[i]
+            # section.bval = abs(b[i])
         # Entire Surface Position
         xpos = surfdata.get('xpos', 0.0)
         ypos = surfdata.get('ypos', 0.0)
@@ -294,30 +288,30 @@ class PanelSurface():
         point = Vector(xpos, ypos, zpos)
         twist = surfdata.get('twist', 0.0)
         ruled = surfdata.get('ruled', False)
-        for sect in sects:
-            sect.offset_position(xpos, ypos, zpos)
-            sect.offset_twist(twist)
-            sect.ruled = ruled
+        for section in sections:
+            section.offset_position(xpos, ypos, zpos)
+            section.offset_twist(twist)
+            section.ruled = ruled
         close = True
         if 'close' in surfdata:
             close = surfdata['close']
-        surf = cls(name, point, twist, mirror, sects, funcs, close)
+        surf = cls(name, point, twist, mirror, sections, funcs, close)
         surf.set_chord_spacing(cnum)
         # Set the span for the surface functions
-        bpos = [sect.bpos for sect in surf.scts]
+        bpos = [section.bpos for section in surf.sections]
         bmax = max(bpos)
         bmin = min(bpos)
         brng = bmax - bmin
-        for fnc in surf.fncs.values():
+        for fnc in surf.functions.values():
             fnc.bmax = brng/2
-        for sect in surf.scts:
-            sect.bval = abs(sect.bpos)
-            if 'chord' in surf.fncs:
-                sect.chord = surf.fncs['chord'](sect.bval)
-            if 'twist' in surf.fncs:
-                sect.twist = surf.fncs['twist'](sect.bval)
-            if 'tilt' in surf.fncs:
-                sect.tilt = surf.fncs['tilt'](sect.bval)
+        for section in surf.sections:
+            section.bval = abs(section.bpos)
+            if 'chord' in surf.functions:
+                section.chord = surf.functions['chord'](section.bval)
+            if 'twist' in surf.functions:
+                section.twist = surf.functions['twist'](section.bval)
+            if 'tilt' in surf.functions:
+                section.tilt = surf.functions['tilt'](section.bval)
         return surf
 
     def __repr__(self):
