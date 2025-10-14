@@ -11,7 +11,6 @@ from .panelcontrol import PanelControl
 from .panelprofile import PanelProfile
 
 if TYPE_CHECKING:
-    from numpy.typing import NDArray
     from ..classes.panelsheet import PanelSheet
 
 TOL = 1e-12
@@ -196,7 +195,7 @@ class PanelSection(PanelProfile):
 
         # Mesh Trailing Edge Grid
         tevec = (shape[0] + shape[-1])/2
-        self.tegrd = Grid(gid, tevec.x, tevec.y, tevec.z)
+        self.tegrid = Grid(gid, tevec.x, tevec.y, tevec.z)
         gid += 1
 
         return gid

@@ -69,28 +69,28 @@ class PanelPlot:
     def calculate_panel(self) -> None:
         num_faces = 0
         num_verts = 0
-        for panel in self.system.pnls.values():
+        for panel in self.system.dpanels.values():
             num_faces += panel.num
             num_verts += panel.num*3
         self._pinds = zeros(num_verts, dtype=uint32)
         self._vinds = zeros(num_verts, dtype=uint32)
         self._verts = zeros((num_verts, 3), dtype=float32)
         self._faces = zeros((num_faces, 3), dtype=uint32)
-        self._pntos = zeros((self.system.numpnl, 3), dtype=float32)
+        self._pntos = zeros((self.system.num_dpanels, 3), dtype=float32)
 
         k = 0
         l = 0
-        for i, panel in enumerate(self.system.pnls.values()):
+        for i, panel in enumerate(self.system.dpanels.values()):
             self._pntos[i, :] = panel.pnto.to_xyz()
             for j in range(panel.num):
                 self._pinds[k] = panel.ind
-                self._vinds[k] = panel.grds[j - 1].ind + self.system.numpnl
-                self._verts[k, :] = panel.grds[j - 1].to_xyz()
+                self._vinds[k] = panel.grids[j - 1].ind + self.system.num_dpanels
+                self._verts[k, :] = panel.grids[j - 1].to_xyz()
                 self._faces[l, 0] = k
                 k += 1
                 self._pinds[k] = panel.ind
-                self._vinds[k] = panel.grds[j].ind + self.system.numpnl
-                self._verts[k, :] = panel.grds[j].to_xyz()
+                self._vinds[k] = panel.grids[j].ind + self.system.num_dpanels
+                self._verts[k, :] = panel.grids[j].to_xyz()
                 self._faces[l, 1] = k
                 k += 1
                 self._pinds[k] = panel.ind
@@ -133,8 +133,8 @@ class PanelPlot:
     @property
     def grids(self) -> 'NDArray':
         if self._grids is None:
-            self._grids = zeros((self.system.numgrd, 3), dtype=float32)
-            for grid in self.system.grds.values():
+            self._grids = zeros((self.system.num_grids, 3), dtype=float32)
+            for grid in self.system.grids.values():
                 self._grids[grid.ind, :] = grid.to_xyz()
         return self._grids
 
@@ -160,10 +160,10 @@ class PanelPlot:
         values = vecs.stack_xyz().astype(float32)*scale
         return vectors(self.pntos, values, **kwargs)
 
-    def panel_mu_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+    def panel_mud_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
         if self.result is None:
-            raise ValueError('Result must be set to plot mu.')
-        return self.panel_mesh_plot(self.result.mu, **kwargs)
+            raise ValueError('Result must be set to plot mud.')
+        return self.panel_mesh_plot(self.result.mud, **kwargs)
 
     def panel_sigma_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
         if self.result is None:
@@ -182,7 +182,7 @@ class PanelPlot:
     def grid_mu_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
         if self.result is None:
             raise ValueError('Result must be set to plot mu.')
-        values = concatenate((self.result.mu, self.result.mug))
+        values = concatenate((self.result.mud, self.result.mug))
         return self.grid_mesh_plot(values, **kwargs)
 
     def grid_sigma_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':

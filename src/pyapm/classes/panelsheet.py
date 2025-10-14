@@ -96,15 +96,13 @@ class PanelSheet():
             section_1 = self.section_1
             section_2 = self.section_2
             if self.mirror:
-                for control in section_2.controls:
-                    control = section_2.controls[control]
+                for control in section_2.controls.values():
                     newctrl = control.duplicate(mirror=True)
-                    self._controls[control] = newctrl
+                    self._controls[control.name] = newctrl
             else:
-                for control in section_1.controls:
-                    control = section_1.controls[control]
+                for control in section_1.controls.values():
                     newctrl = control.duplicate(mirror=False)
-                    self._controls[control] = newctrl
+                    self._controls[control.name] = newctrl
             for control in self._controls.values():
                 if control.uhvec.return_magnitude() == 0.0:
                     pntal = Vector((control.xhinge - section_1.xoc)*section_1.chord,

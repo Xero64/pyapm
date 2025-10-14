@@ -72,7 +72,7 @@ class PanelSystem():
     _unsig: dict[float, Vector] = None
     _unmud: dict[float, Vector] = None
     _unmuw: dict[float, Vector] = None
-    # _unphi: dict[float, Vector] = None
+    _unphi: dict[float, Vector] = None
     # _unnvg: dict[float, Vector] = None
     # _hsvpnts: Vector = None
     # _hsvnrms: Vector = None
@@ -84,8 +84,8 @@ class PanelSystem():
     # _alh: 'NDArray' = None
     _ar: float = None
     _area: float = None
-    # _strps: list['PanelStrip'] = None
-    # _phind: dict[int, list[int]] = None
+    _strips: list['PanelStrip'] = None
+    _phind: dict[int, list[int]] = None
     # _pnldirx: Vector = None
     # _pnldiry: Vector = None
     # _pnldirz: Vector = None
@@ -106,7 +106,7 @@ class PanelSystem():
         self.cref = cref
         self.sref = sref
         self.rref = rref
-        self.ctrls = {}
+        self.controls = {}
         self.results = {}
 
     def set_mesh(self, grids: dict[int, Grid],
@@ -170,7 +170,7 @@ class PanelSystem():
     @property
     def num_controls(self) -> int:
         if self._num_controls is None:
-            self._num_controls = len(self.ctrls)
+            self._num_controls = len(self.controls)
         return self._num_controls
 
     @property
@@ -346,18 +346,18 @@ class PanelSystem():
     #             self._hsvnrms[i] = hsv.nrm
     #     return self._hsvnrms
 
-    # @property
-    # def strips(self) -> list['PanelStrip']:
-    #     if self._strips is None:
-    #         if self.surfaces is not None:
-    #             self._strips = []
-    #             ind = 0
-    #             for surface in self.surfaces:
-    #                 for strp in surface.strips:
-    #                     strp.ind = ind
-    #                     self._strips.append(strp)
-    #                     ind += 1
-    #     return self._strips
+    @property
+    def strips(self) -> list['PanelStrip']:
+        if self._strips is None:
+            if self.surfaces is not None:
+                self._strips = []
+                ind = 0
+                for surface in self.surfaces:
+                    for strip in surface.strips:
+                        strip.ind = ind
+                        self._strips.append(strip)
+                        ind += 1
+        return self._strips
 
     # def assemble_panels_wash(self) -> None:
 
@@ -560,7 +560,6 @@ class PanelSystem():
                 for surface in self.surfaces:
                     for sheet in surface.sheets:
                         for control in sheet.controls.values():
-                            control = sheet.controls[control.name]
                             ctuple = self.controls[control.name]
                             for panel in control.panels:
                                 ind = panel.ind
@@ -574,7 +573,6 @@ class PanelSystem():
             elif self.groups is not None:
                 for group in self.groups.values():
                     for control in group.controls.values():
-                        control = group.controls[control.name]
                         ctuple = self.controls[control.name]
                         for panel in control.panels:
                             ind = panel.ind
@@ -604,13 +602,13 @@ class PanelSystem():
             # self.solve_neumann_system(mach = mach)
         return self._unmuw[mach]
 
-    # def unphi(self, mach: float = 0.0) -> Vector:
-    #     if self._unphi is None:
-    #         self._unphi = {}
-    #     if mach not in self._unphi:
-    #         self.solve_dirichlet_system(mach = mach)
-    #         # self.solve_neumann_system(mach = mach)
-    #     return self._unphi[mach]
+    def unphi(self, mach: float = 0.0) -> Vector:
+        if self._unphi is None:
+            self._unphi = {}
+        if mach not in self._unphi:
+            self.solve_dirichlet_system(mach = mach)
+            # self.solve_neumann_system(mach = mach)
+        return self._unphi[mach]
 
     # def unnvg(self, mach: float = 0.0) -> Vector:
     #     if self._unphi is None:
@@ -666,11 +664,10 @@ class PanelSystem():
         if self._cmat is None:
             self._cmat = zeros((self.num_wpanels, self.num_dpanels))
             for wpanel in self.wpanels.values():
-                adjpanels = wpanel.adjpanels
-                dpanel = adjpanels[0]
+                dpanel = wpanel.adjpanels[0]
                 self._cmat[wpanel.ind, dpanel.ind] = -1.0
-                if len(adjpanels) == 2:
-                    dpanel = adjpanels[1]
+                if len(wpanel.adjpanels) == 2:
+                    dpanel = wpanel.adjpanels[1]
                     self._cmat[wpanel.ind, dpanel.ind] = 1.0
         return self._cmat
 
@@ -789,7 +786,7 @@ class PanelSystem():
         Cm = self.cmat
         Dm = eye(self.num_wpanels)
         Em = self.bphs(mach)
-        Fm = zeros((self.num_wpanels, 2 + 4*self.num_controls))
+        Fm = Vector.zeros((self.num_wpanels, 2 + 4*self.num_controls))
 
         Km = Cm@Ai
 
@@ -798,19 +795,18 @@ class PanelSystem():
 
         Lm = Bm@Gi
 
-        Hm = Km@Em - Fm
+        Hm = Km@Em# - Fm
         Im = Ai@Em + Ai@Lm@Hm
         Jm = Gi@Fm - Gi@Km@Em
 
         self._unmud[mach] = Im
         self._unmuw[mach] = Jm
 
-        # if self._unphi is None:
-        #     self._unphi = {}
-        # self._unphi[mach] = self.apm(mach)@self.unmu(mach) - self.bps(mach)
-        # if self._unnvg is None:
-        #     self._unnvg = {}
-        # self._unnvg[mach] = Vector.zeros(self._unphi[mach].shape)
+        if self._unphi is None:
+            self._unphi = {}
+        self._unphi[mach] = self.aphdd(mach)@self.unmud(mach)
+        self._unphi[mach] += self.aphdw(mach)@self.unmuw(mach)
+        self._unphi[mach] -= self.bphs(mach)
 
     # def solve_neumann_system(self, mach: float = 0.0) -> None:
     #     if self._unmu is None:
@@ -962,12 +958,14 @@ class PanelSystem():
                     self.grids[grid.gid] = grid
                 for panel in surface.dpanels:
                     self.dpanels[panel.pid] = panel
+                for panel in surface.wpanels:
+                    self.wpanels[panel.pid] = panel
             ind = 2
             for surface in self.surfaces:
                 for sheet in surface.sheets:
-                    for control in sheet.controls:
-                        if control not in self.ctrls:
-                            self.ctrls[control] = (ind, ind+1, ind+2, ind+3)
+                    for control in sheet.controls.values():
+                        if control.name not in self.controls:
+                            self.controls[control.name] = (ind, ind+1, ind+2, ind+3)
                             ind += 4
 
     def trim(self) -> None:
@@ -1061,7 +1059,7 @@ class PanelSystem():
 
         sys = cls(name, bref, cref, sref, rref)
         sys.set_mesh(grds, pnls)
-        sys.grps = grps
+        sys.groups = grps
 
         ind = 2
         ctrldata: dict[str, dict[str, Any]] = sysdct.get('controls', {})
@@ -1244,9 +1242,9 @@ class PanelSystem():
                 result.pbo2v = resdata.get('pbo2v', result.pbo2v)
                 result.qco2v = resdata.get('qco2v', result.qco2v)
                 result.rbo2v = resdata.get('rbo2v', result.rbo2v)
-                for control in self.ctrls:
-                    value = result.ctrls[control]
-                    result.ctrls[control] = resdata.get(control, value)
+                for control in self.controls:
+                    value = result.controls[control]
+                    result.controls[control] = resdata.get(control, value)
 
     def __repr__(self) -> str:
         return '<PanelSystem: {:s}>'.format(self.name)
@@ -1263,20 +1261,20 @@ class PanelSystem():
         table.add_column('zref', '.3f', data=[self.rref.z])
         outstr += table._repr_markdown_()
         table = MDTable()
-        if self.grds is not None:
-            table.add_column('# Grids', 'd', data=[self.numgrd])
+        if self.grids is not None:
+            table.add_column('# Grids', 'd', data=[self.num_grids])
         else:
             table.add_column('# Grids', 'd', data=[0])
-        if self.pnls is not None:
-            table.add_column('# Panels', 'd', data=[self.numpnl])
+        if self.dpanels is not None:
+            table.add_column('# Dirichlet Panels', 'd', data=[self.num_dpanels])
         else:
-            table.add_column('# Panels', 'd', data=[0])
-        if self.hsvs is not None:
-            table.add_column('# Horseshoe Vortices', 'd', data=[self.numhsv])
+            table.add_column('# Dirichlet Panels', 'd', data=[0])
+        if self.wpanels is not None:
+            table.add_column('# Wake Panels', 'd', data=[self.num_wpanels])
         else:
-            table.add_column('# Horseshoe Vortices', 'd', data=[0])
-        if self.ctrls is not None:
-            table.add_column('# Controls', 'd', data=[self.numctrl])
+            table.add_column('# Wake Panels', 'd', data=[0])
+        if self.controls is not None:
+            table.add_column('# Controls', 'd', data=[self.num_controls])
         else:
             table.add_column('# Controls', 'd', data=[0])
         if len(table.columns) > 0:

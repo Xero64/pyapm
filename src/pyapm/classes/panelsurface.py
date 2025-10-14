@@ -102,15 +102,15 @@ class PanelSurface():
         return self._profiles
 
     @property
-    def strips_b(self) -> list[float]:
+    def stripb(self) -> list[float]:
         return [strip.bpos for strip in self.strips]
 
     @property
-    def strips_y(self) -> list[float]:
+    def stripy(self) -> list[float]:
         return [strip.ypos for strip in self.strips]
 
     @property
-    def strips_z(self) -> list[float]:
+    def stripz(self) -> list[float]:
         return [strip.zpos for strip in self.strips]
 
     @property
@@ -169,7 +169,7 @@ class PanelSurface():
     @property
     def pinds(self):
         pinds = []
-        for panel in self.panels:
+        for panel in self.dpanels:
             pinds.append(panel.ind)
         return pinds
 

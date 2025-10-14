@@ -43,9 +43,9 @@ class Edge():
 
     def update(self) -> None:
         panels_a: list['Panel'] = []
-        for panel in self.grida.pnls:
+        for panel in self.grida.panels:
             for i in range(-1, panel.num-1):
-                if panel.grds[i] is self.grida and panel.grds[i + 1] is self.gridb:
+                if panel.grids[i] is self.grida and panel.grids[i + 1] is self.gridb:
                     panels_a.append(panel)
         if len(panels_a) == 1:
             self._panela = panels_a[0]
@@ -55,9 +55,9 @@ class Edge():
         else:
             self._panela = None
         panels_b: list['Panel'] = []
-        for panel in self.gridb.pnls:
+        for panel in self.gridb.panels:
             for i in range(-1, panel.num-1):
-                if panel.grds[i] is self.gridb and panel.grds[i + 1] is self.grida:
+                if panel.grids[i] is self.gridb and panel.grids[i + 1] is self.grida:
                     panels_b.append(panel)
         if len(panels_b) == 1:
             self._panelb = panels_b[0]
@@ -227,14 +227,14 @@ def edges_from_system(system: 'PanelSystem') -> list[Edge]:
         list[Edge]: A list of unique edges in the panel system.
     """
     total_edges = 0
-    for panel in system.pnls.values():
+    for panel in system.dpanels.values():
         total_edges += panel.num
     all_edges = zeros((total_edges, 2), dtype=int)
     k = 0
-    for panel in system.pnls.values():
+    for panel in system.dpanels.values():
         for i in range(-1, panel.num - 1):
-            grida = panel.grds[i]
-            gridb = panel.grds[i + 1]
+            grida = panel.grids[i]
+            gridb = panel.grids[i + 1]
             all_edges[k, 0] = grida.gid
             all_edges[k, 1] = gridb.gid
             k += 1
@@ -242,8 +242,8 @@ def edges_from_system(system: 'PanelSystem') -> list[Edge]:
     unique_edges = unique(sorted_edges, axis=0)
     edges = []
     for edge in unique_edges:
-        grida = system.grds[edge[0]]
-        gridb = system.grds[edge[1]]
+        grida = system.grids[edge[0]]
+        gridb = system.grids[edge[1]]
         edges.append(Edge(grida, gridb))
     return edges
 

@@ -16,7 +16,7 @@ if TYPE_CHECKING:
 
 class PanelResult():
     name: str = None
-    sys: 'System' = None
+    system: 'System' = None
     rho: float = None
     mach: float = None
     speed: float = None
@@ -25,7 +25,7 @@ class PanelResult():
     pbo2v: float = None
     qco2v: float = None
     rbo2v: float = None
-    ctrls: dict[str, float] = None
+    controls: dict[str, float] = None
     rcg: Vector = None
     mass: 'MassObject' = None
     _acs: Coordinate = None
@@ -42,20 +42,22 @@ class PanelResult():
     _qfs: float = None
     _arm: Vector = None
     _unsig: 'NDArray' = None
-    _unmu: 'NDArray' = None
+    _unmud: 'NDArray' = None
+    _unmuw: 'NDArray' = None
     _unphi: 'NDArray' = None
-    _unnvg: 'NDArray' = None
+    # _unnvg: 'NDArray' = None
     _sig: 'NDArray' = None
-    _mu: 'NDArray' = None
+    _mud: 'NDArray' = None
+    _muw: 'NDArray' = None
     _phi: 'NDArray' = None
-    _nvg: 'NDArray' = None
+    # _nvg: 'NDArray' = None
     _mug: 'NDArray' = None
     _sigg: 'NDArray' = None
     _qloc: Vector2D = None
     _qs: 'NDArray' = None
     _cp: 'NDArray' = None
     _nfres: 'NearFieldResult' = None
-    _strpres: 'StripResult' = None
+    _stripres: 'StripResult' = None
     _ffres: 'FarFieldResult' = None
     _stres: 'StabilityResult' = None
     _ctresp: 'NearFieldResult' = None
@@ -63,9 +65,9 @@ class PanelResult():
     _vfsg: Vector = None
     _vfsl: Vector = None
 
-    def __init__(self, name: str, sys: 'System') -> None:
+    def __init__(self, name: str, system: 'System') -> None:
         self.name = name
-        self.sys = sys
+        self.system = system
         self.initialise()
 
     def initialise(self) -> None:
@@ -77,10 +79,10 @@ class PanelResult():
         self.pbo2v = 0.0
         self.qco2v = 0.0
         self.rbo2v = 0.0
-        self.ctrls = {}
-        for control in self.sys.ctrls:
-            self.ctrls[control] = 0.0
-        self.rcg = self.sys.rref
+        self.controls = {}
+        for control in self.system.controls:
+            self.controls[control] = 0.0
+        self.rcg = self.system.rref
 
     def reset(self) -> None:
         for attr in self.__dict__:
@@ -113,7 +115,7 @@ class PanelResult():
 
     def set_controls(self, **kwargs: dict[str, float]) -> None:
         for control in kwargs:
-            self.ctrls[control] = kwargs[control]
+            self.controls[control] = kwargs[control]
         self.reset()
 
     def set_cg(self, rcg: Vector) -> None:
@@ -217,9 +219,9 @@ class PanelResult():
     @property
     def pqr(self) -> Vector:
         if self._pqr is None:
-            p = self.pbo2v*2*self.speed/self.sys.bref
-            q = self.qco2v*2*self.speed/self.sys.cref
-            r = self.rbo2v*2*self.speed/self.sys.bref
+            p = self.pbo2v*2*self.speed/self.system.bref
+            q = self.qco2v*2*self.speed/self.system.cref
+            r = self.rbo2v*2*self.speed/self.system.bref
             self._pqr = Vector(p, q, r)
         return self._pqr
 
@@ -238,21 +240,21 @@ class PanelResult():
     @property
     def arm(self) -> Vector:
         if self._arm is None:
-            self._arm = self.sys.pnts - self.rcg
+            self._arm = self.system.points - self.rcg
         return self._arm
 
     @property
     def vfsg(self) -> Vector:
         if self._vfsg is None:
-            self._vfsg = self.vfs - self.ofs.cross(self.sys.rrel)
+            self._vfsg = self.vfs - self.ofs.cross(self.system.rrel)
         return self._vfsg
 
     @property
     def vfsl(self) -> Vector:
         if self._vfsl is None:
-            self._vfsl = Vector.zeros(self.sys.numpnl)
-            for pnl in self.sys.pnls.values():
-                self._vfsl[pnl.ind] = pnl.crd.vector_to_local(self.vfsg[pnl.ind])
+            self._vfsl = Vector.zeros(self.system.num_dpanels)
+            for panel in self.system.dpanels.values():
+                self._vfsl[panel.ind] = panel.crd.vector_to_local(self.vfsg[panel.ind])
         return self._vfsl
 
     @property
@@ -264,37 +266,43 @@ class PanelResult():
     @property
     def unsig(self) -> Vector:
         if self._unsig is None:
-            self._unsig = self.sys.unsig(self.mach)
+            self._unsig = self.system.unsig(self.mach)
         return self._unsig
 
     @property
-    def unmu(self) -> Vector:
-        if self._unmu is None:
-            self._unmu = self.sys.unmu(self.mach)
-        return self._unmu
+    def unmud(self) -> Vector:
+        if self._unmud is None:
+            self._unmud = self.system.unmud(self.mach)
+        return self._unmud
+
+    @property
+    def unmuw(self) -> Vector:
+        if self._unmuw is None:
+            self._unmuw = self.system.unmuw(self.mach)
+        return self._unmuw
 
     @property
     def unphi(self) -> Vector:
         if self._unphi is None:
-            self._unphi = self.sys.unphi(self.mach)
+            self._unphi = self.system.unphi(self.mach)
         return self._unphi
 
-    @property
-    def unnvg(self) -> Vector:
-        if self._unnvg is None:
-            self._unnvg = self.sys.unnvg(self.mach)
-        return self._unnvg
+    # @property
+    # def unnvg(self) -> Vector:
+    #     if self._unnvg is None:
+    #         self._unnvg = self.system.unnvg(self.mach)
+    #     return self._unnvg
 
     @property
     def sig(self) -> 'NDArray':
         if self._sig is None:
             self._sig = self.unsig[:, 0].dot(self.vfs)
             self._sig += self.unsig[:, 1].dot(self.ofs)
-            for control in self.ctrls:
-                if control in self.sys.ctrls:
-                    ctrl = self.ctrls[control]
+            for control in self.controls:
+                if control in self.system.controls:
+                    ctrl = self.controls[control]
                     ctrlrad = radians(ctrl)
-                    index = self.sys.ctrls[control]
+                    index = self.system.controls[control]
                     if ctrl >= 0.0:
                         indv = index[0]
                         indo = index[1]
@@ -306,7 +314,7 @@ class PanelResult():
         return self._sig
 
     def calc_sigg(self, sig: 'NDArray') -> 'NDArray':
-        return self.sys.edges_array @ sig
+        return self.system.edges_array @ sig
 
     @property
     def sigg(self) -> 'NDArray':
@@ -315,44 +323,64 @@ class PanelResult():
         return self._sigg
 
     @property
-    def mu(self) -> 'NDArray':
-        if self._mu is None:
-            self._mu = self.unmu[:, 0].dot(self.vfs)
-            self._mu += self.unmu[:, 1].dot(self.ofs)
-            for control in self.ctrls:
-                if control in self.sys.ctrls:
-                    ctrl = self.ctrls[control]
+    def mud(self) -> 'NDArray':
+        if self._mud is None:
+            self._mud = self.unmud[:, 0].dot(self.vfs)
+            self._mud += self.unmud[:, 1].dot(self.ofs)
+            for control in self.controls:
+                if control in self.system.controls:
+                    ctrl = self.controls[control]
                     ctrlrad = radians(ctrl)
-                    index = self.sys.ctrls[control]
+                    index = self.system.controls[control]
                     if ctrl >= 0.0:
                         indv = index[0]
                         indo = index[1]
                     else:
                         indv = index[2]
                         indo = index[3]
-                    self._mu += ctrlrad*(self.unmu[:, indv].dot(self.vfs))
-                    self._mu += ctrlrad*(self.unmu[:, indo].dot(self.ofs))
-        return self._mu
+                    self._mud += ctrlrad*(self.unmud[:, indv].dot(self.vfs))
+                    self._mud += ctrlrad*(self.unmud[:, indo].dot(self.ofs))
+        return self._mud
 
     def calc_mug(self, mu: 'NDArray') -> 'NDArray':
-        return self.sys.edges_array @ mu
+        return self.system.edges_array @ mu
 
     @property
     def mug(self):
         if self._mug is None:
-            self._mug = self.calc_mug(self.mu)
+            self._mug = self.calc_mug(self.mud)
         return self._mug
+
+    @property
+    def muw(self):
+        if self._muw is None:
+            self._muw = self.unmuw[:, 0].dot(self.vfs)
+            self._muw += self.unmuw[:, 1].dot(self.ofs)
+            for control in self.controls:
+                if control in self.system.controls:
+                    ctrl = self.controls[control]
+                    ctrlrad = radians(ctrl)
+                    index = self.system.controls[control]
+                    if ctrl >= 0.0:
+                        indv = index[0]
+                        indo = index[1]
+                    else:
+                        indv = index[2]
+                        indo = index[3]
+                    self._muw += ctrlrad*(self.unmuw[:, indv].dot(self.vfs))
+                    self._muw += ctrlrad*(self.unmuw[:, indo].dot(self.ofs))
+        return self._muw
 
     @property
     def phi(self):
         if self._phi is None:
             self._phi = self.unphi[:, 0].dot(self.vfs)
             self._phi += self.unphi[:, 1].dot(self.ofs)
-            for control in self.ctrls:
-                if control in self.sys.ctrls:
-                    ctrl = self.ctrls[control]
+            for control in self.controls:
+                if control in self.system.controls:
+                    ctrl = self.controls[control]
                     ctrlrad = radians(ctrl)
-                    index = self.sys.ctrls[control]
+                    index = self.system.controls[control]
                     if ctrl >= 0.0:
                         indv = index[0]
                         indo = index[1]
@@ -363,25 +391,25 @@ class PanelResult():
                     self._phi += ctrlrad*(self.unphi[:, indo].dot(self.ofs))
         return self._phi
 
-    @property
-    def nvg(self):
-        if self._nvg is None:
-            self._nvg = self.unnvg[:, 0].dot(self.vfs)
-            self._nvg += self.unnvg[:, 1].dot(self.ofs)
-            for control in self.ctrls:
-                if control in self.sys.ctrls:
-                    ctrl = self.ctrls[control]
-                    ctrlrad = radians(ctrl)
-                    index = self.sys.ctrls[control]
-                    if ctrl >= 0.0:
-                        indv = index[0]
-                        indo = index[1]
-                    else:
-                        indv = index[2]
-                        indo = index[3]
-                    self._nvg += ctrlrad*(self.unnvg[:, indv].dot(self.vfs))
-                    self._nvg += ctrlrad*(self.unnvg[:, indo].dot(self.ofs))
-        return self._nvg
+    # @property
+    # def nvg(self):
+    #     if self._nvg is None:
+    #         self._nvg = self.unnvg[:, 0].dot(self.vfs)
+    #         self._nvg += self.unnvg[:, 1].dot(self.ofs)
+    #         for control in self.controls:
+    #             if control in self.system.controls:
+    #                 ctrl = self.controls[control]
+    #                 ctrlrad = radians(ctrl)
+    #                 index = self.system.controls[control]
+    #                 if ctrl >= 0.0:
+    #                     indv = index[0]
+    #                     indo = index[1]
+    #                 else:
+    #                     indv = index[2]
+    #                     indo = index[3]
+    #                 self._nvg += ctrlrad*(self.unnvg[:, indv].dot(self.vfs))
+    #                 self._nvg += ctrlrad*(self.unnvg[:, indo].dot(self.ofs))
+    #     return self._nvg
 
     # def calc_qloc_old(self, mu: 'NDArray', vfs: Vector | None = None,
     #                   ofs: Vector | None = None) -> Vector2D:
@@ -390,11 +418,11 @@ class PanelResult():
     #         vfsg += vfs
     #     if ofs is not None:
     #         vfsg += self.arm.cross(ofs)
-    #     vl = self.sys.pnldirx.dot(vfsg)
-    #     vt = self.sys.pnldiry.dot(vfsg)
-    #     ql = zeros(self.sys.numpnl)
-    #     qt = zeros(self.sys.numpnl)
-    #     for pnl in self.sys.pnls.values():
+    #     vl = self.system.pnldirx.dot(vfsg)
+    #     vt = self.system.pnldiry.dot(vfsg)
+    #     ql = zeros(self.system.numpnl)
+    #     qt = zeros(self.system.numpnl)
+    #     for pnl in self.system.pnls.values():
     #         ql[pnl.ind], qt[pnl.ind] = pnl.diff_mu_old(mu)
     #     # print(f'{ql = }')
     #     # print(f'{qt = }')
@@ -410,12 +438,12 @@ class PanelResult():
             vfsg += vfs
         if ofs is not None:
             vfsg += self.arm.cross(ofs)
-        vfsl_2d = Vector2D.zeros(self.sys.numpnl)
-        diff_mu = Vector2D.zeros(self.sys.numpnl)
-        for pnl in self.sys.pnls.values():
-            vel_fs = pnl.crd.vector_to_local(vfsg[pnl.ind])
-            vfsl_2d[pnl.ind] = Vector2D.from_obj(vel_fs)
-            diff_mu[pnl.ind] = pnl.diff_mu(mu, mug)
+        vfsl_2d = Vector2D.zeros(self.system.num_dpanels)
+        diff_mu = Vector2D.zeros(self.system.num_dpanels)
+        for panel in self.system.dpanels.values():
+            vel_fs = panel.crd.vector_to_local(vfsg[panel.ind])
+            vfsl_2d[panel.ind] = Vector2D.from_obj(vel_fs)
+            diff_mu[panel.ind] = panel.diff_mu(mu, mug)
         # print(f'{diff_mu.x = }')
         # print(f'{diff_mu.y = }')
         return vfsl_2d - diff_mu
@@ -423,7 +451,7 @@ class PanelResult():
     @property
     def qloc(self) -> Vector2D:
         if self._qloc is None:
-            self._qloc = self.calc_qloc(self.mu, self.mug,
+            self._qloc = self.calc_qloc(self.mud, self.mug,
                                         vfs = self.vfs, ofs = self.ofs)
             # self._qloc = self.calc_qloc_old(self.mu, vfs = self.vfs,
             #                                 ofs = self.ofs)
@@ -448,16 +476,16 @@ class PanelResult():
         return self._nfres
 
     @property
-    def strpres(self) -> 'StripResult':
-        if self._strpres is None:
-            if self.sys.srfcs is not None:
-                self._strpres = StripResult(self.nfres)
-        return self._strpres
+    def stripres(self) -> 'StripResult':
+        if self._stripres is None:
+            if self.system.surfaces is not None:
+                self._stripres = StripResult(self.nfres)
+        return self._stripres
 
     @property
     def ffres(self) -> 'FarFieldResult':
         if self._ffres is None:
-            if self.sys.srfcs is not None:
+            if self.system.surfaces is not None:
                 self._ffres = FarFieldResult(self)
         return self._ffres
 
@@ -468,18 +496,18 @@ class PanelResult():
         return self._stres
 
     def gctrlp_single(self, control: str):
-        indv = self.sys.ctrls[control][0]
-        indo = self.sys.ctrls[control][1]
-        dmu = self.unmu[:, indv].dot(self.vfs) + self.unmu[:, indo].dot(self.ofs)
+        indv = self.system.controls[control][0]
+        indo = self.system.controls[control][1]
+        dmu = self.unmud[:, indv].dot(self.vfs) + self.unmud[:, indo].dot(self.ofs)
         dqloc = self.calc_qloc(dmu)#, vfs=self.vfs, ofs=self.ofs)
         # qloc = self.calc_qloc_old(mu, vfs=self.vfs, ofs=self.ofs)
         vdot = self.qloc.dot(dqloc)
         return (-2.0/self.speed**2)*vdot
 
     def gctrln_single(self, control: str):
-        indv = self.sys.ctrls[control][2]
-        indo = self.sys.ctrls[control][3]
-        dmu = self.unmu[:, indv].dot(self.vfs) + self.unmu[:, indo].dot(self.ofs)
+        indv = self.system.controls[control][2]
+        indo = self.system.controls[control][3]
+        dmu = self.unmud[:, indv].dot(self.vfs) + self.unmud[:, indo].dot(self.ofs)
         dqloc = self.calc_qloc(dmu)#, vfs=self.vfs, ofs=self.ofs)
         # qloc = self.calc_qloc_old(mu, vfs=self.vfs, ofs=self.ofs)
         vdot = self.qloc.dot(dqloc)
@@ -489,7 +517,7 @@ class PanelResult():
     def ctresp(self):
         if self._ctresp is None:
             self._ctresp = {}
-            for control in self.sys.ctrls:
+            for control in self.system.controls:
                 dcp = self.gctrlp_single(control)
                 self._ctresp[control] = NearFieldResult(self, dcp)
         return self._ctresp
@@ -498,7 +526,7 @@ class PanelResult():
     def ctresn(self):
         if self._ctresn is None:
             self._ctresn = {}
-            for control in self.sys.ctrls:
+            for control in self.system.controls:
                 dcp = self.gctrln_single(control)
                 self._ctresn[control] = NearFieldResult(self, dcp)
         return self._ctresn
@@ -506,41 +534,41 @@ class PanelResult():
     def plot_strip_lift_force_distribution(self, ax=None, axis: str='b',
                                            surfaces: list=None, normalise: bool=False,
                                            label: str=None):
-        if self.sys.srfcs is not None:
+        if self.system.surfaces is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
             if surfaces is None:
-                srfcs = self.sys.srfcs
+                surfaces = self.system.surfaces
             else:
-                srfcs = []
-                for srfc in self.sys.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            onesrfc = len(srfcs) == 1
-            for srfc in srfcs:
+                surfaces = []
+                for surface in self.system.surfaces:
+                    if surface.name in surfaces:
+                        surfaces.append(surface)
+            onesurface = len(surfaces) == 1
+            for surface in surfaces:
                 if normalise:
-                    l = [self.strpres.lift[strp.ind]/strp.area/self.qfs for strp in srfc.strps]
+                    l = [self.stripres.lift[strip.ind]/strip.area/self.qfs for strip in surface.strips]
                 else:
-                    l = [self.strpres.lift[strp.ind]/strp.width for strp in srfc.strps]
+                    l = [self.stripres.lift[strip.ind]/strip.width for strip in surface.strips]
                 if label is None:
-                    thislabel = self.name+' for '+srfc.name
+                    thislabel = self.name + ' for ' + surface.name
                 else:
-                    if not onesrfc:
-                        thislabel = label+' for '+srfc.name
+                    if not onesurface:
+                        thislabel = label + ' for ' + surface.name
                     else:
                         thislabel = label
                 if axis == 'b':
-                    b = srfc.strpb
+                    b = surface.stripb
                     if max(b) > min(b):
                         ax.plot(b, l, label=thislabel)
                 elif axis == 'y':
-                    y = srfc.strpy
+                    y = surface.stripy
                     if max(y) > min(y):
                         ax.plot(y, l, label=thislabel)
                 elif axis == 'z':
-                    z = srfc.strpz
+                    z = surface.stripz
                     if max(z) > min(z):
                         ax.plot(l, z, label=thislabel)
             ax.legend()
@@ -549,41 +577,41 @@ class PanelResult():
     def plot_strip_side_force_distribution(self, ax=None, axis: str='b',
                                            surfaces: list=None, normalise: bool=False,
                                            label: str=None):
-        if self.sys.srfcs is not None:
+        if self.system.surfaces is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
             if surfaces is None:
-                srfcs = self.sys.srfcs
+                surfaces = self.system.surfaces
             else:
-                srfcs = []
-                for srfc in self.sys.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            onesrfc = len(srfcs) == 1
-            for srfc in srfcs:
+                surfaces = []
+                for surface in self.system.surfaces:
+                    if surface.name in surfaces:
+                        surfaces.append(surface)
+            onesurface = len(surfaces) == 1
+            for surface in surfaces:
                 if normalise:
-                    f = [self.strpres.side[strp.ind]/strp.area/self.qfs for strp in srfc.strps]
+                    f = [self.stripres.side[strip.ind]/strip.area/self.qfs for strip in surface.strips]
                 else:
-                    f = [self.strpres.side[strp.ind]/strp.width for strp in srfc.strps]
+                    f = [self.stripres.side[strip.ind]/strip.width for strip in surface.strips]
                 if label is None:
-                    thislabel = self.name+' for '+srfc.name
+                    thislabel = self.name + ' for ' + surface.name
                 else:
-                    if not onesrfc:
-                        thislabel = label+' for '+srfc.name
+                    if not onesurface:
+                        thislabel = label + ' for ' + surface.name
                     else:
                         thislabel = label
                 if axis == 'b':
-                    b = srfc.strpb
+                    b = surface.stripb
                     if max(b) > min(b):
                         ax.plot(b, f, label=thislabel)
                 elif axis == 'y':
-                    y = srfc.strpy
+                    y = surface.stripy
                     if max(y) > min(y):
                         ax.plot(y, f, label=thislabel)
                 elif axis == 'z':
-                    z = srfc.strpz
+                    z = surface.stripz
                     if max(z) > min(z):
                         ax.plot(f, z, label=thislabel)
             ax.legend()
@@ -592,41 +620,41 @@ class PanelResult():
     def plot_strip_drag_force_distribution(self, ax=None, axis: str='b',
                                            surfaces: list=None, normalise: bool=False,
                                            label: str=None):
-        if self.sys.srfcs is not None:
+        if self.system.surfaces is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
             if surfaces is None:
-                srfcs = self.sys.srfcs
+                surfaces = self.system.surfaces
             else:
-                srfcs = []
-                for srfc in self.sys.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            onesrfc = len(srfcs) == 1
-            for srfc in srfcs:
+                surfaces = []
+                for surface in self.system.surfaces:
+                    if surface.name in surfaces:
+                        surfaces.append(surface)
+            onesurface = len(surfaces) == 1
+            for surface in surfaces:
                 if normalise:
-                    d = [self.strpres.drag[strp.ind]/strp.area/self.qfs for strp in srfc.strps]
+                    d = [self.stripres.drag[strip.ind]/strip.area/self.qfs for strip in surface.strips]
                 else:
-                    d = [self.strpres.drag[strp.ind]/strp.width for strp in srfc.strps]
+                    d = [self.stripres.drag[strip.ind]/strip.width for strip in surface.strips]
                 if label is None:
-                    thislabel = self.name+' for '+srfc.name
+                    thislabel = self.name + ' for ' + surface.name
                 else:
-                    if not onesrfc:
-                        thislabel = label+' for '+srfc.name
+                    if not onesurface:
+                        thislabel = label + ' for ' + surface.name
                     else:
                         thislabel = label
                 if axis == 'b':
-                    b = srfc.strpb
+                    b = surface.stripb
                     if max(b) > min(b):
                         ax.plot(b, d, label=thislabel)
                 elif axis == 'y':
-                    y = srfc.strpy
+                    y = surface.stripy
                     if max(y) > min(y):
                         ax.plot(y, d, label=thislabel)
                 elif axis == 'z':
-                    z = srfc.strpz
+                    z = surface.stripz
                     if max(z) > min(z):
                         ax.plot(d, z, label=thislabel)
             ax.legend()
@@ -637,41 +665,41 @@ class PanelResult():
     def plot_strip_pitch_moment_distribution(self, ax=None, axis: str='b',
                                              surfaces: list=None, normalise: bool=False,
                                              label: str=None):
-        if self.sys.srfcs is not None:
+        if self.system.surfaces is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
             if surfaces is None:
-                srfcs = self.sys.srfcs
+                surfaces = self.system.surfaces
             else:
-                srfcs = []
-                for srfc in self.sys.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            onesrfc = len(srfcs) == 1
-            for srfc in srfcs:
+                surfaces = []
+                for surface in self.system.surfaces:
+                    if surface.name in surfaces:
+                        surfaces.append(surface)
+            onesurface = len(surfaces) == 1
+            for surface in surfaces:
                 if normalise:
-                    l = [self.strpres.stmom.y[strp.ind]/strp.area/strp.chord/self.qfs for strp in srfc.strps]
+                    l = [self.stripres.stmom.y[strip.ind]/strip.area/strip.chord/self.qfs for strip in surface.strips]
                 else:
-                    l = [self.strpres.stmom.y[strp.ind]/strp.width/strp.chord for strp in srfc.strps]
+                    l = [self.stripres.stmom.y[strip.ind]/strip.width/strip.chord for strip in surface.strips]
                 if label is None:
-                    thislabel = self.name + ' for ' + srfc.name
+                    thislabel = self.name + ' for ' + surface.name
                 else:
-                    if not onesrfc:
-                        thislabel = label + ' for ' + srfc.name
+                    if not onesurface:
+                        thislabel = label + ' for ' + surface.name
                     else:
                         thislabel = label
                 if axis == 'b':
-                    b = srfc.strpb
+                    b = surface.stripb
                     if max(b) > min(b):
                         ax.plot(b, l, label=thislabel)
                 elif axis == 'y':
-                    y = srfc.strpy
+                    y = surface.stripy
                     if max(y) > min(y):
                         ax.plot(y, l, label=thislabel)
                 elif axis == 'z':
-                    z = srfc.strpz
+                    z = surface.stripz
                     if max(z) > min(z):
                         ax.plot(l, z, label=thislabel)
             ax.legend()
@@ -680,41 +708,41 @@ class PanelResult():
     def plot_trefftz_lift_force_distribution(self, ax=None, axis: str='b',
                                              surfaces: list=None, normalise: bool=False,
                                              label: str=None):
-        if self.sys.srfcs is not None:
+        if self.system.surfaces is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
             if surfaces is None:
-                srfcs = self.sys.srfcs
+                surfaces = self.system.surfaces
             else:
-                srfcs = []
-                for srfc in self.sys.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            onesrfc = len(srfcs) == 1
-            for srfc in srfcs:
+                surfaces = []
+                for surface in self.system.surfaces:
+                    if surface.name in surfaces:
+                        surfaces.append(surface)
+            onesurface = len(surfaces) == 1
+            for surface in surfaces:
                 if normalise:
-                    l = [self.ffres.lift[strp.ind]/strp.area/self.qfs for strp in srfc.strps]
+                    l = [self.ffres.lift[strip.ind]/strip.area/self.qfs for strip in surface.strips]
                 else:
-                    l = [self.ffres.lift[strp.ind]/strp.width for strp in srfc.strps]
+                    l = [self.ffres.lift[strip.ind]/strip.width for strip in surface.strips]
                 if label is None:
-                    thislabel = self.name+' for '+srfc.name
+                    thislabel = self.name + ' for ' + surface.name
                 else:
-                    if not onesrfc:
-                        thislabel = label+' for '+srfc.name
+                    if not onesurface:
+                        thislabel = label + ' for ' + surface.name
                     else:
                         thislabel = label
                 if axis == 'b':
-                    b = srfc.strpb
+                    b = surface.stripb
                     if max(b) > min(b):
                         ax.plot(b, l, label=thislabel)
                 elif axis == 'y':
-                    y = srfc.strpy
+                    y = surface.stripy
                     if max(y) > min(y):
                         ax.plot(y, l, label=thislabel)
                 elif axis == 'z':
-                    z = srfc.strpz
+                    z = surface.stripz
                     if max(z) > min(z):
                         ax.plot(l, z, label=thislabel)
             ax.legend()
@@ -723,41 +751,41 @@ class PanelResult():
     def plot_trefftz_side_force_distribution(self, ax=None, axis: str='b',
                                              surfaces: list=None, normalise: bool=False,
                                              label: str=None):
-        if self.sys.srfcs is not None:
+        if self.system.surfaces is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
             if surfaces is None:
-                srfcs = self.sys.srfcs
+                surfaces = self.system.surfaces
             else:
-                srfcs = []
-                for srfc in self.sys.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            onesrfc = len(srfcs) == 1
-            for srfc in srfcs:
+                surfaces = []
+                for surface in self.system.surfaces:
+                    if surface.name in surfaces:
+                        surfaces.append(surface)
+            onesurface = len(surfaces) == 1
+            for surface in surfaces:
                 if normalise:
-                    f = [self.ffres.side[strp.ind]/strp.area/self.qfs for strp in srfc.strps]
+                    f = [self.ffres.side[strip.ind]/strip.area/self.qfs for strip in surface.strips]
                 else:
-                    f = [self.ffres.side[strp.ind]/strp.width for strp in srfc.strps]
+                    f = [self.ffres.side[strip.ind]/strip.width for strip in surface.strips]
                 if label is None:
-                    thislabel = self.name+' for '+srfc.name
+                    thislabel = self.name + ' for ' + surface.name
                 else:
-                    if not onesrfc:
-                        thislabel = label+' for '+srfc.name
+                    if not onesurface:
+                        thislabel = label + ' for ' + surface.name
                     else:
                         thislabel = label
                 if axis == 'b':
-                    b = srfc.strpb
+                    b = surface.stripb
                     if max(b) > min(b):
                         ax.plot(b, f, label=thislabel)
                 elif axis == 'y':
-                    y = srfc.strpy
+                    y = surface.stripy
                     if max(y) > min(y):
                         ax.plot(y, f, label=thislabel)
                 elif axis == 'z':
-                    z = srfc.strpz
+                    z = surface.stripz
                     if max(z) > min(z):
                         ax.plot(f, z, label=thislabel)
             ax.legend()
@@ -766,41 +794,41 @@ class PanelResult():
     def plot_trefftz_drag_force_distribution(self, ax=None, axis: str='b',
                                              surfaces: list=None, normalise: bool=False,
                                              label: str=None):
-        if self.sys.srfcs is not None:
+        if self.system.surfaces is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
             if surfaces is None:
-                srfcs = self.sys.srfcs
+                surfaces = self.system.surfaces
             else:
-                srfcs = []
-                for srfc in self.sys.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            onesrfc = len(srfcs) == 1
-            for srfc in srfcs:
+                surfaces = []
+                for surface in self.system.surfaces:
+                    if surface.name in surfaces:
+                        surfaces.append(surface)
+            onesurface = len(surfaces) == 1
+            for surface in surfaces:
                 if normalise:
-                    d = [self.ffres.drag[strp.ind]/strp.area/self.qfs for strp in srfc.strps]
+                    d = [self.ffres.drag[strip.ind]/strip.area/self.qfs for strip in surface.strips]
                 else:
-                    d = [self.ffres.drag[strp.ind]/strp.width for strp in srfc.strps]
+                    d = [self.ffres.drag[strip.ind]/strip.width for strip in surface.strips]
                 if label is None:
-                    thislabel = self.name+' for '+srfc.name
+                    thislabel = self.name + ' for ' + surface.name
                 else:
-                    if not onesrfc:
-                        thislabel = label+' for '+srfc.name
+                    if not onesurface:
+                        thislabel = label + ' for ' + surface.name
                     else:
                         thislabel = label
                 if axis == 'b':
-                    b = srfc.strpb
+                    b = surface.stripb
                     if max(b) > min(b):
                         ax.plot(b, d, label=thislabel)
                 elif axis == 'y':
-                    y = srfc.strpy
+                    y = surface.stripy
                     if max(y) > min(y):
                         ax.plot(y, d, label=thislabel)
                 elif axis == 'z':
-                    z = srfc.strpz
+                    z = surface.stripz
                     if max(z) > min(z):
                         ax.plot(d, z, label=thislabel)
             ax.legend()
@@ -808,44 +836,44 @@ class PanelResult():
 
     def plot_trefftz_wash_distribution(self, ax=None, axis: str='b',
                                        surfaces: list=None, label: str=None):
-        if self.sys.srfcs is not None:
+        if self.system.surfaces is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
             if surfaces is None:
-                srfcs = self.sys.srfcs
+                surfaces = self.system.surfaces
             else:
-                srfcs = []
-                for srfc in self.sys.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            onesrfc = len(srfcs) == 1
-            for srfc in srfcs:
-                w = [self.ffres.wash[strp.ind] for strp in srfc.strps]
-                # wa = [self.ffres.washa[strp.ind] for strp in srfc.strps]
-                # wb = [self.ffres.washb[strp.ind] for strp in srfc.strps]
+                surfaces = []
+                for surface in self.system.surfaces:
+                    if surface.name in surfaces:
+                        surfaces.append(surface)
+            onesurface = len(surfaces) == 1
+            for surface in surfaces:
+                w = [self.ffres.wash[strip.ind] for strip in surface.strips]
+                # wa = [self.ffres.washa[strip.ind] for strip in surface.strips]
+                # wb = [self.ffres.washb[strip.ind] for strip in surface.strips]
                 if label is None:
-                    thislabel = self.name+' for '+srfc.name
+                    thislabel = self.name + ' for ' + surface.name
                 else:
-                    if not onesrfc:
-                        thislabel = label+' for '+srfc.name
+                    if not onesurface:
+                        thislabel = label + ' for ' + surface.name
                     else:
                         thislabel = label
                 if axis == 'b':
-                    b = srfc.strpb
+                    b = surface.stripb
                     if max(b) > min(b):
                         ax.plot(b, w, label=thislabel)
                         # ax.plot(b, wa, label=thislabel)
                         # ax.plot(b, wb, label=thislabel)
                 elif axis == 'y':
-                    y = srfc.strpy
+                    y = surface.stripy
                     if max(y) > min(y):
                         ax.plot(y, w, label=thislabel)
                         # ax.plot(y, wa, label=thislabel)
                         # ax.plot(y, wb, label=thislabel)
                 elif axis == 'z':
-                    z = srfc.strpz
+                    z = surface.stripz
                     if max(z) > min(z):
                         ax.plot(w, z, label=thislabel)
                         # ax.plot(wa, z, label=thislabel)
@@ -855,44 +883,44 @@ class PanelResult():
 
     def plot_trefftz_circulation_distribution(self, ax=None, axis: str='b',
                                               surfaces: list=None, label: str=None):
-        if self.sys.srfcs is not None:
+        if self.system.surfaces is not None:
             if ax is None:
                 fig = figure(figsize=(12, 8))
                 ax = fig.gca()
                 ax.grid(True)
             if surfaces is None:
-                srfcs = self.sys.srfcs
+                surfaces = self.system.surfaces
             else:
-                srfcs = []
-                for srfc in self.sys.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            onesrfc = len(srfcs) == 1
-            for srfc in srfcs:
-                c = [self.ffres.circ[strp.ind] for strp in srfc.strps]
-                # ma = [self.ffres.mua[strp.ind] for strp in srfc.strps]
-                # mb = [self.ffres.mub[strp.ind] for strp in srfc.strps]
+                surfaces = []
+                for surface in self.system.surfaces:
+                    if surface.name in surfaces:
+                        surfaces.append(surface)
+            onesurface = len(surfaces) == 1
+            for surface in surfaces:
+                c = [self.ffres.circ[strip.ind] for strip in surface.strips]
+                # ma = [self.ffres.mua[strip.ind] for strip in surface.strips]
+                # mb = [self.ffres.mub[strip.ind] for strip in surface.strips]
                 if label is None:
-                    thislabel = self.name+' for '+srfc.name
+                    thislabel = self.name + ' for ' + surface.name
                 else:
-                    if not onesrfc:
-                        thislabel = label+' for '+srfc.name
+                    if not onesurface:
+                        thislabel = label + ' for ' + surface.name
                     else:
                         thislabel = label
                 if axis == 'b':
-                    b = srfc.strpb
+                    b = surface.stripb
                     if max(b) > min(b):
                         ax.plot(b, c, label=thislabel)
                         # ax.plot(b, ma, label=thislabel)
                         # ax.plot(b, mb, label=thislabel)
                 elif axis == 'y':
-                    y = srfc.strpy
+                    y = surface.stripy
                     if max(y) > min(y):
                         ax.plot(y, c, label=thislabel)
                         # ax.plot(y, ma, label=thislabel)
                         # ax.plot(y, mb, label=thislabel)
                 elif axis == 'z':
-                    z = srfc.strpz
+                    z = surface.stripz
                     if max(z) > min(z):
                         ax.plot(c, z, label=thislabel)
                         # ax.plot(ma, z, label=thislabel)
@@ -903,11 +931,11 @@ class PanelResult():
     def to_result(self, name: str=''):
         if name == '':
             name = self.name
-        res = PanelResult(name, self.sys)
+        res = PanelResult(name, self.system)
         res.set_density(rho=self.rho)
         res.set_state(speed=self.speed, alpha=self.alpha, beta=self.beta,
                       pbo2v=self.pbo2v, qco2v=self.qco2v, rbo2v=self.rbo2v)
-        res.set_controls(**self.ctrls)
+        res.set_controls(**self.controls)
         res.set_cg(self.rcg)
         return res
 
@@ -925,7 +953,7 @@ class PanelResult():
         report = MDReport()
         heading = MDHeading('Control Derivatives', 2)
         report.add_object(heading)
-        for control in self.ctrls:
+        for control in self.controls:
             letter = control[0]
             heading = MDHeading(f'{control.capitalize()} Derivatives', 3)
             report.add_object(heading)
@@ -935,10 +963,10 @@ class PanelResult():
             table.add_column(f'Cld{letter:s}', sfrm)
             table.add_column(f'Cmd{letter:s}', sfrm)
             table.add_column(f'Cnd{letter:s}', sfrm)
-            if self.ctrls[control] >= 0.0:
+            if self.controls[control] >= 0.0:
                 ctresp = self.ctresp[control]
                 table.add_row([ctresp.CL, ctresp.CY, ctresp.Cl, ctresp.Cm, ctresp.Cn])
-            if self.ctrls[control] <= 0.0:
+            if self.controls[control] <= 0.0:
                 ctresp = self.ctresp[control]
                 table.add_row([ctresp.CL, ctresp.CY, ctresp.Cl, ctresp.Cm, ctresp.Cn])
             report.add_object(table)
@@ -946,7 +974,7 @@ class PanelResult():
 
     @property
     def surface_loads(self):
-        if self.sys.srfcs is not None:
+        if self.system.surfaces is not None:
             report = MDReport()
             heading = MDHeading('Surface Loads', 2)
             report.add_object(heading)
@@ -975,12 +1003,12 @@ class PanelResult():
             Ditot = 0.0
             Ytot = 0.0
             Ltot = 0.0
-            for srfc in self.sys.srfcs:
-                area = srfc.area
-                ind = srfc.pinds
+            for surface in self.system.surfaces:
+                area = surface.area
+                ind = surface.pinds
                 frc = self.nfres.nffrc[ind].sum()
                 mom = self.nfres.nfmom[ind].sum()
-                table1.add_row([srfc.name, frc.x, frc.y, frc.z, mom.x, mom.y, mom.z])
+                table1.add_row([surface.name, frc.x, frc.y, frc.z, mom.x, mom.y, mom.z])
                 if area > 0.0:
                     Di = frc.dot(self.acs.dirx)
                     Y = frc.dot(self.acs.diry)
@@ -988,7 +1016,7 @@ class PanelResult():
                     CDi = Di/self.qfs/area
                     CY = Y/self.qfs/area
                     CL = L/self.qfs/area
-                    table2.add_row([srfc.name, area, Di, Y, L, CDi, CY, CL])
+                    table2.add_row([surface.name, area, Di, Y, L, CDi, CY, CL])
                     Ditot += Di
                     Ytot += Y
                     Ltot += L
@@ -1001,7 +1029,7 @@ class PanelResult():
             table.add_column('Speed', '.3f', data=[self.speed])
             table.add_column('Dynamic Pressure', '.1f', data=[self.qfs])
             report.add_object(table)
-            table2.add_row(['Total', self.sys.sref, Ditot, Ytot, Ltot,
+            table2.add_row(['Total', self.system.sref, Ditot, Ytot, Ltot,
                             self.nfres.CDi, self.nfres.CY, self.nfres.CL])
             report.add_object(table2)
             return report
@@ -1010,7 +1038,7 @@ class PanelResult():
         from . import cfrm, dfrm, efrm
 
         report = MDReport()
-        heading = MDHeading(f'Panel Result {self.name} for {self.sys.name}', 1)
+        heading = MDHeading(f'Panel Result {self.name} for {self.system.name}', 1)
         report.add_object(heading)
         table = MDTable()
         table.add_column('Alpha (deg)', cfrm, data=[self.alpha])
@@ -1029,14 +1057,14 @@ class PanelResult():
         table.add_column('ycg', '.5f', data=[self.rcg.y])
         table.add_column('zcg', '.5f', data=[self.rcg.z])
         report.add_object(table)
-        if len(self.ctrls) > 0:
+        if len(self.controls) > 0:
             table = MDTable()
-            for control in self.ctrls:
-                ctrl = self.ctrls[control]
+            for control in self.controls:
+                ctrl = self.controls[control]
                 control = control.capitalize()
                 table.add_column(f'{control} (deg)', cfrm, data=[ctrl])
             report.add_object(table)
-        # if self.sys.cdo != 0.0:
+        # if self.system.cdo != 0.0:
         #     table = MDTable()
         #     table.add_column('CDo', dfrm, data=[self.pdres.CDo])
         #     table.add_column('CYo', cfrm, data=[self.pdres.CY])
@@ -1058,32 +1086,32 @@ class PanelResult():
             table.add_column('Cl', cfrm, data=[self.nfres.Cl])
             table.add_column('Cm', cfrm, data=[self.nfres.Cm])
             table.add_column('Cn', cfrm, data=[self.nfres.Cn])
-            # if self.sys.cdo != 0.0:
+            # if self.system.cdo != 0.0:
             #     lod = self.nfres.CL/(self.pdres.CDo+self.nfres.CDi)
             #     table.add_column('L/D', '.5g', data=[lod])
             report.add_object(table)
-        if self.ffres is not None:
-            table = MDTable()
-            table.add_column('CDi_ff', dfrm, data=[self.ffres.CDi])
-            table.add_column('CY_ff', cfrm, data=[self.ffres.CY])
-            table.add_column('CL_ff', cfrm, data=[self.ffres.CL])
-            table.add_column('e', efrm, data=[self.ffres.e])
-            # if self.sys.cdo != 0.0:
-            #     lod_ff = self.ffres.CL/(self.pdres.CDo+self.ffres.CDi)
-            #     table.add_column('L/D_ff', '.5g', data=[lod_ff])
-            report.add_object(table)
+        # if self.ffres is not None:
+        #     table = MDTable()
+        #     table.add_column('CDi_ff', dfrm, data=[self.ffres.CDi])
+        #     table.add_column('CY_ff', cfrm, data=[self.ffres.CY])
+        #     table.add_column('CL_ff', cfrm, data=[self.ffres.CL])
+        #     table.add_column('e', efrm, data=[self.ffres.e])
+        #     # if self.system.cdo != 0.0:
+        #     #     lod_ff = self.ffres.CL/(self.pdres.CDo+self.ffres.CDi)
+        #     #     table.add_column('L/D_ff', '.5g', data=[lod_ff])
+        #     report.add_object(table)
 
         return report
 
     @classmethod
-    def from_dict(cls, sys: 'System', resdata: dict[str, Any]) -> 'PanelResult':
+    def from_dict(cls, system: 'System', resdata: dict[str, Any]) -> 'PanelResult':
         name = resdata['name']
         if 'inherit' in resdata:
             inherit = resdata['inherit']
-            if inherit in sys.results:
-                pres = sys.results[inherit].to_result(name=name)
+            if inherit in system.results:
+                pres = system.results[inherit].to_result(name=name)
         else:
-            pres = PanelResult(name, sys)
+            pres = PanelResult(name, system)
         for key in resdata:
             if key == 'name':
                 continue
@@ -1113,13 +1141,13 @@ class PanelResult():
             elif key ==  'rbo2v':
                 rbo2v = resdata['rbo2v']
                 pres.set_state(rbo2v=rbo2v)
-            elif key in pres.ctrls:
-                pres.ctrls[key] = resdata[key]
+            elif key in pres.controls:
+                pres.controls[key] = resdata[key]
             elif key == 'rcg':
                 rcgdata = resdata[key]
                 rcg = Vector(rcgdata['x'], rcgdata['y'], rcgdata['z'])
                 pres.set_cg(rcg)
-        sys.results[name] = pres
+        system.results[name] = pres
         return pres
 
     def __str__(self) -> str:
@@ -1174,9 +1202,9 @@ class NearFieldResult():
     @property
     def nffrc(self) -> Vector:
         if self._nffrc is None:
-            nrms = self.res.sys.nrms
-            pnla = self.res.sys.pnla
-            self._nffrc = -nrms*self.nfprs*pnla
+            normals = self.res.system.normals
+            panel_area = self.res.system.panel_area
+            self._nffrc = -normals*self.nfprs*panel_area
         return self._nffrc
 
     @property
@@ -1200,42 +1228,42 @@ class NearFieldResult():
     @property
     def Cx(self) -> float:
         if self._Cx is None:
-            self._Cx = self.nffrctot.x/self.res.qfs/self.res.sys.sref
+            self._Cx = self.nffrctot.x/self.res.qfs/self.res.system.sref
             self._Cx = fix_zero(self._Cx)
         return self._Cx
 
     @property
     def Cy(self) -> float:
         if self._Cy is None:
-            self._Cy = self.nffrctot.y/self.res.qfs/self.res.sys.sref
+            self._Cy = self.nffrctot.y/self.res.qfs/self.res.system.sref
             self._Cy = fix_zero(self._Cy)
         return self._Cy
 
     @property
     def Cz(self) -> float:
         if self._Cz is None:
-            self._Cz = self.nffrctot.z/self.res.qfs/self.res.sys.sref
+            self._Cz = self.nffrctot.z/self.res.qfs/self.res.system.sref
             self._Cz = fix_zero(self._Cz)
         return self._Cz
 
     @property
     def Cmx(self) -> float:
         if self._Cmx is None:
-            self._Cmx = self.nfmomtot.x/self.res.qfs/self.res.sys.sref/self.res.sys.bref
+            self._Cmx = self.nfmomtot.x/self.res.qfs/self.res.system.sref/self.res.system.bref
             self._Cmx = fix_zero(self._Cmx)
         return self._Cmx
 
     @property
     def Cmy(self) -> float:
         if self._Cmy is None:
-            self._Cmy = self.nfmomtot.y/self.res.qfs/self.res.sys.sref/self.res.sys.cref
+            self._Cmy = self.nfmomtot.y/self.res.qfs/self.res.system.sref/self.res.system.cref
             self._Cmy = fix_zero(self._Cmy)
         return self._Cmy
 
     @property
     def Cmz(self) -> float:
         if self._Cmz is None:
-            self._Cmz = self.nfmomtot.z/self.res.qfs/self.res.sys.sref/self.res.sys.bref
+            self._Cmz = self.nfmomtot.z/self.res.qfs/self.res.system.sref/self.res.system.bref
             self._Cmz = fix_zero(self._Cmz)
         return self._Cmz
 
@@ -1243,7 +1271,7 @@ class NearFieldResult():
     def CDi(self) -> float:
         if self._CDi is None:
             Di = self.nffrctot.dot(self.res.acs.dirx)
-            self._CDi = Di/self.res.qfs/self.res.sys.sref
+            self._CDi = Di/self.res.qfs/self.res.system.sref
             self._CDi = fix_zero(self._CDi)
         return self._CDi
 
@@ -1251,7 +1279,7 @@ class NearFieldResult():
     def CY(self) -> float:
         if self._CY is None:
             Y = self.nffrctot.dot(self.res.acs.diry)
-            self._CY = Y/self.res.qfs/self.res.sys.sref
+            self._CY = Y/self.res.qfs/self.res.system.sref
             self._CY = fix_zero(self._CY)
         return self._CY
 
@@ -1259,7 +1287,7 @@ class NearFieldResult():
     def CL(self) -> float:
         if self._CL is None:
             L = self.nffrctot.dot(self.res.acs.dirz)
-            self._CL = L/self.res.qfs/self.res.sys.sref
+            self._CL = L/self.res.qfs/self.res.system.sref
             self._CL = fix_zero(self._CL)
         return self._CL
 
@@ -1267,7 +1295,7 @@ class NearFieldResult():
     def Cl(self) -> float:
         if self._Cl is None:
             l = self.nfmomtot.dot(self.res.scs.dirx)
-            self._Cl = l/self.res.qfs/self.res.sys.sref/self.res.sys.bref
+            self._Cl = l/self.res.qfs/self.res.system.sref/self.res.system.bref
             self._Cl = fix_zero(self._Cl)
         return self._Cl
 
@@ -1275,7 +1303,7 @@ class NearFieldResult():
     def Cm(self) -> float:
         if self._Cm is None:
             m = self.nfmomtot.dot(self.res.scs.diry)
-            self._Cm = m/self.res.qfs/self.res.sys.sref/self.res.sys.cref
+            self._Cm = m/self.res.qfs/self.res.system.sref/self.res.system.cref
             self._Cm = fix_zero(self._Cm)
         return self._Cm
 
@@ -1283,7 +1311,7 @@ class NearFieldResult():
     def Cn(self) -> float:
         if self._Cn is None:
             n = self.nfmomtot.dot(self.res.scs.dirz)
-            self._Cn = n/self.res.qfs/self.res.sys.sref/self.res.sys.bref
+            self._Cn = n/self.res.qfs/self.res.system.sref/self.res.system.bref
             self._Cn = fix_zero(self._Cn)
         return self._Cn
 
@@ -1295,7 +1323,7 @@ class NearFieldResult():
             elif self.CL == 0.0 and self.CY == 0.0:
                 self._e = 0.0
             else:
-                self._e = (self.CL**2+self.CY**2)/pi/self.res.sys.ar/self.CDi
+                self._e = (self.CL**2+self.CY**2)/pi/self.res.system.ar/self.CDi
                 self._e = fix_zero(self._e)
         return self._e
 
@@ -1343,7 +1371,7 @@ class StabilityNearFieldResult():
     @property
     def dmu(self) -> 'NDArray':
         if self._dmu is None:
-            self._dmu = zeros(len(self.res.sys.pnls))
+            self._dmu = zeros(len(self.res.system.pnls))
             if self.dvfs is not None:
                 self._dmu += self.res.unmu[:, 0].dot(self.dvfs)
             if self.dofs is not None:
@@ -1400,8 +1428,8 @@ class StabilityNearFieldResult():
     @property
     def dfrc(self) -> Vector:
         if self._dfrc is None:
-            nrms = self.res.sys.nrms
-            pnla = self.res.sys.pnla
+            nrms = self.res.system.nrms
+            pnla = self.res.system.pnla
             self._dfrc = -nrms*self.dprs*pnla
         return self._dfrc
 
@@ -1426,42 +1454,42 @@ class StabilityNearFieldResult():
     @property
     def Cx(self) -> float:
         if self._Cx is None:
-            self._Cx = self.dfrctot.x/self.res.qfs/self.res.sys.sref
+            self._Cx = self.dfrctot.x/self.res.qfs/self.res.system.sref
             self._Cx = fix_zero(self._Cx)
         return self._Cx
 
     @property
     def Cy(self) -> float:
         if self._Cy is None:
-            self._Cy = self.dfrctot.y/self.res.qfs/self.res.sys.sref
+            self._Cy = self.dfrctot.y/self.res.qfs/self.res.system.sref
             self._Cy = fix_zero(self._Cy)
         return self._Cy
 
     @property
     def Cz(self) -> float:
         if self._Cz is None:
-            self._Cz = self.dfrctot.z/self.res.qfs/self.res.sys.sref
+            self._Cz = self.dfrctot.z/self.res.qfs/self.res.system.sref
             self._Cz = fix_zero(self._Cz)
         return self._Cz
 
     @property
     def Cmx(self) -> float:
         if self._Cmx is None:
-            self._Cmx = self.dmomtot.x/self.res.qfs/self.res.sys.sref/self.res.sys.bref
+            self._Cmx = self.dmomtot.x/self.res.qfs/self.res.system.sref/self.res.system.bref
             self._Cmx = fix_zero(self._Cmx)
         return self._Cmx
 
     @property
     def Cmy(self) -> float:
         if self._Cmy is None:
-            self._Cmy = self.dmomtot.y/self.res.qfs/self.res.sys.sref/self.res.sys.cref
+            self._Cmy = self.dmomtot.y/self.res.qfs/self.res.system.sref/self.res.system.cref
             self._Cmy = fix_zero(self._Cmy)
         return self._Cmy
 
     @property
     def Cmz(self) -> float:
         if self._Cmz is None:
-            self._Cmz = self.dmomtot.z/self.res.qfs/self.res.sys.sref/self.res.sys.bref
+            self._Cmz = self.dmomtot.z/self.res.qfs/self.res.system.sref/self.res.system.bref
             self._Cmz = fix_zero(self._Cmz)
         return self._Cmz
 
@@ -1471,7 +1499,7 @@ class StabilityNearFieldResult():
             Di = self.dfrctot.dot(self.res.acs.dirx)
             if self.dacs is not None:
                 Di += self.res.nfres.nffrctot.dot(self.dacs['x'])
-            self._CDi = Di/self.res.qfs/self.res.sys.sref
+            self._CDi = Di/self.res.qfs/self.res.system.sref
             self._CDi = fix_zero(self._CDi)
         return self._CDi
 
@@ -1481,7 +1509,7 @@ class StabilityNearFieldResult():
             Y = self.dfrctot.dot(self.res.acs.diry)
             if self.dacs is not None:
                 Y += self.res.nfres.nffrctot.dot(self.dacs['y'])
-            self._CY = Y/self.res.qfs/self.res.sys.sref
+            self._CY = Y/self.res.qfs/self.res.system.sref
             self._CY = fix_zero(self._CY)
         return self._CY
 
@@ -1491,7 +1519,7 @@ class StabilityNearFieldResult():
             L = self.dfrctot.dot(self.res.acs.dirz)
             if self.dacs is not None:
                 L += self.res.nfres.nffrctot.dot(self.dacs['z'])
-            self._CL = L/self.res.qfs/self.res.sys.sref
+            self._CL = L/self.res.qfs/self.res.system.sref
             self._CL = fix_zero(self._CL)
         return self._CL
 
@@ -1501,7 +1529,7 @@ class StabilityNearFieldResult():
             l = self.dmomtot.dot(self.res.scs.dirx)
             if self.dscs is not None:
                 l += self.res.nfres.nfmomtot.dot(self.dscs['x'])
-            self._Cl = l/self.res.qfs/self.res.sys.sref/self.res.sys.bref
+            self._Cl = l/self.res.qfs/self.res.system.sref/self.res.system.bref
             self._Cl = fix_zero(self._Cl)
         return self._Cl
 
@@ -1511,7 +1539,7 @@ class StabilityNearFieldResult():
             m = self.dmomtot.dot(self.res.scs.diry)
             if self.dscs is not None:
                 m += self.res.nfres.nfmomtot.dot(self.dscs['y'])
-            self._Cm = m/self.res.qfs/self.res.sys.sref/self.res.sys.cref
+            self._Cm = m/self.res.qfs/self.res.system.sref/self.res.system.cref
             self._Cm = fix_zero(self._Cm)
         return self._Cm
 
@@ -1521,7 +1549,7 @@ class StabilityNearFieldResult():
             n = self.dmomtot.dot(self.res.scs.dirz)
             if self.dscs is not None:
                 n += self.res.nfres.nfmomtot.dot(self.dscs['z'])
-            self._Cn = n/self.res.qfs/self.res.sys.sref/self.res.sys.bref
+            self._Cn = n/self.res.qfs/self.res.system.sref/self.res.system.bref
             self._Cn = fix_zero(self._Cn)
         return self._Cn
 
@@ -1542,40 +1570,40 @@ class StripResult():
     @property
     def stfrc(self):
         if self._stfrc is None:
-            sys = self.nfres.res.sys
-            num = len(sys.strps)
+            system = self.nfres.res.system
+            num = len(system.strips)
             self._stfrc = Vector.zeros(num)
-            for strp in sys.strps:
-                i = strp.ind
-                for pnl in strp.pnls:
-                    j = pnl.ind
+            for strip in system.strips:
+                i = strip.ind
+                for panel in strip.dpanels:
+                    j = panel.ind
                     self._stfrc[i] += self.nfres.nffrc[j]
         return self._stfrc
 
     @property
     def stmom(self):
         if self._stmom is None:
-            sys = self.nfres.res.sys
-            num = len(sys.strps)
+            system = self.nfres.res.system
+            num = len(system.strips)
             self._stmom = Vector.zeros(num)
-            for strp in sys.strps:
-                i = strp.ind
-                for pnl in strp.pnls:
-                    j = pnl.ind
-                    rref = pnl.pnto - strp.point
+            for strip in system.strips:
+                i = strip.ind
+                for panel in strip.dpanels:
+                    j = panel.ind
+                    rref = panel.pnto - strip.point
                     self._stmom[i] += rref.cross(self.nfres.nffrc[j])
         return self._stmom
 
     @property
     def stcp(self):
         if self._stcp is None:
-            sys = self.nfres.res.sys
-            num = len(sys.strps)
+            system = self.nfres.res.system
+            num = len(system.strips)
             self._stcp = zeros(num)
-            for strp in sys.strps:
-                i = strp.ind
+            for strip in system.strips:
+                i = strip.ind
                 if abs(self.stfrc[i].z) > 1e-12:
-                    self._stcp[i] = -self.stmom[i].y/self.stfrc[i].z/strp.chord
+                    self._stcp[i] = -self.stmom[i].y/self.stfrc[i].z/strip.chord
         return self._stcp
 
     @property
@@ -1606,12 +1634,12 @@ class StripResult():
 
         res = self.nfres.res
         resname = res.name
-        sys = res.sys
-        sysname = sys.name
-        ind = [strp.ind for strp in sys.strps]
-        pntx = [strp.point.x for strp in sys.strps]
-        pnty = [strp.point.y for strp in sys.strps]
-        pntz = [strp.point.z for strp in sys.strps]
+        system = res.system
+        sysname = system.name
+        ind = [strip.ind for strip in system.strips]
+        pntx = [strip.point.x for strip in system.strips]
+        pnty = [strip.point.y for strip in system.strips]
+        pntz = [strip.point.z for strip in system.strips]
         frcx = self.stfrc.x[ind].transpose().tolist()
         frcy = self.stfrc.y[ind].transpose().tolist()
         frcz = self.stfrc.z[ind].transpose().tolist()
@@ -1646,6 +1674,7 @@ class StripResult():
     def _repr_markdown_(self):
         return self.to_mdobj()._repr_markdown_()
 
+
 class FarFieldResult():
     res = None
     _ffmu = None
@@ -1674,24 +1703,24 @@ class FarFieldResult():
     @property
     def ffmu(self):
         if self._ffmu is None:
-            numhsv = self.res.sys.numhsv
+            numhsv = self.res.system.numhsv
             self._ffmu = zeros(numhsv)
-            for ind, hsv in enumerate(self.res.sys.hsvs):
+            for ind, hsv in enumerate(self.res.system.hsvs):
                 self._ffmu[ind] = self.res.mu[hsv.ind]
         return self._ffmu
 
     @property
     def ffwsh(self):
         if self._ffwsh is None:
-            self._ffwsh = self.res.sys.awh@self.ffmu
+            self._ffwsh = self.res.system.awh@self.ffmu
         return self._ffwsh
 
     @property
     def fffrc(self):
         if self._fffrc is None:
-            x = self.res.rho*self.ffmu*self.res.sys.adh@self.ffmu
-            y = self.res.rho*self.res.speed*self.ffmu*self.res.sys.ash
-            z = self.res.rho*self.res.speed*self.ffmu*self.res.sys.alh
+            x = self.res.rho*self.ffmu*self.res.system.adh@self.ffmu
+            y = self.res.rho*self.res.speed*self.ffmu*self.res.system.ash
+            z = self.res.rho*self.res.speed*self.ffmu*self.res.system.alh
             self._fffrc = Vector(x, y, z)
         return self._fffrc
 
@@ -1716,13 +1745,13 @@ class FarFieldResult():
     @property
     def circ(self):
         if self._circ is None:
-            sys = self.res.sys
-            num = len(sys.strps)
+            system = self.res.system
+            num = len(system.strips)
             self._circ = zeros((num, 1))
-            for i, strp in enumerate(sys.strps):
-                if not strp.nohsv:
-                    pnla = strp.pnls[0]
-                    pnlb = strp.pnls[-1]
+            for i, strip in enumerate(system.strips):
+                if not strip.nohsv:
+                    pnla = strip.pnls[0]
+                    pnlb = strip.pnls[-1]
                     mua = self.res.mu[pnla.ind]
                     mub = self.res.mu[pnlb.ind]
                     self._circ[i] = mua-mub
@@ -1731,17 +1760,17 @@ class FarFieldResult():
     @property
     def wash(self):
         if self._wash is None:
-            sys = self.res.sys
-            num = len(sys.strps)
+            system = self.res.system
+            num = len(system.strips)
             self._wash = zeros(num)
-            for i, strp in enumerate(sys.strps):
-                if not strp.nohsv:
-                    pnla = strp.pnls[0]
-                    pnlb = strp.pnls[-1]
+            for i, strip in enumerate(system.strips):
+                if not strip.nohsv:
+                    pnla = strip.dpanels[0]
+                    pnlb = strip.dpanels[-1]
                     pinda = pnla.ind
                     pindb = pnlb.ind
-                    hindsa = sys.phind[pinda]
-                    hindsb = sys.phind[pindb]
+                    hindsa = system.phind[pinda]
+                    hindsb = system.phind[pindb]
                     cnt = 0
                     for hind in hindsa:
                         cnt += 1
@@ -1755,29 +1784,29 @@ class FarFieldResult():
     @property
     def drag(self):
         if self._drag is None:
-            sys = self.res.sys
-            num = len(sys.strps)
+            system = self.res.system
+            num = len(system.strips)
             self._drag = zeros(num)
-            for i, strp in enumerate(sys.strps):
-                if not strp.noload:
-                    self._drag[i] = -self.res.rho*self.wash[i]*self.circ[i]*strp.width/2
+            for i, strip in enumerate(system.strips):
+                if not strip.noload:
+                    self._drag[i] = -self.res.rho*self.wash[i]*self.circ[i]*strip.width/2
         return self._drag
 
     @property
     def side(self):
         if self._side is None:
-            sys = self.res.sys
-            num = len(sys.strps)
+            system = self.res.system
+            num = len(system.strips)
             self._side = zeros(num)
-            for i, strp in enumerate(sys.strps):
-                if not strp.noload:
-                    if not strp.nohsv:
-                        pnla = strp.pnls[0]
-                        pnlb = strp.pnls[-1]
+            for i, strip in enumerate(system.strips):
+                if not strip.noload:
+                    if not strip.nohsv:
+                        pnla = strip.dpanels[0]
+                        pnlb = strip.dpanels[-1]
                         pinda = pnla.ind
                         pindb = pnlb.ind
-                        hindsa = sys.phind[pinda]
-                        hindsb = sys.phind[pindb]
+                        hindsa = system.phind[pinda]
+                        hindsb = system.phind[pindb]
                         for hind in hindsa:
                             self._side[i] += self.fffrc[hind].y
                         for hind in hindsb:
@@ -1787,18 +1816,18 @@ class FarFieldResult():
     @property
     def lift(self):
         if self._lift is None:
-            sys = self.res.sys
-            num = len(sys.strps)
+            system = self.res.system
+            num = len(system.strips)
             self._lift = zeros(num)
-            for i, strp in enumerate(sys.strps):
-                if not strp.noload:
-                    if not strp.nohsv:
-                        pnla = strp.pnls[0]
-                        pnlb = strp.pnls[-1]
+            for i, strip in enumerate(system.strips):
+                if not strip.noload:
+                    if not strip.nohsv:
+                        pnla = strip.dpanels[0]
+                        pnlb = strip.dpanels[-1]
                         pinda = pnla.ind
                         pindb = pnlb.ind
-                        hindsa = sys.phind[pinda]
-                        hindsb = sys.phind[pindb]
+                        hindsa = system.phind[pinda]
+                        hindsb = system.phind[pindb]
                         for hind in hindsa:
                             self._lift[i] += self.fffrc[hind].z
                         for hind in hindsb:
@@ -1809,7 +1838,7 @@ class FarFieldResult():
     def CDi(self):
         if self._CDi is None:
             Di = self.drag.sum()
-            self._CDi = Di/self.res.qfs/self.res.sys.sref
+            self._CDi = Di/self.res.qfs/self.res.system.sref
             self._CDi = fix_zero(self._CDi)
         return self._CDi
 
@@ -1817,7 +1846,7 @@ class FarFieldResult():
     def CY(self):
         if self._CY is None:
             Y = self.side.sum()
-            self._CY = Y/self.res.qfs/self.res.sys.sref
+            self._CY = Y/self.res.qfs/self.res.system.sref
             self._CY = fix_zero(self._CY)
         return self._CY
 
@@ -1825,7 +1854,7 @@ class FarFieldResult():
     def CL(self):
         if self._CL is None:
             L = self.lift.sum()
-            self._CL = L/self.res.qfs/self.res.sys.sref
+            self._CL = L/self.res.qfs/self.res.system.sref
             self._CL = fix_zero(self._CL)
         return self._CL
 
@@ -1833,7 +1862,7 @@ class FarFieldResult():
     def Cl(self):
         if self._Cl is None:
             l = -self.ffmomtot.x
-            self._Cl = l/self.res.qfs/self.res.sys.sref/self.res.sys.bref
+            self._Cl = l/self.res.qfs/self.res.system.sref/self.res.system.bref
             self._Cl = fix_zero(self._Cl)
         return self._Cl
 
@@ -1841,7 +1870,7 @@ class FarFieldResult():
     def Cm(self):
         if self._Cm is None:
             m = self.ffmomtot.y
-            self._Cm = m/self.res.qfs/self.res.sys.sref/self.res.sys.cref
+            self._Cm = m/self.res.qfs/self.res.system.sref/self.res.system.cref
             self._Cm = fix_zero(self._Cm)
         return self._Cm
 
@@ -1849,7 +1878,7 @@ class FarFieldResult():
     def Cn(self):
         if self._Cn is None:
             n = -self.ffmomtot.z
-            self._Cn = n/self.res.qfs/self.res.sys.sref/self.res.sys.bref
+            self._Cn = n/self.res.qfs/self.res.system.sref/self.res.system.bref
             self._Cn = fix_zero(self._Cn)
         return self._Cn
 
@@ -1862,7 +1891,7 @@ class FarFieldResult():
                 else:
                     self._e = float('nan')
             else:
-                self._e = (self.CL**2+self.CY**2)/pi/self.res.sys.ar/self.CDi
+                self._e = (self.CL**2+self.CY**2)/pi/self.res.system.ar/self.CDi
                 self._e = fix_zero(self._e)
         return self._e
 
@@ -1960,7 +1989,7 @@ class StabilityResult():
     @property
     def pbo2v(self) -> StabilityNearFieldResult:
         if self._pbo2v is None:
-            dpqr = Vector(2*self.res.speed/self.res.sys.bref, 0.0, 0.0)
+            dpqr = Vector(2*self.res.speed/self.res.system.bref, 0.0, 0.0)
             dofs = self.res.scs.vector_to_global(dpqr)
             self._pbo2v = StabilityNearFieldResult(self.res, dofs = dofs)
         return self._pbo2v
@@ -1968,7 +1997,7 @@ class StabilityResult():
     @property
     def qco2v(self) -> StabilityNearFieldResult:
         if self._qco2v is None:
-            dpqr = Vector(0.0, 2*self.res.speed/self.res.sys.cref, 0.0)
+            dpqr = Vector(0.0, 2*self.res.speed/self.res.system.cref, 0.0)
             dofs = self.res.scs.vector_to_global(dpqr)
             self._qco2v = StabilityNearFieldResult(self.res, dofs = dofs)
         return self._qco2v
@@ -1976,7 +2005,7 @@ class StabilityResult():
     @property
     def rbo2v(self) -> StabilityNearFieldResult:
         if self._rbo2v is None:
-            dpqr = Vector(0.0, 0.0, 2*self.res.speed/self.res.sys.bref)
+            dpqr = Vector(0.0, 0.0, 2*self.res.speed/self.res.system.bref)
             dofs = self.res.scs.vector_to_global(dpqr)
             self._rbo2v = StabilityNearFieldResult(self.res, dofs = dofs)
         return self._rbo2v
@@ -1984,21 +2013,21 @@ class StabilityResult():
     @property
     def pdbo2V(self) -> StabilityNearFieldResult:
         if self._pdbo2V is None:
-            dofs = Vector(2*self.res.speed/self.res.sys.bref, 0.0, 0.0)
+            dofs = Vector(2*self.res.speed/self.res.system.bref, 0.0, 0.0)
             self._pdbo2V = StabilityNearFieldResult(self.res, dofs = dofs)
         return self._pdbo2V
 
     @property
     def qdco2V(self) -> StabilityNearFieldResult:
         if self._qdco2V is None:
-            dofs = Vector(0.0, 2*self.res.speed/self.res.sys.cref, 0.0)
+            dofs = Vector(0.0, 2*self.res.speed/self.res.system.cref, 0.0)
             self._qdco2V = StabilityNearFieldResult(self.res, dofs = dofs)
         return self._qdco2V
 
     @property
     def rdbo2V(self) -> StabilityNearFieldResult:
         if self._rdbo2V is None:
-            dofs = Vector(0.0, 0.0, 2*self.res.speed/self.res.sys.bref)
+            dofs = Vector(0.0, 0.0, 2*self.res.speed/self.res.system.bref)
             self._rdbo2V = StabilityNearFieldResult(self.res, dofs = dofs)
         return self._rdbo2V
 
@@ -2008,7 +2037,7 @@ class StabilityResult():
             xcg = self.res.rcg.x
             CLa = self.alpha.CL
             CMa = self.alpha.Cm
-            c = self.res.sys.cref
+            c = self.res.system.cref
             self._xnp = xcg - c*CMa/CLa
         return self._xnp
 

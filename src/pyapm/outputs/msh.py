@@ -4,15 +4,15 @@ from ..classes.panelsystem import PanelSystem
 
 
 def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
-    psys = pres.sys
-    gidlst = list(psys.grds)
-    pidlst = list(psys.pnls)
+    psys = pres.system
+    gidlst = list(psys.grids)
+    pidlst = list(psys.dpanels)
     tidlst = []
     qidlst = []
-    for pid, pnl in psys.pnls.items():
-        if pnl.num == 3:
+    for pid, panel in psys.dpanels.items():
+        if panel.num == 3:
             tidlst.append(pid)
-        if pnl.num == 4:
+        if panel.num == 4:
             qidlst.append(pid)
     gidlst.sort()
     tidlst.sort()
@@ -43,10 +43,10 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
             mshfile.write(frmstr.format(gid))
         frmstr = '{:} {:} {:}\n'
         for gid in gidlst:
-            grd = psys.grds[gid]
-            x = grd.x
-            y = grd.y
-            z = grd.z
+            grid = psys.grids[gid]
+            x = grid.x
+            y = grid.y
+            z = grid.z
             mshfile.write(frmstr.format(x, y, z))
         mshfile.write('$EndNodes\n')
         mshfile.write('$Elements\n')
@@ -56,18 +56,18 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
             mshfile.write('{:d} {:d} {:d} {:d}\n'.format(2, bl, 2, lentid))
             for pid in tidlst:
                 outstr = '{:d}'.format(pid)
-                pnl = psys.pnls[pid]
-                for grd in pnl.grds:
-                    outstr += ' {:d}'.format(grd.gid)
+                panel = psys.dpanels[pid]
+                for grid in panel.grids:
+                    outstr += ' {:d}'.format(grid.gid)
                 outstr += '\n'
                 mshfile.write(outstr)
         if lenqid > 0:
             mshfile.write('{:d} {:d} {:d} {:d}\n'.format(2, bl, 3, lenqid))
             for pid in qidlst:
                 outstr = '{:d}'.format(pid)
-                pnl = psys.pnls[pid]
-                for grd in pnl.grds:
-                    outstr += ' {:d}'.format(grd.gid)
+                panel = psys.dpanels[pid]
+                for grid in panel.grids:
+                    outstr += ' {:d}'.format(grid.gid)
                 outstr += '\n'
                 mshfile.write(outstr)
         mshfile.write('$EndElements\n')
@@ -93,8 +93,8 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         mshfile.write('{:d}\n'.format(lenpid))
         frmstr = '{:d} {:}\n'
         for pid in pidlst:
-            pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.sig[pnl.ind]))
+            panel = psys.dpanels[pid]
+            mshfile.write(frmstr.format(panel.pid, pres.sig[panel.ind]))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
         optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
@@ -113,8 +113,8 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         mshfile.write('{:d}\n'.format(lenpid))
         frmstr = '{:d} {:}\n'
         for pid in pidlst:
-            pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.mu[pnl.ind]))
+            panel = psys.dpanels[pid]
+            mshfile.write(frmstr.format(panel.pid, pres.mud[panel.ind]))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
         optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
@@ -133,34 +133,34 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         mshfile.write('{:d}\n'.format(lenpid))
         frmstr = '{:d} {:}\n'
         for pid in pidlst:
-            pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.phi[pnl.ind]))
+            panel = psys.dpanels[pid]
+            mshfile.write(frmstr.format(panel.pid, pres.phi[panel.ind]))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
         optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
         optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
         optstr += 'View[{:d}].Visible = 0;\n'.format(view)
         view += 1
-        # Panel Normal Velocity
-        mshfile.write('$ElementData\n')
-        mshfile.write('1\n')
-        mshfile.write('"Panel Normal Velocity"\n')
-        mshfile.write('1\n')
-        mshfile.write('0.0\n')
-        mshfile.write('3\n')
-        mshfile.write('0\n')
-        mshfile.write('1\n')
-        mshfile.write('{:d}\n'.format(lenpid))
-        frmstr = '{:d} {:}\n'
-        for pid in pidlst:
-            pnl = psys.pnls[pid]
-            mshfile.write(frmstr.format(pnl.pid, pres.nvg[pnl.ind]))
-        mshfile.write('$EndElementData\n')
-        optstr += 'View[{:d}].Light = 0;\n'.format(view)
-        optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
-        optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
-        optstr += 'View[{:d}].Visible = 0;\n'.format(view)
-        view += 1
+        # # Panel Normal Velocity
+        # mshfile.write('$ElementData\n')
+        # mshfile.write('1\n')
+        # mshfile.write('"Panel Normal Velocity"\n')
+        # mshfile.write('1\n')
+        # mshfile.write('0.0\n')
+        # mshfile.write('3\n')
+        # mshfile.write('0\n')
+        # mshfile.write('1\n')
+        # mshfile.write('{:d}\n'.format(lenpid))
+        # frmstr = '{:d} {:}\n'
+        # for pid in pidlst:
+        #     panel = psys.dpanels[pid]
+        #     mshfile.write(frmstr.format(panel.pid, pres.nvg[panel.ind]))
+        # mshfile.write('$EndElementData\n')
+        # optstr += 'View[{:d}].Light = 0;\n'.format(view)
+        # optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
+        # optstr += 'View[{:d}].SaturateValues = 1;\n'.format(view)
+        # optstr += 'View[{:d}].Visible = 0;\n'.format(view)
+        # view += 1
         # Panel Longitudinal Velocity
         mshfile.write('$ElementData\n')
         mshfile.write('1\n')
@@ -175,14 +175,14 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         maxval = float('-inf')
         minval = float('+inf')
         for pid in pidlst:
-            pnl = psys.pnls[pid]
-            val = pres.qloc.x[pnl.ind]
-            if pnl.sct is None:
+            panel = psys.dpanels[pid]
+            val = pres.qloc.x[panel.ind]
+            if panel.section is None:
                 if val < minval:
                     minval = val
                 if val > maxval:
                     maxval = val
-            mshfile.write(frmstr.format(pnl.pid, val))
+            mshfile.write(frmstr.format(panel.pid, val))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
         optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
@@ -205,14 +205,14 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         maxval = float('-inf')
         minval = float('+inf')
         for pid in pidlst:
-            pnl = psys.pnls[pid]
-            val = pres.qloc.y[pnl.ind]
-            if pnl.sct is None:
+            panel = psys.dpanels[pid]
+            val = pres.qloc.y[panel.ind]
+            if panel.section is None:
                 if val < minval:
                     minval = val
                 if val > maxval:
                     maxval = val
-            mshfile.write(frmstr.format(pnl.pid, val))
+            mshfile.write(frmstr.format(panel.pid, val))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
         optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
@@ -235,14 +235,14 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         maxval = float('-inf')
         minval = float('+inf')
         for pid in pidlst:
-            pnl = psys.pnls[pid]
-            val = pres.qs[pnl.ind]
-            if pnl.sct is None:
+            panel = psys.dpanels[pid]
+            val = pres.qs[panel.ind]
+            if panel.section is None:
                 if val < minval:
                     minval = val
                 if val > maxval:
                     maxval = val
-            mshfile.write(frmstr.format(pnl.pid, val))
+            mshfile.write(frmstr.format(panel.pid, val))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
         optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
@@ -265,14 +265,14 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         maxval = float('-inf')
         minval = float('+inf')
         for pid in pidlst:
-            pnl = psys.pnls[pid]
-            val = pres.nfres.nfcp[pnl.ind]
-            if pnl.sct is None:
+            panel = psys.dpanels[pid]
+            val = pres.nfres.nfcp[panel.ind]
+            if panel.section is None:
                 if val < minval:
                     minval = val
                 if val > maxval:
                     maxval = val
-            mshfile.write(frmstr.format(pnl.pid, val))
+            mshfile.write(frmstr.format(panel.pid, val))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
         optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
@@ -295,14 +295,14 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         maxval = float('-inf')
         minval = float('+inf')
         for pid in pidlst:
-            pnl = psys.pnls[pid]
-            val = pres.nfres.nfprs[pnl.ind]
-            if pnl.sct is None:
+            panel = psys.dpanels[pid]
+            val = pres.nfres.nfprs[panel.ind]
+            if panel.section is None:
                 if val < minval:
                     minval = val
                 if val > maxval:
                     maxval = val
-            mshfile.write(frmstr.format(pnl.pid, val))
+            mshfile.write(frmstr.format(panel.pid, val))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].RangeType = 2;\n'.format(view)
         optstr += 'View[{:d}].CustomMax = {:};\n'.format(view, maxval)
@@ -323,10 +323,10 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         mshfile.write('{:d}\n'.format(lenpid))
         frmstr = '{:d} {:d}'
         for pid in pidlst:
-            pnl = psys.pnls[pid]
-            vals = pnl.grid_res(pres.sig)
+            panel = psys.dpanels[pid]
+            vals = panel.grid_res(pres.sig)
             numv = len(vals)
-            mshfile.write(frmstr.format(pnl.pid, numv))
+            mshfile.write(frmstr.format(panel.pid, numv))
             for val in vals:
                 mshfile.write(' {:}'.format(val))
             mshfile.write('\n')
@@ -348,10 +348,10 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         mshfile.write('{:d}\n'.format(lenpid))
         frmstr = '{:d} {:d}'
         for pid in pidlst:
-            pnl = psys.pnls[pid]
-            vals = pnl.grid_res(pres.mu)
+            panel = psys.dpanels[pid]
+            vals = panel.grid_res(pres.mud)
             numv = len(vals)
-            mshfile.write(frmstr.format(pnl.pid, numv))
+            mshfile.write(frmstr.format(panel.pid, numv))
             for val in vals:
                 mshfile.write(' {:}'.format(val))
             mshfile.write('\n')
@@ -375,17 +375,17 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         maxval = float('-inf')
         minval = float('+inf')
         for pid in pidlst:
-            pnl = psys.pnls[pid]
-            vals = pnl.grid_res(pres.nfres.nfcp)
+            panel = psys.dpanels[pid]
+            vals = panel.grid_res(pres.nfres.nfcp)
             numv = len(vals)
             minvals = min(vals)
             maxvals = max(vals)
-            if pnl.sct is None:
+            if panel.section is None:
                 if minvals < minval:
                     minval = minvals
                 if maxvals > maxval:
                     maxval = maxvals
-            mshfile.write(frmstr.format(pnl.pid, numv))
+            mshfile.write(frmstr.format(panel.pid, numv))
             for val in vals:
                 mshfile.write(' {:}'.format(val))
             mshfile.write('\n')
@@ -411,17 +411,17 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         maxval = float('-inf')
         minval = float('+inf')
         for pid in pidlst:
-            pnl = psys.pnls[pid]
-            vals = pnl.grid_res(pres.nfres.nfprs)
+            panel = psys.dpanels[pid]
+            vals = panel.grid_res(pres.nfres.nfprs)
             numv = len(vals)
             minvals = min(vals)
             maxvals = max(vals)
-            if pnl.sct is None:
+            if panel.section is None:
                 if minvals < minval:
                     minval = minvals
                 if maxvals > maxval:
                     maxval = maxvals
-            mshfile.write(frmstr.format(pnl.pid, numv))
+            mshfile.write(frmstr.format(panel.pid, numv))
             for val in vals:
                 mshfile.write(' {:}'.format(val))
             mshfile.write('\n')
@@ -438,14 +438,14 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         optfile.write(optstr)
 
 def panelsystem_to_msh(psys: PanelSystem, mshfilepath: str):
-    gidlst = list(psys.grds)
-    pidlst = list(psys.pnls)
+    gidlst = list(psys.grids)
+    pidlst = list(psys.dpanels)
     tidlst = []
     qidlst = []
-    for pid, pnl in psys.pnls.items():
-        if pnl.num == 3:
+    for pid, panel in psys.dpanels.items():
+        if panel.num == 3:
             tidlst.append(pid)
-        if pnl.num == 4:
+        if panel.num == 4:
             qidlst.append(pid)
     gidlst.sort()
     tidlst.sort()
@@ -476,10 +476,10 @@ def panelsystem_to_msh(psys: PanelSystem, mshfilepath: str):
             mshfile.write(frmstr.format(gid))
         frmstr = '{:} {:} {:}\n'
         for gid in gidlst:
-            grd = psys.grds[gid]
-            x = grd.x
-            y = grd.y
-            z = grd.z
+            grid = psys.grids[gid]
+            x = grid.x
+            y = grid.y
+            z = grid.z
             mshfile.write(frmstr.format(x, y, z))
         mshfile.write('$EndNodes\n')
         mshfile.write('$Elements\n')
@@ -489,18 +489,18 @@ def panelsystem_to_msh(psys: PanelSystem, mshfilepath: str):
             mshfile.write('{:d} {:d} {:d} {:d}\n'.format(2, bl, 2, lentid))
             for pid in tidlst:
                 outstr = '{:d}'.format(pid)
-                pnl = psys.pnls[pid]
-                for grd in pnl.grds:
-                    outstr += ' {:d}'.format(grd.gid)
+                panel = psys.dpanels[pid]
+                for grid in panel.grids:
+                    outstr += ' {:d}'.format(grid.gid)
                 outstr += '\n'
                 mshfile.write(outstr)
         if lenqid > 0:
             mshfile.write('{:d} {:d} {:d} {:d}\n'.format(2, bl, 3, lenqid))
             for pid in qidlst:
                 outstr = '{:d}'.format(pid)
-                pnl = psys.pnls[pid]
-                for grd in pnl.grds:
-                    outstr += ' {:d}'.format(grd.gid)
+                panel = psys.dpanels[pid]
+                for grid in panel.grids:
+                    outstr += ' {:d}'.format(grid.gid)
                 outstr += '\n'
                 mshfile.write(outstr)
         mshfile.write('$EndElements\n')
