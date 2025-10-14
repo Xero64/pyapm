@@ -4,6 +4,7 @@ from IPython.display import display_markdown
 from pyapm.classes import PanelSystem
 from pyapm.outputs.k3d import PanelPlot
 from pyapm.outputs.msh import panelresult_to_msh
+from numpy.linalg import norm
 
 #%%
 # Create Panel System
@@ -45,6 +46,8 @@ print(f'sig = \n{pres.sig}')
 print(f'mud = \n{pres.mud}')
 print(f'muw = \n{pres.muw}')
 print(f'mug = \n{pres.mug}')
+
+print(f'{norm(pres.phi)}')
 
 #%%
 # Distribution Plots
