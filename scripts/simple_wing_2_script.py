@@ -106,3 +106,15 @@ mudplot.display()
 mugplot = pnlpl.plot()
 mugplot += pnlpl.grid_mu_plot()
 mugplot.display()
+
+#%%
+# Print Output
+for strip in psys.strips:
+    dpanel0 = strip.dpanels[0]
+    dpaneln = strip.dpanels[-1]
+    wpanels = strip.wpanels
+    print(f'Strip {dpanel0} {dpaneln} {wpanels}')
+    mu0 = pres.mud[dpanel0.ind]
+    mun = pres.mud[dpaneln.ind]
+    muw = [float(pres.muw[wpanel.ind]) for wpanel in wpanels]
+    print(f'mu0 = {mu0}, mun = {mun}, muw = {muw}')
