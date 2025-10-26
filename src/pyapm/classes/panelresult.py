@@ -56,6 +56,7 @@ class PanelResult():
     _qloc: Vector2D = None
     _qs: 'NDArray' = None
     _cp: 'NDArray' = None
+    _fres: 'FaceResult' = None
     _nfres: 'NearFieldResult' = None
     _stripres: 'StripResult' = None
     _ffres: 'FarFieldResult' = None
@@ -468,6 +469,12 @@ class PanelResult():
         if self._cp is None:
             self._cp = 1.0 - square(self.qs)/self.speed**2
         return self._cp
+
+    @property
+    def fres(self) -> 'FaceResult':
+        if self._fres is None:
+            self._fres = FaceResult(self, self.mud)
+        return self._fres
 
     @property
     def nfres(self) -> 'NearFieldResult':
@@ -1073,13 +1080,24 @@ class PanelResult():
         #     table.add_column('Cmo', cfrm, data=[self.pdres.Cm])
         #     table.add_column('Cno', cfrm, data=[self.pdres.Cn])
         #     outstr += table._repr_markdown_()
+        if self.fres is not None:
+            table = report.add_table()
+            table.add_column('Cx', cfrm, data=[self.fres.Cx])
+            table.add_column('Cy', cfrm, data=[self.fres.Cy])
+            table.add_column('Cz', cfrm, data=[self.fres.Cz])
+            table = report.add_table()
+            table.add_column('CDi', dfrm, data=[self.fres.CDi])
+            table.add_column('CY', cfrm, data=[self.fres.CY])
+            table.add_column('CL', cfrm, data=[self.fres.CL])
+            table.add_column('Cl', cfrm, data=[self.fres.Cl])
+            table.add_column('Cm', cfrm, data=[self.fres.Cm])
+            table.add_column('Cn', cfrm, data=[self.fres.Cn])
         if self.nfres is not None:
-            table = MDTable()
+            table = report.add_table()
             table.add_column('Cx', cfrm, data=[self.nfres.Cx])
             table.add_column('Cy', cfrm, data=[self.nfres.Cy])
             table.add_column('Cz', cfrm, data=[self.nfres.Cz])
-            report.add_object(table)
-            table = MDTable()
+            table = report.add_table()
             table.add_column('CDi', dfrm, data=[self.nfres.CDi])
             table.add_column('CY', cfrm, data=[self.nfres.CY])
             table.add_column('CL', cfrm, data=[self.nfres.CL])
@@ -1089,7 +1107,6 @@ class PanelResult():
             # if self.system.cdo != 0.0:
             #     lod = self.nfres.CL/(self.pdres.CDo+self.nfres.CDi)
             #     table.add_column('L/D', '.5g', data=[lod])
-            report.add_object(table)
         # if self.ffres is not None:
         #     table = MDTable()
         #     table.add_column('CDi_ff', dfrm, data=[self.ffres.CDi])
@@ -1165,6 +1182,227 @@ def trig_angle(angle: float):
     cosang = cos(angrad)
     sinang = sin(angrad)
     return cosang, sinang
+
+
+class FaceResult():
+    result: PanelResult = None
+    _system: 'System' = None
+    fmud: 'NDArray' = None
+    _fmug: 'NDArray' = None
+    _farm: Vector = None
+    _fvfs: Vector2D = None
+    _fvel: Vector2D = None
+    _fcp: 'NDArray' = None
+    _fprs: 'NDArray' = None
+    _ffrc: Vector = None
+    _fmom: Vector = None
+    _ffrctot: Vector = None
+    _fmomtot: Vector = None
+    _Cx: float = None
+    _Cy: float = None
+    _Cz: float = None
+    _CDi: float = None
+    _CY: float = None
+    _CL: float = None
+    _Cl: float = None
+    _Cm: float = None
+    _Cn: float = None
+
+    def __init__(self, result: PanelResult, fmud: 'NDArray') -> None:
+        self.result = result
+        self.fmud = fmud
+
+    @property
+    def system(self) -> 'System':
+        if self._system is None:
+            self._system = self.result.system
+        return self._system
+
+    @property
+    def fmug(self) -> 'NDArray':
+        if self._fmug is None:
+            self._fmug = self.system.edges_array @ self.fmud
+        return self._fmug
+
+    @property
+    def farm(self) -> Vector: # can move to PanelResult?
+        if self._farm is None:
+            self._farm = self.system.dface_pnts - self.result.rcg
+        return self._farm
+
+    @property
+    def fvfs(self) -> Vector2D: # can move to PanelResult?
+        if self._fvfs is None:
+            vfsg = self.result.vfs - self.result.ofs.cross(self.farm)
+            vfsgx = self.system.dface_dirx.dot(vfsg)
+            vfsgy = self.system.dface_diry.dot(vfsg)
+            self._fvfs = Vector2D(vfsgx, vfsgy)
+        return self._fvfs
+
+    @property
+    def fvel(self) -> Vector2D:
+        if self._fvel is None:
+            fmud = self.fmud[self.system.dface_indp]
+            print(f'{fmud.shape = }')
+            fmug = self.fmug[self.system.dface_indg]
+            print(f'{fmug.shape = }')
+            fvfp = self.system.dface_velp
+            print(f'{fvfp.shape = }')
+            fvfg = self.system.dface_velg
+            print(f'{fvfg.shape = }')
+            self._fvel = self.fvfs + fvfp*fmud + (fvfg*fmug).sum(axis=1)
+        return self._fvel
+
+    @property
+    def fcp(self) -> 'NDArray':
+        if self._fcp is None:
+            fvelm = self.fvel.return_magnitude()
+            self._fcp = 1.0 - (fvelm/self.result.speed)**2
+        return self._fcp
+
+    @property
+    def fprs(self) -> 'NDArray':
+        if self._fprs is None:
+            self._fprs = self.result.qfs*self.fcp
+        return self._fprs
+
+    @property
+    def ffrc(self) -> Vector:
+        if self._ffrc is None:
+            normals = self.system.dface_dirz
+            face_area = self.system.dface_area
+            self._ffrc = normals*self.fprs*face_area
+        return self._ffrc
+
+    @property
+    def fmom(self) -> Vector:
+        if self._fmom is None:
+            self._fmom = self.farm.cross(self.ffrc)
+        return self._fmom
+
+    @property
+    def ffrctot(self) -> Vector:
+        if self._ffrctot is None:
+            self._ffrctot = self.ffrc.sum()
+        return self._ffrctot
+
+    @property
+    def fmomtot(self) -> Vector:
+        if self._fmomtot is None:
+            self._fmomtot = self.fmom.sum()
+        return self._fmomtot
+
+    @property
+    def Cx(self) -> float:
+        if self._Cx is None:
+            self._Cx = self.ffrctot.x/self.result.qfs/self.system.sref
+            self._Cx = fix_zero(self._Cx)
+        return self._Cx
+
+    @property
+    def Cy(self) -> float:
+        if self._Cy is None:
+            self._Cy = self.ffrctot.y/self.result.qfs/self.system.sref
+            self._Cy = fix_zero(self._Cy)
+        return self._Cy
+
+    @property
+    def Cz(self) -> float:
+        if self._Cz is None:
+            self._Cz = self.ffrctot.z/self.result.qfs/self.system.sref
+            self._Cz = fix_zero(self._Cz)
+        return self._Cz
+
+    @property
+    def CDi(self) -> float:
+        if self._CDi is None:
+            Di = self.ffrctot.dot(self.result.acs.dirx)
+            self._CDi = Di/self.result.qfs/self.result.system.sref
+            self._CDi = fix_zero(self._CDi)
+        return self._CDi
+
+    @property
+    def CY(self) -> float:
+        if self._CY is None:
+            Y = self.ffrctot.dot(self.result.acs.diry)
+            self._CY = Y/self.result.qfs/self.result.system.sref
+            self._CY = fix_zero(self._CY)
+        return self._CY
+
+    @property
+    def CL(self) -> float:
+        if self._CL is None:
+            L = self.ffrctot.dot(self.result.acs.dirz)
+            self._CL = L/self.result.qfs/self.result.system.sref
+            self._CL = fix_zero(self._CL)
+        return self._CL
+
+    @property
+    def Cl(self) -> float:
+        if self._Cl is None:
+            l = self.fmomtot.dot(self.result.scs.dirx)
+            self._Cl = l/self.result.qfs/self.result.system.sref/self.result.system.bref
+            self._Cl = fix_zero(self._Cl)
+        return self._Cl
+
+    @property
+    def Cm(self) -> float:
+        if self._Cm is None:
+            m = self.fmomtot.dot(self.result.scs.diry)
+            self._Cm = m/self.result.qfs/self.result.system.sref/self.result.system.cref
+            self._Cm = fix_zero(self._Cm)
+        return self._Cm
+
+    @property
+    def Cn(self) -> float:
+        if self._Cn is None:
+            n = self.fmomtot.dot(self.result.scs.dirz)
+            self._Cn = n/self.result.qfs/self.result.system.sref/self.result.system.bref
+            self._Cn = fix_zero(self._Cn)
+        return self._Cn
+
+    @property
+    def e(self) -> float:
+        if self._e is None:
+            L = self.CL*self.result.qfs*self.result.system.sref
+            Di = self.CDi*self.result.qfs*self.result.system.sref
+            if Di != 0.0:
+                self._e = L/Di
+            else:
+                self._e = 0.0
+            self._e = fix_zero(self._e)
+        return self._e
+
+    def to_mdobj(self) -> MDReport:
+        from . import cfrm, dfrm, efrm
+
+        report = MDReport()
+        heading = MDHeading(f'Face Result for {self.result.name} on {self.system.name}', 1)
+        report.add_object(heading)
+        table = MDTable()
+        table.add_column('Cfx', cfrm, data=[self.Cfx])
+        table.add_column('Cfy', cfrm, data=[self.Cfy])
+        table.add_column('Cfz', cfrm, data=[self.Cfz])
+        report.add_object(table)
+        table = MDTable()
+        table.add_column('CDi', dfrm, data=[self.CDi])
+        table.add_column('CY', cfrm, data=[self.CY])
+        table.add_column('CL', cfrm, data=[self.CL])
+        table.add_column('Cl', cfrm, data=[self.Cl])
+        table.add_column('Cm', cfrm, data=[self.Cm])
+        table.add_column('Cn', cfrm, data=[self.Cn])
+        report.add_object(table)
+
+        return report
+
+    def __str__(self) -> str:
+        return self.to_mdobj().__str__()
+
+    def __repr__(self):
+        return f'<FaceResult: {self.result.name} on {self.system.name}>'
+
+    def _repr_markdown_(self):
+        return self.to_mdobj()._repr_markdown_()
 
 
 class NearFieldResult():
@@ -1323,7 +1561,7 @@ class NearFieldResult():
             elif self.CL == 0.0 and self.CY == 0.0:
                 self._e = 0.0
             else:
-                self._e = (self.CL**2+self.CY**2)/pi/self.res.system.ar/self.CDi
+                self._e = (self.CL**2 + self.CY**2)/pi/self.res.system.ar/self.CDi
                 self._e = fix_zero(self._e)
         return self._e
 

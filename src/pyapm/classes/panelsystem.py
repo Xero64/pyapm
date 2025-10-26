@@ -3,11 +3,12 @@ from os.path import dirname, exists, join
 # from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
-from matplotlib.pyplot import figure
+# from matplotlib.pyplot import figure
 from numpy import zeros, eye
 from numpy.linalg import inv
 from py2md.classes import MDTable
 from pygeom.geom3d import Vector
+from pygeom.geom2d import Vector2D
 
 from ..tools import betm_from_mach
 from ..tools.mass import MassObject, masses_from_data, masses_from_json
@@ -21,11 +22,12 @@ from .panelsurface import PanelSurface
 from .paneltrim import PanelTrim
 
 if TYPE_CHECKING:
-    from matplotlib.axes import Axes
+    # from matplotlib.axes import Axes
     from numpy.typing import NDArray
 
     from ..tools.mass import MassCollection
     from .edge import Edge
+    from .face import Face
     from .panelstrip import PanelStrip
     from .wakepanel import WakePanel
 
@@ -98,6 +100,17 @@ class PanelSystem():
     # _wgrida: Vector = None
     # _wgridb: Vector = None
     # _wdirl: Vector = None
+    _dfaces: list['Face'] = None
+    _num_dfaces: int = None
+    _dface_pnt: Vector = None
+    _dface_indg: 'NDArray' = None
+    _dface_indp: 'NDArray' = None
+    _dface_velg: Vector2D = None
+    _dface_velp: Vector2D = None
+    _dface_dirx: Vector2D = None
+    _dface_diry: Vector2D = None
+    _dface_dirz: Vector2D = None
+    _dface_area: 'NDArray' = None
 
     def __init__(self, name: str, bref: float, cref: float,
                  sref: float, rref: Vector) -> None:
@@ -671,6 +684,97 @@ class PanelSystem():
                     self._cmat[wpanel.ind, dpanel.ind] = 1.0
         return self._cmat
 
+    @property
+    def dfaces(self) -> list['Face']:
+        if self._dfaces is None:
+            self._dfaces = []
+            for panel in self.dpanels.values():
+                for face in panel.faces:
+                    self._dfaces.append(face)
+        return self._dfaces
+
+    @property
+    def num_dfaces(self) -> int:
+        if self._num_dfaces is None:
+            self._num_dfaces = len(self.dfaces)
+        return self._num_dfaces
+
+    def assemble_dfaces(self) -> None:
+        self._dface_pnts = Vector.zeros(self.num_dfaces)
+        self._dface_dirx = Vector.zeros(self.num_dfaces)
+        self._dface_diry = Vector.zeros(self.num_dfaces)
+        self._dface_dirz = Vector.zeros(self.num_dfaces)
+        self._dface_area = zeros(self.num_dfaces)
+        self._dface_indg = zeros((self.num_dfaces, 2), dtype=int)
+        self._dface_velg = Vector2D.zeros((self.num_dfaces, 2))
+        self._dface_indp = zeros(self.num_dfaces, dtype=int)
+        self._dface_velp = Vector2D.zeros(self.num_dfaces)
+
+        for i, face in enumerate(self.dfaces):
+            self._dface_pnts[i] = face.cord.pnt
+            self._dface_dirx[i] = face.cord.dirx
+            self._dface_diry[i] = face.cord.diry
+            self._dface_dirz[i] = face.cord.dirz
+            self._dface_area[i] = face.area
+            self._dface_indg[i, ...] = face.indg
+            self._dface_velg[i, ...] = face.velg
+            self._dface_indp[i] = face.indp
+            self._dface_velp[i] = face.velp
+
+    @property
+    def dface_pnts(self) -> Vector:
+        if self._dface_pnts is None:
+            self.assemble_dfaces()
+        return self._dface_pnts
+
+    @property
+    def dface_indg(self) -> 'NDArray':
+        if self._dface_indg is None:
+            self.assemble_dfaces()
+        return self._dface_indg
+
+    @property
+    def dface_indp(self) -> 'NDArray':
+        if self._dface_indp is None:
+            self.assemble_dfaces()
+        return self._dface_indp
+
+    @property
+    def dface_velg(self) -> Vector2D:
+        if self._dface_velg is None:
+            self.assemble_dfaces()
+        return self._dface_velg
+
+    @property
+    def dface_velp(self) -> Vector2D:
+        if self._dface_velp is None:
+            self.assemble_dfaces()
+        return self._dface_velp
+
+    @property
+    def dface_dirx(self) -> Vector:
+        if self._dface_dirx is None:
+            self.assemble_dfaces()
+        return self._dface_dirx
+
+    @property
+    def dface_diry(self) -> Vector:
+        if self._dface_diry is None:
+            self.assemble_dfaces()
+        return self._dface_diry
+
+    @property
+    def dface_dirz(self) -> Vector:
+        if self._dface_dirz is None:
+            self.assemble_dfaces()
+        return self._dface_dirz
+
+    @property
+    def dface_area(self) -> 'NDArray':
+        if self._dface_area is None:
+            self.assemble_dfaces()
+        return self._dface_area
+
     # def assemble_panels_vel(self, *, mach: float = 0.0) -> None:
     #     if self._apd is None:
     #         self._apd = {}
@@ -819,130 +923,130 @@ class PanelSystem():
     #         self._unphi = {}
     #     self._unphi[mach] = Vector.zeros(self._unnvg[mach].shape)
 
-    def plot_twist_distribution(self, ax: 'Axes'=None, axis: str='b',
-                                surfaces: list['PanelSurface']=None) -> 'Axes':
-        if self.srfcs is not None:
-            if ax is None:
-                fig = figure(figsize=(12, 8))
-                ax = fig.gca()
-                ax.grid(True)
-            if surfaces is None:
-                srfcs = [srfc for srfc in self.srfcs]
-            else:
-                srfcs = []
-                for srfc in self.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            for srfc in srfcs:
-                t = [prf.twist for prf in srfc.prfs]
-                label = srfc.name
-                if axis == 'b':
-                    b = srfc.prfb
-                    if max(b) > min(b):
-                        ax.plot(b, t, label=label)
-                elif axis == 'y':
-                    y = srfc.prfy
-                    if max(y) > min(y):
-                        ax.plot(y, t, label=label)
-                elif axis == 'z':
-                    z = srfc.prfz
-                    if max(z) > min(z):
-                        ax.plot(z, t, label=label)
-            ax.legend()
-        return ax
+    # def plot_twist_distribution(self, ax: 'Axes'=None, axis: str='b',
+    #                             surfaces: list['PanelSurface']=None) -> 'Axes':
+    #     if self.srfcs is not None:
+    #         if ax is None:
+    #             fig = figure(figsize=(12, 8))
+    #             ax = fig.gca()
+    #             ax.grid(True)
+    #         if surfaces is None:
+    #             srfcs = [srfc for srfc in self.srfcs]
+    #         else:
+    #             srfcs = []
+    #             for srfc in self.srfcs:
+    #                 if srfc.name in surfaces:
+    #                     srfcs.append(srfc)
+    #         for srfc in srfcs:
+    #             t = [prf.twist for prf in srfc.prfs]
+    #             label = srfc.name
+    #             if axis == 'b':
+    #                 b = srfc.prfb
+    #                 if max(b) > min(b):
+    #                     ax.plot(b, t, label=label)
+    #             elif axis == 'y':
+    #                 y = srfc.prfy
+    #                 if max(y) > min(y):
+    #                     ax.plot(y, t, label=label)
+    #             elif axis == 'z':
+    #                 z = srfc.prfz
+    #                 if max(z) > min(z):
+    #                     ax.plot(z, t, label=label)
+    #         ax.legend()
+    #     return ax
 
-    def plot_chord_distribution(self, ax: 'Axes'=None, axis: str='b', surfaces: list=None):
-        if self.srfcs is not None:
-            if ax is None:
-                fig = figure(figsize=(12, 8))
-                ax = fig.gca()
-                ax.grid(True)
-            if surfaces is None:
-                srfcs = [srfc for srfc in self.srfcs]
-            else:
-                srfcs = []
-                for srfc in self.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            for srfc in srfcs:
-                c = [prf.chord for prf in srfc.prfs]
-                label = srfc.name
-                if axis == 'b':
-                    b = srfc.prfb
-                    if max(b) > min(b):
-                        ax.plot(b, c, label=label)
-                elif axis == 'y':
-                    y = srfc.prfy
-                    if max(y) > min(y):
-                        ax.plot(y, c, label=label)
-                elif axis == 'z':
-                    z = srfc.strpz
-                    if max(z) > min(z):
-                        ax.plot(z, c, label=label)
-            ax.legend()
-        return ax
+    # def plot_chord_distribution(self, ax: 'Axes'=None, axis: str='b', surfaces: list=None):
+    #     if self.srfcs is not None:
+    #         if ax is None:
+    #             fig = figure(figsize=(12, 8))
+    #             ax = fig.gca()
+    #             ax.grid(True)
+    #         if surfaces is None:
+    #             srfcs = [srfc for srfc in self.srfcs]
+    #         else:
+    #             srfcs = []
+    #             for srfc in self.srfcs:
+    #                 if srfc.name in surfaces:
+    #                     srfcs.append(srfc)
+    #         for srfc in srfcs:
+    #             c = [prf.chord for prf in srfc.prfs]
+    #             label = srfc.name
+    #             if axis == 'b':
+    #                 b = srfc.prfb
+    #                 if max(b) > min(b):
+    #                     ax.plot(b, c, label=label)
+    #             elif axis == 'y':
+    #                 y = srfc.prfy
+    #                 if max(y) > min(y):
+    #                     ax.plot(y, c, label=label)
+    #             elif axis == 'z':
+    #                 z = srfc.strpz
+    #                 if max(z) > min(z):
+    #                     ax.plot(z, c, label=label)
+    #         ax.legend()
+    #     return ax
 
-    def plot_tilt_distribution(self, ax: 'Axes'=None, axis: str='b', surfaces: list=None):
-        if self.srfcs is not None:
-            if ax is None:
-                fig = figure(figsize=(12, 8))
-                ax = fig.gca()
-                ax.grid(True)
-            if surfaces is None:
-                srfcs = [srfc for srfc in self.srfcs]
-            else:
-                srfcs = []
-                for srfc in self.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            for srfc in srfcs:
-                t = [prf.tilt for prf in srfc.prfs]
-                label = srfc.name
-                if axis == 'b':
-                    b = srfc.prfb
-                    if max(b) > min(b):
-                        ax.plot(b, t, label=label)
-                elif axis == 'y':
-                    y = srfc.prfy
-                    if max(y) > min(y):
-                        ax.plot(y, t, label=label)
-                elif axis == 'z':
-                    z = srfc.strpz
-                    if max(z) > min(z):
-                        ax.plot(z, t, label=label)
-            ax.legend()
-        return ax
+    # def plot_tilt_distribution(self, ax: 'Axes'=None, axis: str='b', surfaces: list=None):
+    #     if self.srfcs is not None:
+    #         if ax is None:
+    #             fig = figure(figsize=(12, 8))
+    #             ax = fig.gca()
+    #             ax.grid(True)
+    #         if surfaces is None:
+    #             srfcs = [srfc for srfc in self.srfcs]
+    #         else:
+    #             srfcs = []
+    #             for srfc in self.srfcs:
+    #                 if srfc.name in surfaces:
+    #                     srfcs.append(srfc)
+    #         for srfc in srfcs:
+    #             t = [prf.tilt for prf in srfc.prfs]
+    #             label = srfc.name
+    #             if axis == 'b':
+    #                 b = srfc.prfb
+    #                 if max(b) > min(b):
+    #                     ax.plot(b, t, label=label)
+    #             elif axis == 'y':
+    #                 y = srfc.prfy
+    #                 if max(y) > min(y):
+    #                     ax.plot(y, t, label=label)
+    #             elif axis == 'z':
+    #                 z = srfc.strpz
+    #                 if max(z) > min(z):
+    #                     ax.plot(z, t, label=label)
+    #         ax.legend()
+    #     return ax
 
-    def plot_strip_width_distribution(self, ax: 'Axes'=None, axis: str='b', surfaces: list=None):
-        if self.srfcs is not None:
-            if ax is None:
-                fig = figure(figsize=(12, 8))
-                ax = fig.gca()
-                ax.grid(True)
-            if surfaces is None:
-                srfcs = [srfc for srfc in self.srfcs]
-            else:
-                srfcs = []
-                for srfc in self.srfcs:
-                    if srfc.name in surfaces:
-                        srfcs.append(srfc)
-            for srfc in srfcs:
-                w = [strp.width for strp in srfc.strps]
-                label = srfc.name
-                if axis == 'b':
-                    b = srfc.strpb
-                    if max(b) > min(b):
-                        ax.plot(b, w, label=label)
-                elif axis == 'y':
-                    y = srfc.strpy
-                    if max(y) > min(y):
-                        ax.plot(y, w, label=label)
-                elif axis == 'z':
-                    z = srfc.strpz
-                    if max(z) > min(z):
-                        ax.plot(z, w, label=label)
-            ax.legend()
-        return ax
+    # def plot_strip_width_distribution(self, ax: 'Axes'=None, axis: str='b', surfaces: list=None):
+    #     if self.srfcs is not None:
+    #         if ax is None:
+    #             fig = figure(figsize=(12, 8))
+    #             ax = fig.gca()
+    #             ax.grid(True)
+    #         if surfaces is None:
+    #             srfcs = [srfc for srfc in self.srfcs]
+    #         else:
+    #             srfcs = []
+    #             for srfc in self.srfcs:
+    #                 if srfc.name in surfaces:
+    #                     srfcs.append(srfc)
+    #         for srfc in srfcs:
+    #             w = [strp.width for strp in srfc.strps]
+    #             label = srfc.name
+    #             if axis == 'b':
+    #                 b = srfc.strpb
+    #                 if max(b) > min(b):
+    #                     ax.plot(b, w, label=label)
+    #             elif axis == 'y':
+    #                 y = srfc.strpy
+    #                 if max(y) > min(y):
+    #                     ax.plot(y, w, label=label)
+    #             elif axis == 'z':
+    #                 z = srfc.strpz
+    #                 if max(z) > min(z):
+    #                     ax.plot(z, w, label=label)
+    #         ax.legend()
+    #     return ax
 
     def mesh(self) -> None:
         if self.surfaces is not None:

@@ -1,12 +1,12 @@
 from typing import TYPE_CHECKING
 
-from numpy import (absolute, arange, asarray, full, minimum, ones, pi, sqrt,
-                   zeros)
-from numpy.linalg import inv, solve
+from numpy import arange, asarray, full, minimum, ones, pi, sqrt
+from numpy.linalg import solve
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import IHAT, KHAT, Coordinate, Vector
 from pygeom.geom3d.tools import angle_between_vectors
 
+from .face import Face
 from .grid import Grid
 from .horseshoedoublet import HorseshoeDoublet
 
@@ -22,178 +22,6 @@ if TYPE_CHECKING:
 
 OOR2 = 1/sqrt(2.0)
 ANGTOL = pi/4
-
-
-class PanelFace:
-    fid: int = None
-    grda: Grid = None
-    grdb: Grid = None
-    pnl: 'Panel' = None
-    ind: int = None
-    _pnto: Vector = None
-    _nrml: Vector = None
-    _jac: float = None
-    _area: float = None
-    _cord: Coordinate = None
-    _pnta: Vector2D = None
-    _pntb: Vector2D = None
-    _pntc: Vector2D = None
-    _xba: float = None
-    _xac: float = None
-    _xcb: float = None
-    _yab: float = None
-    _ybc: float = None
-    _yca: float = None
-    _baryinv: float = None
-
-    def __init__(self, fid: int, grda: Grid, grdb: Grid, pnl: 'Panel') -> None:
-        self.fid = fid
-        self.grda = grda
-        self.grdb = grdb
-        self.pnl = pnl
-
-    @property
-    def grdc(self) -> Vector:
-        return self.pnl.pnto
-
-    @property
-    def pnto(self) -> Vector:
-        if self._pnto is None:
-            self._pnto = (self.grda + self.grdb + self.grdc)/3
-        return self._pnto
-
-    def calc_normal_and_jac(self) -> tuple[Vector, float]:
-        if self._nrml is None or self._area is None:
-            vecab = self.grdb - self.grda
-            vecbc = self.grdc - self.grdb
-            nrml, jac = vecab.cross(vecbc).to_unit(return_magnitude=True)
-        return nrml, jac
-
-    @property
-    def nrml(self) -> Vector:
-        if self._nrml is None:
-            self._nrml, self._jac = self.calc_normal_and_jac()
-        return self._nrml
-
-    @property
-    def jac(self) -> float:
-        if self._jac is None:
-            self._nrml, self._jac = self.calc_normal_and_jac()
-        return self._jac
-
-    @property
-    def area(self) -> float:
-        if self._area is None:
-            self._area = self.jac/2.0
-        return self._area
-
-    def set_dirl(self, vecl: Vector) -> None:
-        dirz = self.nrml
-        vecy = dirz.cross(vecl)
-        vecx = vecy.cross(dirz)
-        self._cord = Coordinate(self.grdc, vecx, vecy)
-
-    @property
-    def cord(self) -> Coordinate:
-        if self._cord is None:
-            raise ValueError('PanelFace coordinate not set. Call set_dirl() first.')
-        return self._cord
-
-    @property
-    def pnta(self) -> Vector2D:
-        if self._pnta is None:
-            veca = Vector.from_obj(self.grda)
-            loca = self.cord.point_to_local(veca)
-            self._pnta = Vector2D.from_obj(loca)
-        return self._pnta
-
-    @property
-    def pntb(self) -> Vector2D:
-        if self._pntb is None:
-            vecb = Vector.from_obj(self.grdb)
-            locb = self.cord.point_to_local(vecb)
-            self._pntb = Vector2D.from_obj(locb)
-        return self._pntb
-
-    @property
-    def pntc(self) -> Vector2D:
-        if self._pntc is None:
-            vecc = Vector.from_obj(self.grdc)
-            locc = self.cord.point_to_local(vecc)
-            self._pntc = Vector2D.from_obj(locc)
-        return self._pntc
-
-    @property
-    def xba(self) -> float:
-        if self._xba is None:
-            self._xba = self.pntb.x - self.pnta.x
-        return self._xba
-
-    @property
-    def xac(self) -> float:
-        if self._xac is None:
-            self._xac = self.pnta.x - self.pntc.x
-        return self._xac
-
-    @property
-    def xcb(self) -> float:
-        if self._xcb is None:
-            self._xcb = self.pntc.x - self.pntb.x
-        return self._xcb
-
-    @property
-    def yab(self) -> float:
-        if self._yab is None:
-            self._yab = self.pnta.y - self.pntb.y
-        return self._yab
-
-    @property
-    def ybc(self) -> float:
-        if self._ybc is None:
-            self._ybc = self.pntb.y - self.pntc.y
-        return self._ybc
-
-    @property
-    def yca(self) -> float:
-        if self._yca is None:
-            self._yca = self.pntc.y - self.pnta.y
-        return self._yca
-
-    def face_qxJ(self, mu: 'NDArray', mug: 'NDArray') -> Vector2D:
-        muc = mu[self.pnl.ind]
-        mua = mug[self.grda.ind]
-        mub = mug[self.grdb.ind]
-        qxJ = mua*self.ybc + mub*self.yca + muc*self.yab
-        qyJ = mua*self.xcb + mub*self.xac + muc*self.xba
-        return Vector2D(qxJ, qyJ)
-
-    @property
-    def baryinv(self) -> 'NDArray':
-        if self._baryinv is None:
-            amat = zeros((3, 3))
-            amat[0, :] = 1.0
-            amat[1, 0] = self.pnta.x
-            amat[2, 0] = self.pnta.y
-            amat[1, 1] = self.pntb.x
-            amat[2, 1] = self.pntb.y
-            amat[1, 2] = self.pntc.x
-            amat[2, 2] = self.pntc.y
-            self._baryinv = inv(amat)
-        return self._baryinv
-
-    def mint_and_absz(self, pnts: Vector) -> tuple['NDArray', 'NDArray']:
-        t123, absz = self.t123_and_absz(pnts)
-        mint = t123.min(axis=-1)
-        return mint, absz
-
-    def t123_and_absz(self, pnts: Vector) -> tuple['NDArray', 'NDArray']:
-        pntl = self.cord.point_to_local(pnts)
-        xy1 = ones((*pnts.shape, 3))
-        xy1[..., 1] = pntl.x
-        xy1[..., 2] = pntl.y
-        t123 = xy1@self.baryinv.transpose()
-        absz = absolute(pntl.z)
-        return t123, absz
 
 
 class Panel():
@@ -213,23 +41,22 @@ class Panel():
     _vecas: Vector = None
     _vecbs: Vector = None
     _veccs: Vector = None
-    # _vecab: Vector = None
     _vecaxb: Vector = None
     _sumaxb: Vector = None
-    # _dirxab: Vector = None
-    # _diryab: Vector = None
-    # _dirzab: Vector = None
-    # _baryinv: 'NDArray' = None
     _area: float = None
     _nrm: Vector = None
     _crd: Coordinate = None
-    _faces: list[PanelFace] = None
+    _faces: list[Face] = None
     _edges: list['Edge'] = None
     _panel_gradient: 'NDArray' = None
     _hsvs: list[HorseshoeDoublet] = None
     _grdpnls: list[list['Panel']] = None
     _grdinds: list[list[int]] = None
     _grdfacs: list[list[float]] = None
+    _edge_velg: 'NDArray' = None
+    _edge_velp: Vector2D = None
+    _edge_indg: 'NDArray' = None
+    _edge_indp: 'NDArray' = None
 
     def __init__(self, pid: int, grids: list[Grid]) -> None:
         self.pid = pid
@@ -345,7 +172,7 @@ class Panel():
         if self._vecas is None:
             self._vecas = Vector.zeros(self.num)
             for i, face in enumerate(self.faces):
-                self._vecas[i] = face.grda
+                self._vecas[i] = face.grida
         return self._vecas
 
     @property
@@ -353,7 +180,7 @@ class Panel():
         if self._vecbs is None:
             self._vecbs = Vector.zeros(self.num)
             for i, face in enumerate(self.faces):
-                self._vecbs[i] = face.grdb
+                self._vecbs[i] = face.gridb
         return self._vecbs
 
     @property
@@ -361,7 +188,7 @@ class Panel():
         if self._veccs is None:
             self._veccs = Vector.zeros(self.num)
             for i, face in enumerate(self.faces):
-                self._veccs[i] = face.grdc
+                self._veccs[i] = face.gridc
         return self._veccs
 
     def check_panel(self, pnl: 'Panel') -> tuple[bool, bool, bool]:
@@ -415,7 +242,7 @@ class Panel():
         return self._edges
 
     @property
-    def faces(self) -> list[PanelFace]:
+    def faces(self) -> list[Face]:
         if self._faces is None:
             self._faces = []
             for i in range(self.num):
@@ -423,10 +250,59 @@ class Panel():
                 b = i
                 grda = self.grids[a]
                 grdb = self.grids[b]
-                face = PanelFace(i, grda, grdb, self)
+                face = Face(i, grda, grdb, self)
                 face.set_dirl(self.crd.dirx)
                 self._faces.append(face)
         return self._faces
+
+    def calc_edge_gradient(self) -> None:
+        self._edge_velg = Vector2D.zeros(self.num)
+        self._edge_velp = Vector2D.zeros()
+        self._edge_indg = asarray([grid.ind for grid in self.grids])
+        self._edge_indp = self.ind
+        edge_count = 0
+        for i, face in enumerate(self.faces):
+            found = False
+            for edge in self.edges:
+                if face.grida is edge.grida and face.gridb is edge.gridb:
+                    found = True
+                    break
+                elif face.grida is edge.gridb and face.gridb is edge.grida:
+                    found = True
+                    break
+            if edge.panel is None and found:
+                edge_count += 1
+                a = i - 1
+                b = i
+                self._edge_velg[a] += face.velg[0]
+                self._edge_velg[b] += face.velg[1]
+                self._edge_velp += face.velp
+        self._edge_velp /= edge_count
+        self._edge_velg /= edge_count
+
+    @property
+    def edge_velg(self) -> Vector2D:
+        if self._edge_velg is None:
+            self.calc_edge_gradient()
+        return self._edge_velg
+
+    @property
+    def edge_velp(self) -> Vector2D:
+        if self._edge_velp is None:
+            self.calc_edge_gradient()
+        return self._edge_velp
+
+    @property
+    def edge_indg(self) -> 'NDArray':
+        if self._edge_indg is None:
+            self.calc_edge_gradient()
+        return self._edge_indg
+
+    @property
+    def edge_indp(self) -> 'NDArray':
+        if self._edge_indp is None:
+            self.calc_edge_gradient()
+        return self._edge_indp
 
     @property
     def panel_gradient(self) -> 'NDArray':

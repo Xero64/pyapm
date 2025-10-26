@@ -1,0 +1,58 @@
+{
+    "name": "Tiny Wing",
+    "mach": 0.0,
+    "sref": 10.0,
+    "cref": 1.0,
+    "bref": 10.0,
+    "xref": 0.0,
+    "yref": 0.0,
+    "zref": 0.0,
+    "surfaces": [
+        {
+            "name": "Wing",
+            "twist": 0.0,
+            "cnum": 20,
+            "close": true,
+            "mirror": false,
+            "sections": [
+                {
+                    "xpos": 0.0,
+                    "ypos": -5.0,
+                    "zpos": 0.0,
+                    "chord": 1.0,
+                    "bnum": 1,
+                    "bspc": "full-cosine",
+                    "airfoil": "NACA 0012",
+                    "xoc": 0.25,
+                    "zoc": 0.0,
+                    "controls": {
+                        "flap": {
+                            "xhinge": 0.7,
+                            "posgain": 1.0,
+                            "neggain": 1.0,
+                            "reverse": false,
+                            "hvec": {"x": 0.0, "y": 0.0, "z": 0.0}
+                        }
+                    }
+                },
+                {
+                    "xpos": 0.0,
+                    "ypos": 5.0,
+                    "zpos": 0.0,
+                    "chord": 1.0,
+                    "airfoil": "NACA 0012",
+                    "xoc": 0.25,
+                    "zoc": 0.0
+                }
+            ]
+        }
+    ],
+    "cases": [
+        {
+            "name": "Test Case",
+            "alpha": 5.0,
+            "speed": 50.0,
+            "density": 1.225
+        }
+    ]
+}

@@ -5,10 +5,11 @@ from pyapm.classes import PanelSystem
 from pyapm.outputs.k3d import PanelPlot
 from pyapm.outputs.msh import panelresult_to_msh
 from numpy.linalg import norm
+from k3d import text2d
 
 #%%
 # Create Panel System
-jsonfilepath = '../files/Test_Simple_Wing_2.json'
+jsonfilepath = '../files/Tiny_Wing.json'
 psys = PanelSystem.from_json(jsonfilepath)
 display_markdown(psys)
 
@@ -42,46 +43,12 @@ display_markdown(pres.surface_loads)
 
 #%%
 # Print Outs
-# print(f'sig = \n{pres.sig}')
-# print(f'mud = \n{pres.mud}')
-# print(f'muw = \n{pres.muw}')
-# print(f'mug = \n{pres.mug}')
+print(f'sig = \n{pres.sig}')
+print(f'mud = \n{pres.mud}')
+print(f'muw = \n{pres.muw}')
+print(f'mug = \n{pres.mug}')
 
-# print(f'{norm(pres.phi)}')
-
-#%%
-# Distribution Plots
-axd = pres.plot_strip_drag_force_distribution()
-_ = axd.set_ylabel('Drag Force (N/m)')
-_ = axd.set_xlabel('Span-Wise Coordinate - y (m)')
-# _ = pres.plot_trefftz_drag_force_distribution(ax=axd)
-axs = pres.plot_strip_side_force_distribution()
-_ = axs.set_ylabel('Side Force (N/m)')
-_ = axs.set_xlabel('Span-Wise Coordinate - y (m)')
-# _ = pres.plot_trefftz_side_force_distribution(ax=axs)
-axl = pres.plot_strip_lift_force_distribution()
-_ = axl.set_ylabel('Lift Force (N/m)')
-_ = axl.set_xlabel('Span-Wise Coordinate - y (m)')
-# _ = pres.plot_trefftz_lift_force_distribution(ax=axl)
-# axw = pres.plot_trefftz_wash_distribution()
-# _ = axw.set_ylabel('Wash (m/s)')
-# _ = axw.set_xlabel('Span-Wise Coordinate - y (m)')
-
-# #%%
-# Solve Panel Result
-# rho = 1.225
-# speed = 1.0
-# alpha = 5.0
-# pbo2v = 0.3
-
-# pres = PanelResult(f'Test Case', psys)
-# pres.set_density(rho=rho)
-# pres.set_state(alpha=alpha, speed=speed, pbo2v=pbo2v)
-
-# #%%
-# Output MSH File
-# mshfilepath = '../results/Test Simple Wing 2 Roll.msh'
-# panelresult_to_msh(pres, mshfilepath)
+print(f'{norm(pres.phi)}')
 
 #%%
 # Display Result
@@ -97,6 +64,7 @@ pnlpl = PanelPlot(psys, pres)
 
 siggplot = pnlpl.plot()
 siggplot += pnlpl.grid_sigma_plot()
+siggplot += text2d("Grid Sigma Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 siggplot.display()
 
 # mudplot = pnlpl.plot()
@@ -105,23 +73,28 @@ siggplot.display()
 
 mugplot = pnlpl.plot()
 mugplot += pnlpl.grid_mu_plot()
+mugplot += text2d("Grid Mu Plot", position=(0.5, 0.5), is_html=True, label_box=False, color=0x000000)
 mugplot.display()
 
 fvxplot = pnlpl.plot()
 fvxplot += pnlpl.face_vx_plot()
+fvxplot += text2d("Face Vx Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 fvxplot.display()
 
 fvyplot = pnlpl.plot()
 fvyplot += pnlpl.face_vy_plot()
+fvyplot += text2d("Face Vy Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 fvyplot.display()
 
 fcpplot = pnlpl.plot()
 fcpplot += pnlpl.face_cp_plot()
+fcpplot += text2d("Face Cp Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 fcpplot.display()
 
 ffrcplot = pnlpl.plot()
 ffrcplot += pnlpl.panel_mesh()
-ffrcplot += pnlpl.face_force_plot(scale=0.05, head_size=0.5, line_width=0.01)
+ffrcplot += pnlpl.face_force_plot(scale=0.05, head_size=0.05, line_width=0.001)
+ffrcplot += text2d("Face Force Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 ffrcplot.display()
 
 #%%

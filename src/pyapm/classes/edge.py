@@ -35,6 +35,7 @@ class Edge():
     _panelb_fac: float = None
     _grida_fac: float = None
     _gridb_fac: float = None
+    _vecec: 'Vector2D' = None
 
     def __init__(self, grida: 'Grid', gridb: 'Grid') -> None:
         self.grida = grida
@@ -54,6 +55,7 @@ class Edge():
             raise ValueError(f'Multiple panels found for edge {self.grida} to {self.gridb}')
         else:
             self._panela = None
+
         panels_b: list['Panel'] = []
         for panel in self.gridb.panels:
             for i in range(-1, panel.num-1):
@@ -66,6 +68,7 @@ class Edge():
             raise ValueError(f'Multiple panels found for edge {self.gridb} to {self.grida}')
         else:
             self._panelb = None
+
         if self._panela is None and self._panelb is not None:
             self._panel = self._panelb
         elif self._panelb is None and self._panela is not None:
@@ -213,11 +216,24 @@ class Edge():
             self._gridb_fac = self.gridb_len / self.grid_tot
         return self._gridb_fac
 
+    @property
+    def vecec(self) -> 'Vector2D':
+        if self._vecec is None and self.panel is not None:
+            for face in self.panel.faces:
+                if (face.grida is self.grida and face.gridb is self.gridb) or \
+                   (face.grida is self.gridb and face.gridb is self.grida):
+                    break
+            face_pnte = (face.pointa + face.pointb) * 0.5
+            face_pntc = face.pointc
+            self._vecec = face_pnte - face_pntc
+        return self._vecec
+
     def __repr__(self) -> str:
         return f'Edge({self.grida}, {self.gridb})'
 
     def __str__(self) -> str:
         return self.__repr__()
+
 
 def edges_from_system(system: 'PanelSystem') -> list[Edge]:
     """Create a list of unique edges from a PanelSystem.
@@ -247,25 +263,42 @@ def edges_from_system(system: 'PanelSystem') -> list[Edge]:
         edges.append(Edge(grida, gridb))
     return edges
 
+
 def edges_array(edges: list[Edge]) -> 'NDArray':
-    conedges = [edge for edge in edges if edge.panel is None]
-    num_edges = len(conedges)
-    gindices = zeros((num_edges, 2), dtype=int)
-    pindices = zeros((num_edges, 2), dtype=int)
-    for i, conedge in enumerate(conedges):
-        gindices[i, 0] = conedge.grida.ind
-        gindices[i, 1] = conedge.gridb.ind
-        pindices[i, 0] = conedge.panela.ind
-        pindices[i, 1] = conedge.panelb.ind
-    max_vind = gindices.max()
-    max_pind = pindices.max()
+    num_edges = len(edges)
+    # conedges = [edge for edge in edges if edge.panel is None]
+    # num_edges = len(conedges)
+    max_vind = None
+    max_pind = None
+    for i, edge in enumerate(edges):
+        if max_vind is None or edge.grida.ind > max_vind:
+            max_vind = edge.grida.ind
+        if max_vind is None or edge.gridb.ind > max_vind:
+            max_vind = edge.gridb.ind
+        if max_pind is None or (edge.panela is not None and edge.panela.ind > max_pind):
+            max_pind = edge.panela.ind
+        if max_pind is None or (edge.panelb is not None and edge.panelb.ind > max_pind):
+            max_pind = edge.panelb.ind
     varray = zeros((num_edges, max_vind + 1), dtype=float)
     parray = zeros((num_edges, max_pind + 1), dtype=float)
-    for i, conedge in enumerate(conedges):
-        varray[i, conedge.grida.ind] = conedge.gridb_fac
-        varray[i, conedge.gridb.ind] = conedge.grida_fac
-        parray[i, conedge.panela.ind] = conedge.panelb_fac
-        parray[i, conedge.panelb.ind] = conedge.panela_fac
+    for i, edge in enumerate(edges):
+        if edge.panel is None:
+            varray[i, edge.grida.ind] = edge.gridb_fac
+            varray[i, edge.gridb.ind] = edge.grida_fac
+            parray[i, edge.panela.ind] = edge.panelb_fac
+            parray[i, edge.panelb.ind] = edge.panela_fac
+        else:
+            varray[i, edge.grida.ind] = 0.5
+            varray[i, edge.gridb.ind] = 0.5
+            parray[i, edge.panel.ind] = 1.0
+            grid_inds = edge.panel.edge_indg
+            panel_inds = edge.panel.edge_indp
+            edge_velg = edge.panel.edge_velg
+            edge_velp = edge.panel.edge_velp
+            edge_mug = edge_velg.dot(edge.vecec)
+            edge_mud = edge_velp.dot(edge.vecec)
+            parray[i, panel_inds] -= edge_mud
+            varray[i, grid_inds] += edge_mug
     amat = varray.transpose() @ varray
     bmat = varray.transpose() @ parray
     earray = solve(amat, bmat)

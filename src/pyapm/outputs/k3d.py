@@ -25,6 +25,8 @@ class PanelPlot:
     _pntos: 'NDArray'
     _grids: 'NDArray'
     _vinds: 'NDArray'
+    _fpnts: 'NDArray'
+    _finds: 'NDArray'
 
     __slots__ = tuple(__annotations__)
 
@@ -66,68 +68,86 @@ class PanelPlot:
     def create_plot(self, **kwargs: dict[str, Any]) -> Plot:
         return Plot(**kwargs)
 
-    def calculate_panel(self) -> None:
-        num_faces = 0
-        num_verts = 0
-        for panel in self.system.dpanels.values():
-            num_faces += panel.num
-            num_verts += panel.num*3
+    def calculate_faces(self) -> None:
+        # num_faces = 0
+        # num_verts = 0
+        # for panel in self.system.dpanels.values():
+        #     num_faces += panel.num
+        #     num_verts += panel.num*3
+        num_faces = self.system.num_dfaces
+        num_verts = self.system.num_dfaces*3
+        self._finds = zeros(num_verts, dtype=uint32)
         self._pinds = zeros(num_verts, dtype=uint32)
         self._vinds = zeros(num_verts, dtype=uint32)
         self._verts = zeros((num_verts, 3), dtype=float32)
         self._faces = zeros((num_faces, 3), dtype=uint32)
+        self._fpnts = zeros((num_faces, 3), dtype=float32)
         self._pntos = zeros((self.system.num_dpanels, 3), dtype=float32)
 
-        k = 0
-        l = 0
-        for i, panel in enumerate(self.system.dpanels.values()):
-            self._pntos[i, :] = panel.pnto.to_xyz()
-            for j in range(panel.num):
-                self._pinds[k] = panel.ind
-                self._vinds[k] = panel.grids[j - 1].ind + self.system.num_dpanels
-                self._verts[k, :] = panel.grids[j - 1].to_xyz()
-                self._faces[l, 0] = k
-                k += 1
-                self._pinds[k] = panel.ind
-                self._vinds[k] = panel.grids[j].ind + self.system.num_dpanels
-                self._verts[k, :] = panel.grids[j].to_xyz()
-                self._faces[l, 1] = k
-                k += 1
-                self._pinds[k] = panel.ind
-                self._vinds[k] = panel.ind
-                self._verts[k, :] = panel.pnto.to_xyz()
-                self._faces[l, 2] = k
-                k += 1
-                l += 1
+        for i, dface in enumerate(self.system.dfaces):
+            self._finds[i*3:i*3 + 3] = i
+            self._pinds[i*3:i*3 + 3] = dface.panel.ind
+            self._vinds[i*3] = dface.grida.ind + self.system.num_dpanels
+            self._vinds[i*3 + 1] = dface.gridb.ind + self.system.num_dpanels
+            self._vinds[i*3 + 2] = dface.panel.ind
+            self._verts[i*3, :] = dface.grida.to_xyz()
+            self._verts[i*3 + 1, :] = dface.gridb.to_xyz()
+            self._verts[i*3 + 2, :] = dface.gridc.to_xyz()
+            self._faces[i, 0] = i*3
+            self._faces[i, 1] = i*3 + 1
+            self._faces[i, 2] = i*3 + 2
+            self._fpnts[i, :] = dface.cord.pnt.to_xyz()
+
+        # k = 0
+        # l = 0
+        # for i, panel in enumerate(self.system.dpanels.values()):
+        #     self._pntos[i, :] = panel.pnto.to_xyz()
+        #     for j in range(panel.num):
+        #         self._pinds[k] = panel.ind
+        #         self._vinds[k] = panel.grids[j - 1].ind + self.system.num_dpanels
+        #         self._verts[k, :] = panel.grids[j - 1].to_xyz()
+        #         self._faces[l, 0] = k
+        #         k += 1
+        #         self._pinds[k] = panel.ind
+        #         self._vinds[k] = panel.grids[j].ind + self.system.num_dpanels
+        #         self._verts[k, :] = panel.grids[j].to_xyz()
+        #         self._faces[l, 1] = k
+        #         k += 1
+        #         self._pinds[k] = panel.ind
+        #         self._vinds[k] = panel.ind
+        #         self._verts[k, :] = panel.pnto.to_xyz()
+        #         self._faces[l, 2] = k
+        #         k += 1
+        #         l += 1
 
     @property
     def pinds(self) -> 'NDArray':
         if self._pinds is None:
-            self.calculate_panel()
+            self.calculate_faces()
         return self._pinds
 
     @property
     def vinds(self) -> 'NDArray':
         if self._vinds is None:
-            self.calculate_panel()
+            self.calculate_faces()
         return self._vinds
 
     @property
     def verts(self) -> 'NDArray':
         if self._verts is None:
-            self.calculate_panel()
+            self.calculate_faces()
         return self._verts
 
     @property
     def faces(self) -> 'NDArray':
         if self._faces is None:
-            self.calculate_panel()
+            self.calculate_faces()
         return self._faces
 
     @property
     def pntos(self) -> 'NDArray':
         if self._pntos is None:
-            self.calculate_panel()
+            self.calculate_faces()
         return self._pntos
 
     @property
@@ -137,6 +157,18 @@ class PanelPlot:
             for grid in self.system.grids.values():
                 self._grids[grid.ind, :] = grid.to_xyz()
         return self._grids
+
+    @property
+    def finds(self) -> 'NDArray':
+        if self._finds is None:
+            self.calculate_faces()
+        return self._finds
+
+    @property
+    def fpnts(self) -> 'NDArray':
+        if self._fpnts is None:
+            self.calculate_faces()
+        return self._fpnts
 
     def panel_mesh(self, **kwargs: dict[str, Any]) -> 'Mesh':
         kwargs['color'] = kwargs.get('color', 0xffd500)
@@ -209,3 +241,41 @@ class PanelPlot:
             raise ValueError('Result must be set to plot pressures.')
         kwargs['color_range'] = kwargs.get('color_range', [])
         return self.panel_mesh_plot(self.result.nfres.nfcp, **kwargs)
+
+    def face_mesh_plot(self, values: 'NDArray', **kwargs: dict[str, Any]) -> 'Mesh':
+        kwargs['color'] = kwargs.get('color', 0xffd500)
+        kwargs['wireframe'] = kwargs.get('wireframe', False)
+        kwargs['flat_shading'] = kwargs.get('flat_shading', False)
+        defcmap = matplotlib_color_maps.Turbo
+        kwargs['color_map'] = kwargs.get('color_map', defcmap)
+        attribute = values[self.finds].astype(float32)
+        return mesh(self.verts, self.faces, attribute=attribute, **kwargs)
+
+    def face_vx_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+        if self.result is None:
+            raise ValueError('Result must be set to plot face vx.')
+        return self.face_mesh_plot(self.result.fres.fvel.x, **kwargs)
+
+    def face_vy_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+        if self.result is None:
+            raise ValueError('Result must be set to plot face vy.')
+        return self.face_mesh_plot(self.result.fres.fvel.y, **kwargs)
+
+    def face_cp_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+        if self.result is None:
+            raise ValueError('Result must be set to plot face cp.')
+        kwargs['color_range'] = kwargs.get('color_range', [])
+        return self.face_mesh_plot(self.result.fres.fcp, **kwargs)
+
+    def face_vectors(self, vecs: 'Vector', **kwargs: dict[str, Any]) -> 'Vectors':
+        scale = kwargs.pop('scale', 1.0)
+        values = vecs.stack_xyz().astype(float32)*scale
+        return vectors(self.fpnts, values, **kwargs)
+
+    def face_vectors_plot(self, vecs: 'Vector', **kwargs: dict[str, Any]) -> 'Vectors':
+        return self.face_vectors(vecs, **kwargs)
+
+    def face_force_plot(self, **kwargs: dict[str, Any]) -> 'Vectors':
+        if self.result is None:
+            raise ValueError('Result must be set to plot face forces.')
+        return self.face_vectors_plot(self.result.fres.ffrc, **kwargs)
