@@ -7,17 +7,22 @@ from pygeom.geom3d import Coordinate
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
+    from pygeom.geom3d import Vector
+
+    from ..classes.face import Face
     from ..classes.grid import Grid
     from ..classes.panel import Panel
     from ..classes.panelsystem import PanelSystem
-    from pygeom.geom3d import Vector
 
 
 class Edge():
     grida: 'Grid' = None
     gridb: 'Grid' = None
+    ind: int = None
     _panela: 'Panel' = None
     _panelb: 'Panel' = None
+    _facea: 'Face' = None
+    _faceb: 'Face' = None
     _panel: 'Panel' = None
     _direcy: 'Vector' = None
     _coorda: 'Coordinate' = None
@@ -40,53 +45,84 @@ class Edge():
     def __init__(self, grida: 'Grid', gridb: 'Grid') -> None:
         self.grida = grida
         self.gridb = gridb
-        self.update()
-
-    def update(self) -> None:
-        panels_a: list['Panel'] = []
-        for panel in self.grida.panels:
-            for i in range(-1, panel.num-1):
-                if panel.grids[i] is self.grida and panel.grids[i + 1] is self.gridb:
-                    panels_a.append(panel)
-        if len(panels_a) == 1:
-            self._panela = panels_a[0]
-            self._panela.edges.append(self)
-        elif len(panels_a) > 1:
-            raise ValueError(f'Multiple panels found for edge {self.grida} to {self.gridb}')
-        else:
-            self._panela = None
-
-        panels_b: list['Panel'] = []
-        for panel in self.gridb.panels:
-            for i in range(-1, panel.num-1):
-                if panel.grids[i] is self.gridb and panel.grids[i + 1] is self.grida:
-                    panels_b.append(panel)
-        if len(panels_b) == 1:
-            self._panelb = panels_b[0]
-            self._panelb.edges.append(self)
-        elif len(panels_b) > 1:
-            raise ValueError(f'Multiple panels found for edge {self.gridb} to {self.grida}')
-        else:
-            self._panelb = None
-
-        if self._panela is None and self._panelb is not None:
-            self._panel = self._panelb
-        elif self._panelb is None and self._panela is not None:
-            self._panel = self._panela
-        else:
-            self._panel = None
 
     @property
     def panela(self) -> 'Panel':
+        if self._panela is None:
+            panels_a: list['Panel'] = []
+            for panel in self.grida.panels:
+                for i in range(-1, panel.num-1):
+                    if panel.grids[i] is self.grida and panel.grids[i + 1] is self.gridb:
+                        panels_a.append(panel)
+            if len(panels_a) == 1:
+                self._panela = panels_a[0]
+                self._panela.edges.append(self)
+            elif len(panels_a) > 1:
+                raise ValueError(f'Multiple panels found for edge {self.grida} to {self.gridb}')
+            else:
+                self._panela = None
         return self._panela
 
     @property
     def panelb(self) -> 'Panel':
+        if self._panelb is None:
+            panels_b: list['Panel'] = []
+            for panel in self.gridb.panels:
+                for i in range(-1, panel.num-1):
+                    if panel.grids[i] is self.gridb and panel.grids[i + 1] is self.grida:
+                        panels_b.append(panel)
+            if len(panels_b) == 1:
+                self._panelb = panels_b[0]
+                self._panelb.edges.append(self)
+            elif len(panels_b) > 1:
+                raise ValueError(f'Multiple panels found for edge {self.gridb} to {self.grida}')
+            else:
+                self._panelb = None
         return self._panelb
 
     @property
+    def facea(self) -> 'Face':
+        if self._facea is None and self.panela is not None:
+            for face in self.panela.faces:
+                if face.grida is self.grida and face.gridb is self.gridb:
+                    self._facea = face
+                    break
+                elif face.grida is self.gridb and face.gridb is self.grida:
+                    self._facea = face
+                    break
+        return self._facea
+
+    @property
+    def faceb(self) -> 'Face':
+        if self._faceb is None and self.panelb is not None:
+            for face in self.panelb.faces:
+                if face.grida is self.gridb and face.gridb is self.grida:
+                    self._faceb = face
+                    break
+                elif face.grida is self.grida and face.gridb is self.gridb:
+                    self._faceb = face
+                    break
+        return self._faceb
+
+    @property
     def panel(self) -> 'Panel':
+        if self._panel is None:
+            if self.panela is not None and self.panelb is None:
+                self._panel = self.panela
+            elif self.panelb is not None and self.panela is None:
+                self._panel = self.panelb
+            else:
+                self._panel = None
         return self._panel
+
+    @property
+    def face(self) -> 'Face':
+        if self.panel is not None:
+            if self.panel is self.panela:
+                return self.facea
+            elif self.panel is self.panelb:
+                return self.faceb
+        return None
 
     @property
     def direcy(self) -> 'Vector':
@@ -263,43 +299,64 @@ def edges_from_system(system: 'PanelSystem') -> list[Edge]:
         edges.append(Edge(grida, gridb))
     return edges
 
+# def edges_array(edges: list[Edge]) -> 'NDArray':
+#     num_edges = len(edges)
+#     # conedges = [edge for edge in edges if edge.panel is None]
+#     # num_edges = len(conedges)
+#     max_vind = None
+#     max_pind = None
+#     for i, edge in enumerate(edges):
+#         if max_vind is None or edge.grida.ind > max_vind:
+#             max_vind = edge.grida.ind
+#         if max_vind is None or edge.gridb.ind > max_vind:
+#             max_vind = edge.gridb.ind
+#         if max_pind is None or (edge.panela is not None and edge.panela.ind > max_pind):
+#             max_pind = edge.panela.ind
+#         if max_pind is None or (edge.panelb is not None and edge.panelb.ind > max_pind):
+#             max_pind = edge.panelb.ind
+#     varray = zeros((num_edges, max_vind + 1), dtype=float)
+#     parray = zeros((num_edges, max_pind + 1), dtype=float)
+#     for i, edge in enumerate(edges):
+#         if edge.panel is None:
+#             varray[i, edge.grida.ind] = edge.gridb_fac
+#             varray[i, edge.gridb.ind] = edge.grida_fac
+#             parray[i, edge.panela.ind] = edge.panelb_fac
+#             parray[i, edge.panelb.ind] = edge.panela_fac
+#         else:
+#             varray[i, edge.grida.ind] = 0.5
+#             varray[i, edge.gridb.ind] = 0.5
+#             parray[i, edge.panel.ind] = 1.0
+#             # grid_inds = edge.panel.edge_indg
+#             panel_inds = edge.panel.edge_indp
+#             # edge_velg = edge.panel.edge_velg
+#             edge_velp = edge.panel.edge_velp
+#             # edge_mug = edge_velg.dot(edge.vecec)
+#             edge_mud = edge_velp.dot(edge.vecec)
+#             parray[i, panel_inds] -= edge_mud
+#             # varray[i, grid_inds] += edge_mug
+#     amat = varray.transpose() @ varray
+#     bmat = varray.transpose() @ parray
+#     earray = solve(amat, bmat)
+#     return earray
 
-def edges_array(edges: list[Edge]) -> 'NDArray':
+def edges_parray(edges: list[Edge]) -> 'NDArray':
     num_edges = len(edges)
-    # conedges = [edge for edge in edges if edge.panel is None]
-    # num_edges = len(conedges)
-    max_vind = None
     max_pind = None
-    for i, edge in enumerate(edges):
-        if max_vind is None or edge.grida.ind > max_vind:
-            max_vind = edge.grida.ind
-        if max_vind is None or edge.gridb.ind > max_vind:
-            max_vind = edge.gridb.ind
+    for edge in edges:
         if max_pind is None or (edge.panela is not None and edge.panela.ind > max_pind):
             max_pind = edge.panela.ind
         if max_pind is None or (edge.panelb is not None and edge.panelb.ind > max_pind):
             max_pind = edge.panelb.ind
-    varray = zeros((num_edges, max_vind + 1), dtype=float)
     parray = zeros((num_edges, max_pind + 1), dtype=float)
-    for i, edge in enumerate(edges):
+    for edge in edges:
         if edge.panel is None:
-            varray[i, edge.grida.ind] = edge.gridb_fac
-            varray[i, edge.gridb.ind] = edge.grida_fac
-            parray[i, edge.panela.ind] = edge.panelb_fac
-            parray[i, edge.panelb.ind] = edge.panela_fac
+            parray[edge.ind, edge.panela.ind] = edge.panelb_fac
+            parray[edge.ind, edge.panelb.ind] = edge.panela_fac
         else:
-            varray[i, edge.grida.ind] = 0.5
-            varray[i, edge.gridb.ind] = 0.5
-            parray[i, edge.panel.ind] = 1.0
-            grid_inds = edge.panel.edge_indg
-            panel_inds = edge.panel.edge_indp
-            edge_velg = edge.panel.edge_velg
-            edge_velp = edge.panel.edge_velp
-            edge_mug = edge_velg.dot(edge.vecec)
-            edge_mud = edge_velp.dot(edge.vecec)
-            parray[i, panel_inds] -= edge_mud
-            varray[i, grid_inds] += edge_mug
-    amat = varray.transpose() @ varray
-    bmat = varray.transpose() @ parray
-    earray = solve(amat, bmat)
-    return earray
+            parray[edge.ind, edge.panel.ind] = 1.0
+            vecg = edge.edge_point - edge.panel.pnto
+            vecl = edge.face.cord.vector_to_local(vecg)
+            dirl = Vector2D.from_obj(vecl)
+            dmue = edge.panel.edge_velp.dot(dirl)
+            parray[edge.ind, edge.panel.edge_indp] -= dmue
+    return parray

@@ -4,16 +4,16 @@ from os.path import dirname, exists, join
 from typing import TYPE_CHECKING, Any
 
 # from matplotlib.pyplot import figure
-from numpy import zeros, eye
+from numpy import eye, zeros
 from numpy.linalg import inv
 from py2md.classes import MDTable
-from pygeom.geom3d import Vector
 from pygeom.geom2d import Vector2D
+from pygeom.geom3d import Vector
 
 from ..tools import betm_from_mach
 from ..tools.mass import MassObject, masses_from_data, masses_from_json
-from .edge import edges_array, edges_from_system
-from .grid import Grid
+from .edge import edges_from_system, edges_parray
+from .grid import Grid, grids_parray
 from .panel import Panel
 from .panelcontrol import PanelControl
 from .panelgroup import PanelGroup
@@ -92,7 +92,8 @@ class PanelSystem():
     # _pnldiry: Vector = None
     # _pnldirz: Vector = None
     _edges: list['Edge'] = None
-    _edges_array: 'NDArray' = None
+    _edges_parray: 'NDArray' = None
+    _grids_parray: 'NDArray' = None
     # _triarr: 'NDArray' = None
     # _tgrida: Vector = None
     # _tgridb: Vector = None
@@ -476,13 +477,21 @@ class PanelSystem():
     def edges(self) -> list['Edge']:
         if self._edges is None:
             self._edges = edges_from_system(self)
+            for i, edge in enumerate(self._edges):
+                edge.ind = i
         return self._edges
 
     @property
-    def edges_array(self) -> 'NDArray':
-        if self._edges_array is None:
-            self._edges_array = edges_array(self.edges)
-        return self._edges_array
+    def edges_parray(self) -> 'NDArray':
+        if self._edges_parray is None:
+            self._edges_parray = edges_parray(self.edges)
+        return self._edges_parray
+
+    @property
+    def grids_parray(self) -> 'NDArray':
+        if self._grids_parray is None:
+            self._grids_parray = grids_parray(self.grids.values())
+        return self._grids_parray
 
     # def calc_triarr(self) -> 'NDArray':
     #     numtria = 0

@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from numpy import arange, asarray, full, minimum, ones, pi, sqrt
+from numpy import arange, asarray, full, minimum, ones, pi, sqrt, zeros
 from numpy.linalg import solve
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import IHAT, KHAT, Coordinate, Vector
@@ -49,7 +49,8 @@ class Panel():
     _faces: list[Face] = None
     _edges: list['Edge'] = None
     _panel_gradient: 'NDArray' = None
-    _hsvs: list[HorseshoeDoublet] = None
+    _facets: list[Face] = None
+    # _hsvs: list[HorseshoeDoublet] = None
     _grdpnls: list[list['Panel']] = None
     _grdinds: list[list[int]] = None
     _grdfacs: list[list[float]] = None
@@ -256,35 +257,64 @@ class Panel():
         return self._faces
 
     def calc_edge_gradient(self) -> None:
-        self._edge_velg = Vector2D.zeros(self.num)
-        self._edge_velp = Vector2D.zeros()
-        self._edge_indg = asarray([grid.ind for grid in self.grids])
-        self._edge_indp = self.ind
-        edge_count = 0
-        for i, face in enumerate(self.faces):
-            found = False
-            for edge in self.edges:
-                if face.grida is edge.grida and face.gridb is edge.gridb:
-                    found = True
-                    break
-                elif face.grida is edge.gridb and face.gridb is edge.grida:
-                    found = True
-                    break
-            if edge.panel is None and found:
-                edge_count += 1
-                a = i - 1
-                b = i
-                self._edge_velg[a] += face.velg[0]
-                self._edge_velg[b] += face.velg[1]
-                self._edge_velp += face.velp
-        self._edge_velp /= edge_count
-        self._edge_velg /= edge_count
+        conedge = [edge for edge in self.edges if edge.panel is None]
+        numconedge = len(conedge)
+        self._edge_velp = Vector2D.zeros(numconedge + 1)
+        self._edge_indp = zeros(numconedge + 1, dtype=int)
+        self._edge_indp[0] = self.ind
+        for i, edge in enumerate(conedge):
+            vecg = edge.edge_point - self.pnto
+            if edge.panela is self:
+                face = edge.facea
+                vecl = face.cord.vector_to_local(vecg)
+                dirl = Vector2D.from_obj(vecl).to_unit()
+                self._edge_indp[0] = edge.panela.ind
+                self._edge_velp[0] += dirl*edge.panelb_fac
+                self._edge_indp[i+1] = edge.panelb.ind
+                self._edge_velp[i+1] += dirl*edge.panela_fac
+            else:
+                face = edge.faceb
+                vecl = face.cord.vector_to_local(vecg)
+                dirl = Vector2D.from_obj(vecl).to_unit()
+                self._edge_indp[0] = edge.panelb.ind
+                self._edge_velp[0] += dirl*edge.panela_fac
+                self._edge_indp[i+1] = edge.panela.ind
+                self._edge_velp[i+1] += dirl*edge.panelb_fac
+        self._edge_velp /= numconedge
 
-    @property
-    def edge_velg(self) -> Vector2D:
-        if self._edge_velg is None:
-            self.calc_edge_gradient()
-        return self._edge_velg
+        # self._edge_velg = Vector2D.zeros(self.num)
+        # self._edge_velp = Vector2D.zeros()
+        # self._edge_indg = asarray([grid.ind for grid in self.grids])
+        # self._edge_indp = self.ind
+        # edge_count = 0
+        # for i, face in enumerate(self.faces):
+        #     found = False
+        #     for edge in self.edges:
+        #         if face.grida is edge.grida and face.gridb is edge.gridb:
+        #             found = True
+        #             break
+        #         elif face.grida is edge.gridb and face.gridb is edge.grida:
+        #             found = True
+        #             break
+        #     if edge.panel is None and found:
+        #         edge_count += 1
+        #         a = i - 1
+        #         b = i
+        #         self._edge_velg[a] += face.velg[0]
+        #         self._edge_velg[b] += face.velg[1]
+        #         self._edge_velp += face.velp
+        # self._edge_velp /= edge_count
+        # self._edge_velg /= edge_count
+        # if edge_count == 1:
+        #     print(f'{self}: edge_count = {edge_count:d}')
+        #     # print(f'{self}: edge_velg = {self._edge_velg}')
+        #     print(f'{self}: edge_velp = {self._edge_velp}')
+
+    # @property
+    # def edge_velg(self) -> Vector2D:
+    #     if self._edge_velg is None:
+    #         self.calc_edge_gradient()
+    #     return self._edge_velg
 
     @property
     def edge_velp(self) -> Vector2D:
@@ -292,17 +322,34 @@ class Panel():
             self.calc_edge_gradient()
         return self._edge_velp
 
-    @property
-    def edge_indg(self) -> 'NDArray':
-        if self._edge_indg is None:
-            self.calc_edge_gradient()
-        return self._edge_indg
+    # @property
+    # def edge_indg(self) -> 'NDArray':
+    #     if self._edge_indg is None:
+    #         self.calc_edge_gradient()
+    #     return self._edge_indg
 
     @property
     def edge_indp(self) -> 'NDArray':
         if self._edge_indp is None:
             self.calc_edge_gradient()
         return self._edge_indp
+
+    @property
+    def facets(self) -> list[Face]:
+        if self._facets is None:
+            self._facets = []
+            for i, edge in enumerate(self.edges):
+                if edge.panela is self:
+                    facet = Face(2*i, edge.grida, edge.edge_point, self)
+                elif edge.panelb is self:
+                    facet = Face(2*i, edge.gridb, edge.edge_point, self)
+                self._facets.append(facet)
+                if edge.panela is self:
+                    facet = Face(2*i+1, edge.edge_point, edge.gridb, self)
+                elif edge.panelb is self:
+                    facet = Face(2*i+1, edge.edge_point, edge.grida, self)
+                self._facets.append(facet)
+        return self._facets
 
     @property
     def panel_gradient(self) -> 'NDArray':

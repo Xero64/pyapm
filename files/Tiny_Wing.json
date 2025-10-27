@@ -12,7 +12,7 @@
             "name": "Wing",
             "twist": 0.0,
             "cnum": 20,
-            "close": true,
+            "close": false,
             "mirror": false,
             "sections": [
                 {

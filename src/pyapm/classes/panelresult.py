@@ -52,6 +52,7 @@ class PanelResult():
     _phi: 'NDArray' = None
     # _nvg: 'NDArray' = None
     _mug: 'NDArray' = None
+    _mue: 'NDArray' = None
     _sigg: 'NDArray' = None
     _qloc: Vector2D = None
     _qs: 'NDArray' = None
@@ -343,14 +344,23 @@ class PanelResult():
                     self._mud += ctrlrad*(self.unmud[:, indo].dot(self.ofs))
         return self._mud
 
-    def calc_mug(self, mu: 'NDArray') -> 'NDArray':
-        return self.system.edges_array @ mu
+    def calc_mug(self, mup: 'NDArray') -> 'NDArray':
+        return self.system.grids_parray @ mup
 
     @property
     def mug(self):
         if self._mug is None:
             self._mug = self.calc_mug(self.mud)
         return self._mug
+
+    def calc_mue(self, mup: 'NDArray') -> 'NDArray':
+        return self.system.edges_parray @ mup
+
+    @property
+    def mue(self):
+        if self._mue is None:
+            self._mue = self.calc_mue(self.mud)
+        return self._mue
 
     @property
     def muw(self):
@@ -1189,6 +1199,7 @@ class FaceResult():
     _system: 'System' = None
     fmud: 'NDArray' = None
     _fmug: 'NDArray' = None
+    _fmue: 'NDArray' = None
     _farm: Vector = None
     _fvfs: Vector2D = None
     _fvel: Vector2D = None
@@ -1221,8 +1232,14 @@ class FaceResult():
     @property
     def fmug(self) -> 'NDArray':
         if self._fmug is None:
-            self._fmug = self.system.edges_array @ self.fmud
+            self._fmug = self.system.grids_parray @ self.fmud
         return self._fmug
+
+    @property
+    def fmue(self) -> 'NDArray':
+        if self._fmue is None:
+            self._fmue = self.system.edges_parray @ self.fmud
+        return self._fmue
 
     @property
     def farm(self) -> Vector: # can move to PanelResult?
