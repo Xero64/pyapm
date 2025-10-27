@@ -343,11 +343,15 @@ class Panel():
                     facet = Face(2*i, edge.grida, edge.edge_point, self)
                 elif edge.panelb is self:
                     facet = Face(2*i, edge.gridb, edge.edge_point, self)
+                facet.set_dirl(self.crd.dirx)
+                facet.edge = edge
                 self._facets.append(facet)
                 if edge.panela is self:
                     facet = Face(2*i+1, edge.edge_point, edge.gridb, self)
                 elif edge.panelb is self:
                     facet = Face(2*i+1, edge.edge_point, edge.grida, self)
+                facet.set_dirl(self.crd.dirx)
+                facet.edge = edge
                 self._facets.append(facet)
         return self._facets
 

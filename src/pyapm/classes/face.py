@@ -1,23 +1,26 @@
 from typing import TYPE_CHECKING
 
-from numpy import absolute, ones, zeros
+from numpy import absolute, asarray, ones, zeros
 from numpy.linalg import inv
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import Coordinate, Vector
 
+from .grid import Grid
+
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
-    from .grid import Grid
+    from .edge import Edge
     from .panel import Panel
 
 
 class Face:
     fid: int = None
-    grida: 'Grid' = None
-    gridb: 'Grid' = None
+    grida: Grid = None
+    gridb: Grid = None
     panel: 'Panel' = None
     ind: int = None
+    edge: 'Edge' = None
     _pointo: Vector = None
     _normal: Vector = None
     _jac: float = None
@@ -34,11 +37,13 @@ class Face:
     _yca: float = None
     _baryinv: float = None
     _velg: Vector2D = None
+    _vele: Vector2D = None
     _velp: Vector2D = None
     _indg: 'NDArray' = None
+    _inde: 'NDArray' = None
     _indp: 'NDArray' = None
 
-    def __init__(self, fid: int, grida: 'Grid', gridb: 'Grid', panel: 'Panel') -> None:
+    def __init__(self, fid: int, grida: Grid, gridb: Grid, panel: 'Panel') -> None:
         self.fid = fid
         self.grida = grida
         self.gridb = gridb
@@ -151,31 +156,60 @@ class Face:
             self._yca = self.pointc.y - self.pointa.y
         return self._yca
 
+    def calc_vel_and_ind(self) -> None:
+        if isinstance(self.grida, Grid) and isinstance(self.gridb, Grid):
+            self._velg = Vector2D.from_iter_xy([self.ybc, self.yca],
+                                               [self.xcb, self.xac])/self.jac
+            self._indg = asarray([self.grida.ind, self.gridb.ind], dtype=int)
+            self._inde = asarray([], dtype=int)
+            self._vele = Vector2D.zeros(self._inde.shape)
+        elif isinstance(self.grida, Grid):
+            self._velg = Vector2D(self.ybc, self.xcb)/self.jac
+            self._indg = asarray([self.grida.ind], dtype=int)
+            self._inde = asarray([self.edge.ind], dtype=int)
+            self._vele = Vector2D(self.yca, self.xac)/self.jac
+        elif isinstance(self.gridb, Grid):
+            self._vele = Vector2D(self.ybc, self.xcb)/self.jac
+            self._inde = asarray([self.edge.ind], dtype=int)
+            self._indg = asarray([self.gridb.ind], dtype=int)
+            self._velg = Vector2D(self.yca, self.xac)/self.jac
+        self._velp = Vector2D(self.yab, self.xba)/self.jac
+        self._indp = asarray([self.panel.ind], dtype=int)
+
     @property
     def velg(self) -> Vector2D:
         if self._velg is None:
-            self._velg = Vector2D.from_iter_xy([self.ybc, self.yca],
-                                               [self.xcb, self.xac])/self.jac
+            self.calc_vel_and_ind()
         return self._velg
+
+    @property
+    def vele(self) -> Vector2D:
+        if self._vele is None:
+            self.calc_vel_and_ind()
+        return self._vele
 
     @property
     def velp(self) -> Vector2D:
         if self._velp is None:
-            self._velp = Vector2D(self.yab, self.xba)/self.jac
+            self.calc_vel_and_ind()
         return self._velp
 
     @property
     def indg(self) -> 'NDArray':
         if self._indg is None:
-            from numpy import array
-            self._indg = array([self.grida.ind, self.gridb.ind])
+            self.calc_vel_and_ind()
         return self._indg
+
+    @property
+    def inde(self) -> 'NDArray':
+        if self._inde is None:
+            self.calc_vel_and_ind()
+        return self._inde
 
     @property
     def indp(self) -> 'NDArray':
         if self._indp is None:
-            from numpy import array
-            self._indp = array([self.panel.ind])
+            self.calc_vel_and_ind()
         return self._indp
 
     def face_qxJ(self, mud: 'NDArray', mug: 'NDArray') -> Vector2D:

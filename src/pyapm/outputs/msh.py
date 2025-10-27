@@ -94,7 +94,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         frmstr = '{:d} {:}\n'
         for pid in pidlst:
             panel = psys.dpanels[pid]
-            mshfile.write(frmstr.format(panel.pid, pres.sig[panel.ind]))
+            mshfile.write(frmstr.format(panel.pid, pres.sigd[panel.ind]))
         mshfile.write('$EndElementData\n')
         optstr += 'View[{:d}].Light = 0;\n'.format(view)
         optstr += 'View[{:d}].RangeType = 0;\n'.format(view)
@@ -324,7 +324,7 @@ def panelresult_to_msh(pres: PanelResult, mshfilepath: str):
         frmstr = '{:d} {:d}'
         for pid in pidlst:
             panel = psys.dpanels[pid]
-            vals = panel.grid_res(pres.sig)
+            vals = panel.grid_res(pres.sigd)
             numv = len(vals)
             mshfile.write(frmstr.format(panel.pid, numv))
             for val in vals:

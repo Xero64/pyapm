@@ -45,6 +45,12 @@ class Edge():
     def __init__(self, grida: 'Grid', gridb: 'Grid') -> None:
         self.grida = grida
         self.gridb = gridb
+        self.panela
+        self.panelb
+        self.panel
+        self.facea
+        self.faceb
+        self.face
 
     @property
     def panela(self) -> 'Panel':

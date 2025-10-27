@@ -46,13 +46,15 @@ class PanelResult():
     _unmuw: 'NDArray' = None
     _unphi: 'NDArray' = None
     # _unnvg: 'NDArray' = None
-    _sig: 'NDArray' = None
+    _sigd: 'NDArray' = None
+    _sige: 'NDArray' = None
+    _sigg: 'NDArray' = None
     _mud: 'NDArray' = None
+    _mue: 'NDArray' = None
+    _mug: 'NDArray' = None
     _muw: 'NDArray' = None
     _phi: 'NDArray' = None
     # _nvg: 'NDArray' = None
-    _mug: 'NDArray' = None
-    _mue: 'NDArray' = None
     _sigg: 'NDArray' = None
     _qloc: Vector2D = None
     _qs: 'NDArray' = None
@@ -296,10 +298,10 @@ class PanelResult():
     #     return self._unnvg
 
     @property
-    def sig(self) -> 'NDArray':
-        if self._sig is None:
-            self._sig = self.unsig[:, 0].dot(self.vfs)
-            self._sig += self.unsig[:, 1].dot(self.ofs)
+    def sigd(self) -> 'NDArray':
+        if self._sigd is None:
+            self._sigd = self.unsig[:, 0].dot(self.vfs)
+            self._sigd += self.unsig[:, 1].dot(self.ofs)
             for control in self.controls:
                 if control in self.system.controls:
                     ctrl = self.controls[control]
@@ -311,17 +313,26 @@ class PanelResult():
                     else:
                         indv = index[2]
                         indo = index[3]
-                    self._sig += ctrlrad*(self.unsig[:, indv].dot(self.vfs))
-                    self._sig += ctrlrad*(self.unsig[:, indo].dot(self.ofs))
-        return self._sig
+                    self._sigd += ctrlrad*(self.unsig[:, indv].dot(self.vfs))
+                    self._sigd += ctrlrad*(self.unsig[:, indo].dot(self.ofs))
+        return self._sigd
+
+    def calc_sige(self, sig: 'NDArray') -> 'NDArray':
+        return self.system.edges_parray @ sig
+
+    @property
+    def sige(self) -> 'NDArray':
+        if self._sige is None:
+            self._sige = self.calc_sige(self.sigd)
+        return self._sige
 
     def calc_sigg(self, sig: 'NDArray') -> 'NDArray':
-        return self.system.edges_array @ sig
+        return self.system.grids_parray @ sig
 
     @property
     def sigg(self) -> 'NDArray':
         if self._sigg is None:
-            self._sigg = self.calc_sigg(self.sig)
+            self._sigg = self.calc_sigg(self.sigd)
         return self._sigg
 
     @property
@@ -1244,28 +1255,28 @@ class FaceResult():
     @property
     def farm(self) -> Vector: # can move to PanelResult?
         if self._farm is None:
-            self._farm = self.system.dface_pnts - self.result.rcg
+            self._farm = self.system.dfacet_pnts - self.result.rcg
         return self._farm
 
     @property
     def fvfs(self) -> Vector2D: # can move to PanelResult?
         if self._fvfs is None:
             vfsg = self.result.vfs - self.result.ofs.cross(self.farm)
-            vfsgx = self.system.dface_dirx.dot(vfsg)
-            vfsgy = self.system.dface_diry.dot(vfsg)
+            vfsgx = self.system.dfacet_dirx.dot(vfsg)
+            vfsgy = self.system.dfacet_diry.dot(vfsg)
             self._fvfs = Vector2D(vfsgx, vfsgy)
         return self._fvfs
 
     @property
     def fvel(self) -> Vector2D:
         if self._fvel is None:
-            fmud = self.fmud[self.system.dface_indp]
+            fmud = self.fmud[self.system.dfacet_indp]
             print(f'{fmud.shape = }')
-            fmug = self.fmug[self.system.dface_indg]
+            fmug = self.fmug[self.system.dfacet_indg]
             print(f'{fmug.shape = }')
-            fvfp = self.system.dface_velp
+            fvfp = self.system.dfacet_velp
             print(f'{fvfp.shape = }')
-            fvfg = self.system.dface_velg
+            fvfg = self.system.dfacet_velg
             print(f'{fvfg.shape = }')
             self._fvel = self.fvfs + fvfp*fmud + (fvfg*fmug).sum(axis=1)
         return self._fvel
@@ -1286,8 +1297,8 @@ class FaceResult():
     @property
     def ffrc(self) -> Vector:
         if self._ffrc is None:
-            normals = self.system.dface_dirz
-            face_area = self.system.dface_area
+            normals = self.system.dfacet_dirz
+            face_area = self.system.dfacet_area
             self._ffrc = normals*self.fprs*face_area
         return self._ffrc
 

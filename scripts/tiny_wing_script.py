@@ -44,7 +44,7 @@ display_markdown(pres.surface_loads)
 
 #%%
 # Print Outs
-print(f'sig = \n{pres.sig}')
+print(f'sigd = \n{pres.sigd}')
 print(f'mud = \n{pres.mud}')
 print(f'mue = \n{pres.mue}')
 print(f'mug = \n{pres.mug}')
@@ -63,9 +63,9 @@ for dpanel in psys.surfaces[0].dpanels:
 xelst = []
 muelst = []
 for edge in psys.edges:
-    # if edge.grida.y != edge.gridb.y:
-    xelst.append(float(edge.edge_point.x))
-    muelst.append(float(pres.mue[edge.ind]))
+    if edge.grida.y != edge.gridb.y:
+        xelst.append(float(edge.edge_point.x))
+        muelst.append(float(pres.mue[edge.ind]))
 
 xglst = []
 muglst = []
@@ -85,7 +85,7 @@ ax = fig.gca()
 ax.grid(True)
 ax.plot(xplst, muplst, marker='o')
 ax.scatter(xelst, muelst, marker='x', color='red')
-ax.scatter(xglst, muglst, marker='s', color='green')
+ax.scatter(xglst, muglst, marker='+', color='green')
 _ = ax.set_title('Mu Distribution Along Chord')
 
 #%%
@@ -102,41 +102,41 @@ sigplot += pnlpl.panel_sigma_plot()
 sigplot += text2d("Panel Sigma Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 sigplot.display()
 
-# siggplot = pnlpl.plot()
-# siggplot += pnlpl.grid_sigma_plot()
-# siggplot += text2d("Grid Sigma Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
-# siggplot.display()
+siggplot = pnlpl.plot()
+siggplot += pnlpl.grid_sigma_plot()
+siggplot += text2d("Grid Sigma Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
+siggplot.display()
 
 mudplot = pnlpl.plot()
 mudplot += pnlpl.panel_mud_plot()
 mudplot += text2d("Panel Mud Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 mudplot.display()
 
-# mugplot = pnlpl.plot()
-# mugplot += pnlpl.grid_mu_plot()
-# mugplot += text2d("Grid Mu Plot", position=(0.5, 0.5), is_html=True, label_box=False, color=0x000000)
-# mugplot.display()
+mugplot = pnlpl.plot()
+mugplot += pnlpl.grid_mu_plot()
+mugplot += text2d("Grid Mu Plot", position=(0.5, 0.5), is_html=True, label_box=False, color=0x000000)
+mugplot.display()
 
-# fvxplot = pnlpl.plot()
-# fvxplot += pnlpl.face_vx_plot()
-# fvxplot += text2d("Face Vx Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
-# fvxplot.display()
+fvxplot = pnlpl.plot()
+fvxplot += pnlpl.face_vx_plot()
+fvxplot += text2d("Face Vx Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
+fvxplot.display()
 
-# fvyplot = pnlpl.plot()
-# fvyplot += pnlpl.face_vy_plot()
-# fvyplot += text2d("Face Vy Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
-# fvyplot.display()
+fvyplot = pnlpl.plot()
+fvyplot += pnlpl.face_vy_plot()
+fvyplot += text2d("Face Vy Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
+fvyplot.display()
 
-# fcpplot = pnlpl.plot()
-# fcpplot += pnlpl.face_cp_plot()
-# fcpplot += text2d("Face Cp Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
-# fcpplot.display()
+fcpplot = pnlpl.plot()
+fcpplot += pnlpl.face_cp_plot()
+fcpplot += text2d("Face Cp Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
+fcpplot.display()
 
-# ffrcplot = pnlpl.plot()
-# ffrcplot += pnlpl.panel_mesh()
-# ffrcplot += pnlpl.face_force_plot(scale=0.0005, head_size=0.05, line_width=0.001)
-# ffrcplot += text2d("Face Force Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
-# ffrcplot.display()
+ffrcplot = pnlpl.plot()
+ffrcplot += pnlpl.panel_mesh()
+ffrcplot += pnlpl.face_force_plot(scale=0.0005, head_size=0.05, line_width=0.001)
+ffrcplot += text2d("Face Force Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
+ffrcplot.display()
 
 # #%%
 # # Print Output

@@ -5,6 +5,8 @@ from k3d.plot import Plot
 from k3d.colormaps import matplotlib_color_maps
 from numpy import concatenate, float32, uint32, zeros
 
+from pyapm.classes.grid import Grid
+
 if TYPE_CHECKING:
     from k3d.objects import Mesh, Vectors
     from numpy.typing import NDArray
@@ -74,8 +76,8 @@ class PanelPlot:
         # for panel in self.system.dpanels.values():
         #     num_faces += panel.num
         #     num_verts += panel.num*3
-        num_faces = self.system.num_dfaces
-        num_verts = self.system.num_dfaces*3
+        num_faces = self.system.num_dfacets
+        num_verts = self.system.num_dfacets*3
         self._finds = zeros(num_verts, dtype=uint32)
         self._pinds = zeros(num_verts, dtype=uint32)
         self._vinds = zeros(num_verts, dtype=uint32)
@@ -84,19 +86,28 @@ class PanelPlot:
         self._fpnts = zeros((num_faces, 3), dtype=float32)
         self._pntos = zeros((self.system.num_dpanels, 3), dtype=float32)
 
-        for i, dface in enumerate(self.system.dfaces):
+        edge_beg = self.system.num_dpanels
+        grid_beg = self.system.num_dpanels + self.system.num_edges
+
+        for i, dfacet in enumerate(self.system.dfacets):
             self._finds[i*3:i*3 + 3] = i
-            self._pinds[i*3:i*3 + 3] = dface.panel.ind
-            self._vinds[i*3] = dface.grida.ind + self.system.num_dpanels
-            self._vinds[i*3 + 1] = dface.gridb.ind + self.system.num_dpanels
-            self._vinds[i*3 + 2] = dface.panel.ind
-            self._verts[i*3, :] = dface.grida.to_xyz()
-            self._verts[i*3 + 1, :] = dface.gridb.to_xyz()
-            self._verts[i*3 + 2, :] = dface.gridc.to_xyz()
+            self._pinds[i*3:i*3 + 3] = dfacet.panel.ind
+            if isinstance(dfacet.grida, Grid):
+                self._vinds[i*3] = grid_beg + dfacet.grida.ind
+                self._vinds[i*3 + 1] = edge_beg + dfacet.edge.ind
+                self._verts[i*3, :] = dfacet.grida.to_xyz()
+                self._verts[i*3 + 1, :] = dfacet.edge.edge_point.to_xyz()
+            elif isinstance(dfacet.gridb, Grid):
+                self._vinds[i*3] = edge_beg + dfacet.edge.ind
+                self._vinds[i*3 + 1] = grid_beg + dfacet.gridb.ind
+                self._verts[i*3, :] = dfacet.edge.edge_point.to_xyz()
+                self._verts[i*3 + 1, :] = dfacet.gridb.to_xyz()
+            self._vinds[i*3 + 2] = dfacet.panel.ind
+            self._verts[i*3 + 2, :] = dfacet.panel.pnto.to_xyz()
             self._faces[i, 0] = i*3
             self._faces[i, 1] = i*3 + 1
             self._faces[i, 2] = i*3 + 2
-            self._fpnts[i, :] = dface.cord.pnt.to_xyz()
+            self._fpnts[i, :] = dfacet.cord.pnt.to_xyz()
 
         # k = 0
         # l = 0
@@ -200,7 +211,7 @@ class PanelPlot:
     def panel_sigma_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
         if self.result is None:
             raise ValueError('Result must be set to plot sigma.')
-        return self.panel_mesh_plot(self.result.sig, **kwargs)
+        return self.panel_mesh_plot(self.result.sigd, **kwargs)
 
     def grid_mesh_plot(self, values: 'NDArray', **kwargs: dict[str, Any]) -> 'Mesh':
         kwargs['color'] = kwargs.get('color', 0xffd500)
@@ -214,13 +225,13 @@ class PanelPlot:
     def grid_mu_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
         if self.result is None:
             raise ValueError('Result must be set to plot mu.')
-        values = concatenate((self.result.mud, self.result.mug))
+        values = concatenate((self.result.mud, self.result.mue, self.result.mug))
         return self.grid_mesh_plot(values, **kwargs)
 
     def grid_sigma_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
         if self.result is None:
             raise ValueError('Result must be set to plot sigma.')
-        values = concatenate((self.result.sig, self.result.sigg))
+        values = concatenate((self.result.sigd, self.result.sige, self.result.sigg))
         return self.grid_mesh_plot(values, **kwargs)
 
     def panel_vectors_plot(self, vecs: 'Vector', **kwargs: dict[str, Any]) -> 'Vectors':

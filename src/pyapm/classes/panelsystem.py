@@ -94,6 +94,7 @@ class PanelSystem():
     _edges: list['Edge'] = None
     _edges_parray: 'NDArray' = None
     _grids_parray: 'NDArray' = None
+    _num_edges: int = None
     # _triarr: 'NDArray' = None
     # _tgrida: Vector = None
     # _tgridb: Vector = None
@@ -101,17 +102,17 @@ class PanelSystem():
     # _wgrida: Vector = None
     # _wgridb: Vector = None
     # _wdirl: Vector = None
-    _dfaces: list['Face'] = None
-    _num_dfaces: int = None
-    _dface_pnt: Vector = None
-    _dface_indg: 'NDArray' = None
-    _dface_indp: 'NDArray' = None
-    _dface_velg: Vector2D = None
-    _dface_velp: Vector2D = None
-    _dface_dirx: Vector2D = None
-    _dface_diry: Vector2D = None
-    _dface_dirz: Vector2D = None
-    _dface_area: 'NDArray' = None
+    _dfacets: list['Face'] = None
+    _num_dfacets: int = None
+    _dfacet_pnt: Vector = None
+    _dfacet_indg: 'NDArray' = None
+    _dfacet_indp: 'NDArray' = None
+    _dfacet_velg: Vector2D = None
+    _dfacet_velp: Vector2D = None
+    _dfacet_dirx: Vector2D = None
+    _dfacet_diry: Vector2D = None
+    _dfacet_dirz: Vector2D = None
+    _dfacet_area: 'NDArray' = None
 
     def __init__(self, name: str, bref: float, cref: float,
                  sref: float, rref: Vector) -> None:
@@ -493,6 +494,12 @@ class PanelSystem():
             self._grids_parray = grids_parray(self.grids.values())
         return self._grids_parray
 
+    @property
+    def num_edges(self) -> int:
+        if self._num_edges is None:
+            self._num_edges = len(self.edges)
+        return self._num_edges
+
     # def calc_triarr(self) -> 'NDArray':
     #     numtria = 0
     #     for panel in self.pnls.values():
@@ -694,95 +701,97 @@ class PanelSystem():
         return self._cmat
 
     @property
-    def dfaces(self) -> list['Face']:
-        if self._dfaces is None:
-            self._dfaces = []
+    def dfacets(self) -> list['Face']:
+        if self._dfacets is None:
+            if self.edges is None:
+                self.edges  # Ensure edges are generated
+            self._dfacets = []
             for panel in self.dpanels.values():
-                for face in panel.faces:
-                    self._dfaces.append(face)
-        return self._dfaces
+                for facet in panel.facets:
+                    self._dfacets.append(facet)
+        return self._dfacets
 
     @property
-    def num_dfaces(self) -> int:
-        if self._num_dfaces is None:
-            self._num_dfaces = len(self.dfaces)
-        return self._num_dfaces
+    def num_dfacets(self) -> int:
+        if self._num_dfacets is None:
+            self._num_dfacets = len(self.dfacets)
+        return self._num_dfacets
 
-    def assemble_dfaces(self) -> None:
-        self._dface_pnts = Vector.zeros(self.num_dfaces)
-        self._dface_dirx = Vector.zeros(self.num_dfaces)
-        self._dface_diry = Vector.zeros(self.num_dfaces)
-        self._dface_dirz = Vector.zeros(self.num_dfaces)
-        self._dface_area = zeros(self.num_dfaces)
-        self._dface_indg = zeros((self.num_dfaces, 2), dtype=int)
-        self._dface_velg = Vector2D.zeros((self.num_dfaces, 2))
-        self._dface_indp = zeros(self.num_dfaces, dtype=int)
-        self._dface_velp = Vector2D.zeros(self.num_dfaces)
+    def assemble_dfacets(self) -> None:
+        self._dfacet_pnts = Vector.zeros(self.num_dfacets)
+        self._dfacet_dirx = Vector.zeros(self.num_dfacets)
+        self._dfacet_diry = Vector.zeros(self.num_dfacets)
+        self._dfacet_dirz = Vector.zeros(self.num_dfacets)
+        self._dfacet_area = zeros(self.num_dfacets)
+        self._dfacet_indg = zeros((self.num_dfacets, 2), dtype=int)
+        self._dfacet_velg = Vector2D.zeros((self.num_dfacets, 2))
+        self._dfacet_indp = zeros(self.num_dfacets, dtype=int)
+        self._dfacet_velp = Vector2D.zeros(self.num_dfacets)
 
-        for i, face in enumerate(self.dfaces):
-            self._dface_pnts[i] = face.cord.pnt
-            self._dface_dirx[i] = face.cord.dirx
-            self._dface_diry[i] = face.cord.diry
-            self._dface_dirz[i] = face.cord.dirz
-            self._dface_area[i] = face.area
-            self._dface_indg[i, ...] = face.indg
-            self._dface_velg[i, ...] = face.velg
-            self._dface_indp[i] = face.indp
-            self._dface_velp[i] = face.velp
-
-    @property
-    def dface_pnts(self) -> Vector:
-        if self._dface_pnts is None:
-            self.assemble_dfaces()
-        return self._dface_pnts
+        for i, facet in enumerate(self.dfacets):
+            self._dfacet_pnts[i] = facet.cord.pnt
+            self._dfacet_dirx[i] = facet.cord.dirx
+            self._dfacet_diry[i] = facet.cord.diry
+            self._dfacet_dirz[i] = facet.cord.dirz
+            self._dfacet_area[i] = facet.area
+            self._dfacet_indg[i, ...] = facet.indg
+            self._dfacet_velg[i, ...] = facet.velg
+            self._dfacet_indp[i] = facet.indp
+            self._dfacet_velp[i] = facet.velp
 
     @property
-    def dface_indg(self) -> 'NDArray':
-        if self._dface_indg is None:
-            self.assemble_dfaces()
-        return self._dface_indg
+    def dfacet_pnts(self) -> Vector:
+        if self._dfacet_pnts is None:
+            self.assemble_dfacets()
+        return self._dfacet_pnts
 
     @property
-    def dface_indp(self) -> 'NDArray':
-        if self._dface_indp is None:
-            self.assemble_dfaces()
-        return self._dface_indp
+    def dfacet_indg(self) -> 'NDArray':
+        if self._dfacet_indg is None:
+            self.assemble_dfacets()
+        return self._dfacet_indg
 
     @property
-    def dface_velg(self) -> Vector2D:
-        if self._dface_velg is None:
-            self.assemble_dfaces()
-        return self._dface_velg
+    def dfacet_indp(self) -> 'NDArray':
+        if self._dfacet_indp is None:
+            self.assemble_dfacets()
+        return self._dfacet_indp
 
     @property
-    def dface_velp(self) -> Vector2D:
-        if self._dface_velp is None:
-            self.assemble_dfaces()
-        return self._dface_velp
+    def dfacet_velg(self) -> Vector2D:
+        if self._dfacet_velg is None:
+            self.assemble_dfacets()
+        return self._dfacet_velg
 
     @property
-    def dface_dirx(self) -> Vector:
-        if self._dface_dirx is None:
-            self.assemble_dfaces()
-        return self._dface_dirx
+    def dfacet_velp(self) -> Vector2D:
+        if self._dfacet_velp is None:
+            self.assemble_dfacets()
+        return self._dfacet_velp
 
     @property
-    def dface_diry(self) -> Vector:
-        if self._dface_diry is None:
-            self.assemble_dfaces()
-        return self._dface_diry
+    def dfacet_dirx(self) -> Vector:
+        if self._dfacet_dirx is None:
+            self.assemble_dfacets()
+        return self._dfacet_dirx
 
     @property
-    def dface_dirz(self) -> Vector:
-        if self._dface_dirz is None:
-            self.assemble_dfaces()
-        return self._dface_dirz
+    def dfacet_diry(self) -> Vector:
+        if self._dfacet_diry is None:
+            self.assemble_dfacets()
+        return self._dfacet_diry
 
     @property
-    def dface_area(self) -> 'NDArray':
-        if self._dface_area is None:
-            self.assemble_dfaces()
-        return self._dface_area
+    def dfacet_dirz(self) -> Vector:
+        if self._dfacet_dirz is None:
+            self.assemble_dfacets()
+        return self._dfacet_dirz
+
+    @property
+    def dfacet_area(self) -> 'NDArray':
+        if self._dfacet_area is None:
+            self.assemble_dfacets()
+        return self._dfacet_area
 
     # def assemble_panels_vel(self, *, mach: float = 0.0) -> None:
     #     if self._apd is None:
