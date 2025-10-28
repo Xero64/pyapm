@@ -106,8 +106,10 @@ class PanelSystem():
     _num_dfacets: int = None
     _dfacet_pnt: Vector = None
     _dfacet_indg: 'NDArray' = None
+    _dfacet_inde: 'NDArray' = None
     _dfacet_indp: 'NDArray' = None
     _dfacet_velg: Vector2D = None
+    _dfacet_vele: Vector2D = None
     _dfacet_velp: Vector2D = None
     _dfacet_dirx: Vector2D = None
     _dfacet_diry: Vector2D = None
@@ -723,8 +725,10 @@ class PanelSystem():
         self._dfacet_diry = Vector.zeros(self.num_dfacets)
         self._dfacet_dirz = Vector.zeros(self.num_dfacets)
         self._dfacet_area = zeros(self.num_dfacets)
-        self._dfacet_indg = zeros((self.num_dfacets, 2), dtype=int)
-        self._dfacet_velg = Vector2D.zeros((self.num_dfacets, 2))
+        self._dfacet_indg = zeros(self.num_dfacets, dtype=int)
+        self._dfacet_velg = Vector2D.zeros(self.num_dfacets)
+        self._dfacet_inde = zeros(self.num_dfacets, dtype=int)
+        self._dfacet_vele = Vector2D.zeros(self.num_dfacets)
         self._dfacet_indp = zeros(self.num_dfacets, dtype=int)
         self._dfacet_velp = Vector2D.zeros(self.num_dfacets)
 
@@ -734,8 +738,10 @@ class PanelSystem():
             self._dfacet_diry[i] = facet.cord.diry
             self._dfacet_dirz[i] = facet.cord.dirz
             self._dfacet_area[i] = facet.area
-            self._dfacet_indg[i, ...] = facet.indg
-            self._dfacet_velg[i, ...] = facet.velg
+            self._dfacet_indg[i] = facet.indg
+            self._dfacet_velg[i] = facet.velg
+            self._dfacet_inde[i] = facet.inde
+            self._dfacet_vele[i] = facet.vele
             self._dfacet_indp[i] = facet.indp
             self._dfacet_velp[i] = facet.velp
 
@@ -752,6 +758,12 @@ class PanelSystem():
         return self._dfacet_indg
 
     @property
+    def dfacet_inde(self) -> 'NDArray':
+        if self._dfacet_inde is None:
+            self.assemble_dfacets()
+        return self._dfacet_inde
+
+    @property
     def dfacet_indp(self) -> 'NDArray':
         if self._dfacet_indp is None:
             self.assemble_dfacets()
@@ -762,6 +774,12 @@ class PanelSystem():
         if self._dfacet_velg is None:
             self.assemble_dfacets()
         return self._dfacet_velg
+
+    @property
+    def dfacet_vele(self) -> Vector2D:
+        if self._dfacet_vele is None:
+            self.assemble_dfacets()
+        return self._dfacet_vele
 
     @property
     def dfacet_velp(self) -> Vector2D:

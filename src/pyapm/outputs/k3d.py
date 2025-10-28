@@ -1,10 +1,10 @@
 from typing import TYPE_CHECKING, Any
 
 from k3d import mesh, vectors
-from k3d.plot import Plot
 from k3d.colormaps import matplotlib_color_maps
+from k3d.helpers import map_colors
+from k3d.plot import Plot
 from numpy import concatenate, float32, uint32, zeros
-
 from pyapm.classes.grid import Grid
 
 if TYPE_CHECKING:
@@ -280,7 +280,12 @@ class PanelPlot:
 
     def face_vectors(self, vecs: 'Vector', **kwargs: dict[str, Any]) -> 'Vectors':
         scale = kwargs.pop('scale', 1.0)
+        mags = vecs.return_magnitude()
+        defcmap = matplotlib_color_maps.Turbo
+        colors = map_colors(mags, color_map=defcmap).reshape((-1, 1)).repeat(2, axis=1).flatten().astype(uint32).tolist()
+        print(colors)
         values = vecs.stack_xyz().astype(float32)*scale
+        kwargs['colors'] = kwargs.setdefault('colors', colors)
         return vectors(self.fpnts, values, **kwargs)
 
     def face_vectors_plot(self, vecs: 'Vector', **kwargs: dict[str, Any]) -> 'Vectors':

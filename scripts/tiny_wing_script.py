@@ -24,7 +24,7 @@ display_markdown(psys)
 # pres.set_density(rho=rho)
 # pres.set_state(alpha=alpha, speed=speed)
 
-pres = psys.results['Test Case']
+pres = psys.results['Alpha 5 deg, Speed 50 m/s']
 
 #%%
 # Assemble and Solve
@@ -118,23 +118,23 @@ mugplot += text2d("Grid Mu Plot", position=(0.5, 0.5), is_html=True, label_box=F
 mugplot.display()
 
 fvxplot = pnlpl.plot()
-fvxplot += pnlpl.face_vx_plot()
+fvxplot += pnlpl.face_vx_plot(color_range=(-80.0, 80.0))
 fvxplot += text2d("Face Vx Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 fvxplot.display()
 
 fvyplot = pnlpl.plot()
-fvyplot += pnlpl.face_vy_plot()
+fvyplot += pnlpl.face_vy_plot(color_range=(-10.0, 10.0))
 fvyplot += text2d("Face Vy Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 fvyplot.display()
 
 fcpplot = pnlpl.plot()
-fcpplot += pnlpl.face_cp_plot()
+fcpplot += pnlpl.face_cp_plot(color_range=(-2.0, 1.0))
 fcpplot += text2d("Face Cp Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 fcpplot.display()
 
 ffrcplot = pnlpl.plot()
 ffrcplot += pnlpl.panel_mesh()
-ffrcplot += pnlpl.face_force_plot(scale=0.0005, head_size=0.05, line_width=0.001)
+ffrcplot += pnlpl.face_force_plot(scale=0.05, head_size=0.05, line_width=0.001)
 ffrcplot += text2d("Face Force Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 ffrcplot.display()
 

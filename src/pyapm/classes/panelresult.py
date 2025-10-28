@@ -1271,14 +1271,12 @@ class FaceResult():
     def fvel(self) -> Vector2D:
         if self._fvel is None:
             fmud = self.fmud[self.system.dfacet_indp]
-            print(f'{fmud.shape = }')
+            fmue = self.fmue[self.system.dfacet_inde]
             fmug = self.fmug[self.system.dfacet_indg]
-            print(f'{fmug.shape = }')
             fvfp = self.system.dfacet_velp
-            print(f'{fvfp.shape = }')
+            fvfe = self.system.dfacet_vele
             fvfg = self.system.dfacet_velg
-            print(f'{fvfg.shape = }')
-            self._fvel = self.fvfs + fvfp*fmud + (fvfg*fmug).sum(axis=1)
+            self._fvel = self.fvfs + fvfp*fmud + fvfe*fmue + fvfg*fmug
         return self._fvel
 
     @property
