@@ -78,14 +78,19 @@ class PanelProfile():
         shape = self.get_shape()
         num = shape.size
 
+        # Mesh Trailing Edge Grid
+        tevec = (shape[0] + shape[-1])/2
+
         # Mesh Profile Grids
         self.grids = []
+        self.grids.append(Grid(gid, tevec.x, tevec.y, tevec.z))
+        gid += 1
         for i in range(num):
             self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
             gid += 1
+        self.grids.append(Grid(gid, tevec.x, tevec.y, tevec.z))
+        gid += 1
 
-        # Mesh Trailing Edge Grid
-        tevec = (shape[0] + shape[-1])/2
         self.tegrid = Grid(gid, tevec.x, tevec.y, tevec.z)
         gid += 1
 

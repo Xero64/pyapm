@@ -59,35 +59,35 @@ class PanelStrip():
 
         # Mesh Wake Panels
         self.wpanels = []
-        tecloseda = (self.profile_a.tegrid == self.profile_a.grids[0] and self.profile_a.tegrid == self.profile_a.grids[-1])
-        teclosedb = (self.profile_b.tegrid == self.profile_b.grids[0] and self.profile_b.tegrid == self.profile_b.grids[-1])
+        # tecloseda = (self.profile_a.tegrid == self.profile_a.grids[0] and self.profile_a.tegrid == self.profile_a.grids[-1])
+        # teclosedb = (self.profile_b.tegrid == self.profile_b.grids[0] and self.profile_b.tegrid == self.profile_b.grids[-1])
 
-        if tecloseda and teclosedb:
-            gridas = [self.profile_b.tegrid]
-            gridbs = [self.profile_a.tegrid]
-            wpanel = WakePanel(pid, gridas, gridbs, dirw=Vector(1.0, 0.0, 0.0))
-            wpanel.adjpanels = (self.dpanels[-1], self.dpanels[0])
-            self.wpanels.append(wpanel)
-            pid += 1
-        else:
-            gridas = [self.profile_b.grids[0], self.profile_b.tegrid]
-            gridbs = [self.profile_a.grids[0], self.profile_a.tegrid]
-            wpanela = WakePanel(pid, gridas, gridbs)
-            wpanela.adjpanels = (self.dpanels[0], )
-            self.wpanels.append(wpanela)
-            pid += 1
-            gridas = [self.profile_a.grids[-1], self.profile_a.tegrid]
-            gridbs = [self.profile_b.grids[-1], self.profile_b.tegrid]
-            wpanelb = WakePanel(pid, gridas, gridbs)
-            wpanelb.adjpanels = (self.dpanels[-1], )
-            self.wpanels.append(wpanelb)
-            pid += 1
-            gridas = [self.profile_b.tegrid]
-            gridbs = [self.profile_a.tegrid]
-            wpanel = WakePanel(pid, gridas, gridbs, dirw=Vector(1.0, 0.0, 0.0))
-            wpanel.adjpanels = (self.dpanels[-1], self.dpanels[0])
-            self.wpanels.append(wpanel)
-            pid += 1
+        # if tecloseda and teclosedb:
+        gridas = [self.profile_b.tegrid]
+        gridbs = [self.profile_a.tegrid]
+        wpanel = WakePanel(pid, gridas, gridbs, dirw=Vector(1.0, 0.0, 0.0))
+        wpanel.adjpanels = (self.dpanels[-1], self.dpanels[0])
+        self.wpanels.append(wpanel)
+        pid += 1
+        # else:
+        #     gridas = [self.profile_b.grids[0], self.profile_b.tegrid]
+        #     gridbs = [self.profile_a.grids[0], self.profile_a.tegrid]
+        #     wpanela = WakePanel(pid, gridas, gridbs)
+        #     wpanela.adjpanels = (self.dpanels[0], )
+        #     self.wpanels.append(wpanela)
+        #     pid += 1
+        #     gridas = [self.profile_a.grids[-1], self.profile_a.tegrid]
+        #     gridbs = [self.profile_b.grids[-1], self.profile_b.tegrid]
+        #     wpanelb = WakePanel(pid, gridas, gridbs)
+        #     wpanelb.adjpanels = (self.dpanels[-1], )
+        #     self.wpanels.append(wpanelb)
+        #     pid += 1
+        #     gridas = [self.profile_b.tegrid]
+        #     gridbs = [self.profile_a.tegrid]
+        #     wpanel = WakePanel(pid, gridas, gridbs, dirw=Vector(1.0, 0.0, 0.0))
+        #     wpanel.adjpanels = (self.dpanels[-1], self.dpanels[0])
+        #     self.wpanels.append(wpanel)
+        #     pid += 1
         return pid
 
     @property

@@ -177,28 +177,28 @@ class PanelSection(PanelProfile):
             profile = profile - offvec
         return profile
 
-    def mesh_grids(self, gid: int) -> int:
-        shape = self.get_shape()
-        num = shape.size
-        tip_te_closed = False
-        if self.scttyp == 'begtip' or self.scttyp == 'endtip':
-            vec = shape[-1] - shape[0]
-            if vec.return_magnitude() < 1e-12:
-                tip_te_closed = True
-                num -= 1
-        self.grids = []
-        for i in range(num):
-            self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
-            gid += 1
-        if tip_te_closed:
-            self.grids.append(self.grids[0])
+    # def mesh_grids(self, gid: int) -> int:
+    #     shape = self.get_shape()
+    #     num = shape.size
+    #     tip_te_closed = False
+    #     if self.scttyp == 'begtip' or self.scttyp == 'endtip':
+    #         vec = shape[-1] - shape[0]
+    #         if vec.return_magnitude() < 1e-12:
+    #             tip_te_closed = True
+    #             num -= 1
+    #     self.grids = []
+    #     for i in range(num):
+    #         self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
+    #         gid += 1
+    #     if tip_te_closed:
+    #         self.grids.append(self.grids[0])
 
-        # Mesh Trailing Edge Grid
-        tevec = (shape[0] + shape[-1])/2
-        self.tegrid = Grid(gid, tevec.x, tevec.y, tevec.z)
-        gid += 1
+    #     # Mesh Trailing Edge Grid
+    #     tevec = (shape[0] + shape[-1])/2
+    #     self.tegrid = Grid(gid, tevec.x, tevec.y, tevec.z)
+    #     gid += 1
 
-        return gid
+    #     return gid
 
     def mesh_panels(self, pid: int) -> int:
         mesh = False
@@ -211,9 +211,9 @@ class PanelSection(PanelProfile):
         self.dpanels = []
         if mesh:
             numgrd = len(self.grids)
-            n = numgrd-1
-            numpnl = int(n/2)
-            for i in range(numpnl):
+            n = numgrd - 1
+            numpnl = int(n / 2)
+            for i in range(1, numpnl):
                 grds: list[Grid] = []
                 grds.append(self.grids[i])
                 grds.append(self.grids[i+1])

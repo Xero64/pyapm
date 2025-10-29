@@ -283,7 +283,6 @@ class PanelPlot:
         mags = vecs.return_magnitude()
         defcmap = matplotlib_color_maps.Turbo
         colors = map_colors(mags, color_map=defcmap).reshape((-1, 1)).repeat(2, axis=1).flatten().astype(uint32).tolist()
-        print(colors)
         values = vecs.stack_xyz().astype(float32)*scale
         kwargs['colors'] = kwargs.setdefault('colors', colors)
         return vectors(self.fpnts, values, **kwargs)

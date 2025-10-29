@@ -1297,7 +1297,7 @@ class FaceResult():
         if self._ffrc is None:
             normals = self.system.dfacet_dirz
             face_area = self.system.dfacet_area
-            self._ffrc = normals*self.fprs*face_area
+            self._ffrc = -normals*self.fprs*face_area
         return self._ffrc
 
     @property
