@@ -733,6 +733,7 @@ class PanelSystem():
         self._dfacet_velp = Vector2D.zeros(self.num_dfacets)
 
         for i, facet in enumerate(self.dfacets):
+            facet.ind = i
             self._dfacet_pnts[i] = facet.cord.pnt
             self._dfacet_dirx[i] = facet.cord.dirx
             self._dfacet_diry[i] = facet.cord.diry

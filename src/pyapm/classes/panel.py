@@ -338,18 +338,33 @@ class Panel():
     def facets(self) -> list[Face]:
         if self._facets is None:
             self._facets = []
+            # edges: list['Edge'] = []
+            # for face in self.faces:
+            #     for edge in self.edges:
+            #         if edge.grida is face.grida and edge.gridb is face.gridb:
+            #             edges.append(edge)
+            #             break
+            #         elif edge.grida is face.gridb and edge.gridb is face.grida:
+            #             edges.append(edge)
+            #             break
             for i, edge in enumerate(self.edges):
                 if edge.panela is self:
                     facet = Face(2*i, edge.grida, edge.edge_point, self)
                 elif edge.panelb is self:
                     facet = Face(2*i, edge.gridb, edge.edge_point, self)
                 facet.set_dirl(self.crd.dirx)
+                if facet.cord.dirz.dot(self.crd.dirz) < 0.0:
+                    facet = Face(2*i, facet.gridb, facet.grida, self)
+                facet.set_dirl(self.crd.dirx)
                 facet.edge = edge
                 self._facets.append(facet)
                 if edge.panela is self:
-                    facet = Face(2*i+1, edge.edge_point, edge.gridb, self)
+                    facet = Face(2*i + 1, edge.edge_point, edge.gridb, self)
                 elif edge.panelb is self:
-                    facet = Face(2*i+1, edge.edge_point, edge.grida, self)
+                    facet = Face(2*i + 1, edge.edge_point, edge.grida, self)
+                facet.set_dirl(self.crd.dirx)
+                if facet.cord.dirz.dot(self.crd.dirz) < 0.0:
+                    facet = Face(2*i + 1, facet.gridb, facet.grida, self)
                 facet.set_dirl(self.crd.dirx)
                 facet.edge = edge
                 self._facets.append(facet)

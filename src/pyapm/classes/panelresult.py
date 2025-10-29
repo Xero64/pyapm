@@ -1276,7 +1276,7 @@ class FaceResult():
             fvfp = self.system.dfacet_velp
             fvfe = self.system.dfacet_vele
             fvfg = self.system.dfacet_velg
-            self._fvel = self.fvfs + fvfp*fmud + fvfe*fmue + fvfg*fmug
+            self._fvel = self.fvfs - fvfp*fmud - fvfe*fmue - fvfg*fmug
         return self._fvel
 
     @property

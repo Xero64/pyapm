@@ -5,6 +5,7 @@ from k3d import text2d
 from matplotlib.pyplot import figure
 from numpy.linalg import norm
 from pyapm.classes import PanelSystem
+from pyapm.classes.panel import Panel
 from pyapm.outputs.k3d import PanelPlot
 from pyapm.outputs.msh import panelresult_to_msh
 
@@ -54,24 +55,40 @@ print(f'{norm(pres.phi)}')
 
 #%%
 # Plots
+num_strips = len(psys.surfaces[0].strips)
+
+dpanels: list['Panel'] = []
 xplst = []
 muplst = []
-for dpanel in psys.surfaces[0].dpanels:
+for dpanel in psys.surfaces[0].strips[num_strips//2].dpanels:
     xplst.append(float(dpanel.pnto.x))
     muplst.append(float(pres.mud[dpanel.ind]))
+    dpanels.append(dpanel)
 
 xelst = []
 muelst = []
 for edge in psys.edges:
-    if edge.grida.y != edge.gridb.y:
+    if edge.panela in dpanels or edge.panelb in dpanels:
         xelst.append(float(edge.edge_point.x))
         muelst.append(float(pres.mue[edge.ind]))
 
 xglst = []
 muglst = []
 for grid in psys.grids.values():
-    xglst.append(float(grid.x))
-    muglst.append(float(pres.mug[grid.ind]))
+    found = False
+    for panel in grid.panels:
+        if panel in dpanels:
+            found = True
+    if found:
+        xglst.append(float(grid.x))
+        muglst.append(float(pres.mug[grid.ind]))
+
+xflst = []
+vxflst = []
+for dpanel in dpanels:
+    for facet in dpanel.facets:
+        xflst.append(float(facet.cord.pnt.x))
+        vxflst.append(float(pres.fres.fvel.x[facet.ind]))
 
 print(f'xplst = {xplst}')
 print(f'muplst = {muplst}')
@@ -87,6 +104,12 @@ ax.plot(xplst, muplst, marker='o')
 ax.scatter(xelst, muelst, marker='x', color='red')
 ax.scatter(xglst, muglst, marker='+', color='green')
 _ = ax.set_title('Mu Distribution Along Chord')
+
+fig = figure(figsize=(12, 8))
+ax = fig.gca()
+ax.grid(True)
+ax.plot(xflst, vxflst)
+_ = ax.set_title('Facet Vx Distribution Along Chord')
 
 #%%
 # Display Result
@@ -138,14 +161,12 @@ ffrcplot += pnlpl.face_force_plot(scale=0.05, head_size=0.05, line_width=0.001)
 ffrcplot += text2d("Face Force Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 ffrcplot.display()
 
-# #%%
-# # Print Output
-# # for strip in psys.strips:
-# #     dpanel0 = strip.dpanels[0]
-# #     dpaneln = strip.dpanels[-1]
-# #     wpanels = strip.wpanels
-# #     print(f'Strip {dpanel0} {dpaneln} {wpanels}')
-# #     mu0 = pres.mud[dpanel0.ind]
-# #     mun = pres.mud[dpaneln.ind]
-# #     muw = [float(pres.muw[wpanel.ind]) for wpanel in wpanels]
-# #     print(f'mu0 = {mu0}, mun = {mun}, muw = {muw}')
+#%%
+# Print Output
+for dpanel in psys.dpanels.values():
+    for facet in dpanel.facets:
+        if facet.cord.dirz.dot(dpanel.crd.dirz) < 0.0:
+            print(f'{dpanel = }')
+            print(f'{facet = }')
+            print(f'{dpanel.crd.dirz = }')
+            print(f'{facet.cord.dirz = }')
