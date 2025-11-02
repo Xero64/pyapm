@@ -1,6 +1,6 @@
 from typing import TYPE_CHECKING
 
-from numpy import sort, unique, zeros
+from numpy import argwhere, sort, unique, zeros
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import Coordinate
 
@@ -14,10 +14,11 @@ if TYPE_CHECKING:
     from ..classes.panel import Panel
     from ..classes.panelsystem import PanelSystem
 
-class Edge():
+class PanelEdge():
     grida: 'Grid' = None
     gridb: 'Grid' = None
     panel: 'Panel' = None
+    mesh_edge: 'MeshEdge' = None
     _face: Face = None
 
     def __init__(self, grida: 'Grid', gridb: 'Grid', panel: 'Panel') -> None:
@@ -28,19 +29,81 @@ class Edge():
     @property
     def face(self) -> Face:
         if self._face is None:
-            self._face = Face(-1, self.grida, self.gridb, self.panel)
+            self._face = Face(self.grida, self.gridb, self.panel)
+            self._face.set_dirl(self.panel.crd.dirx)
         return self._face
 
+    @property
+    def edge_point(self) -> 'Vector':
+        if self.mesh_edge is not None:
+            return self.mesh_edge.edge_point
+        else:
+            return None
 
-class InternalEdge():
-    grida: 'Grid' = None
-    gridb: 'Grid' = None
+    @property
+    def ind(self) -> int:
+        if self.mesh_edge is not None:
+            return self.mesh_edge.ind
+        else:
+            return None
+
+    def __repr__(self) -> str:
+        return f'PanelEdge({self.grida}, {self.gridb}, {self.panel})'
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
+class MeshEdge():
     ind: int = None
-    _panela: 'Panel' = None
-    _panelb: 'Panel' = None
-    _facea: 'Face' = None
-    _faceb: 'Face' = None
-    _panel: 'Panel' = None
+    _edge_point: 'Vector' = None
+
+    def __init__(self) -> None:
+        pass
+
+    @property
+    def edge_point(self) -> 'Vector':
+        return self._edge_point
+
+
+class BoundaryEdge(MeshEdge):
+    panel_edge: PanelEdge = None
+    _mid_point: 'Vector' = None
+    _edge_point: 'Vector' = None
+
+    def __init__(self, edge: PanelEdge) -> None:
+        self.panel_edge = edge
+        self.panel_edge.mesh_edge = self
+
+    @property
+    def panel(self) -> 'Panel':
+        return self.panel_edge.panel
+
+    @property
+    def face(self) -> 'Face':
+        return self.panel_edge.face
+
+    @property
+    def mid_point(self) -> 'Vector':
+        if self._mid_point is None:
+            self._mid_point = 0.5 * (self.panel_edge.grida + self.panel_edge.gridb)
+        return self._mid_point
+
+    @property
+    def edge_point(self) -> 'Vector':
+        return self.mid_point
+
+    def __repr__(self) -> str:
+        return f'BoundaryEdge({self.panel_edge})'
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
+class InternalEdge(MeshEdge):
+    panel_edgea: PanelEdge = None
+    panel_edgeb: PanelEdge = None
+    _mid_point: 'Vector' = None
     _direcy: 'Vector' = None
     _coorda: 'Coordinate' = None
     _coordb: 'Coordinate' = None
@@ -49,108 +112,42 @@ class InternalEdge():
     _edge_point: 'Vector' = None
     _panela_len: float = None
     _panelb_len: float = None
-    _grida_len: float = None
-    _gridb_len: float = None
     _panel_tot: float = None
-    _grid_tot: float = None
     _panela_fac: float = None
     _panelb_fac: float = None
-    _grida_fac: float = None
-    _gridb_fac: float = None
-    _vecec: 'Vector2D' = None
 
-    def __init__(self, grida: 'Grid', gridb: 'Grid') -> None:
-        self.grida = grida
-        self.gridb = gridb
-        self.panela
-        self.panelb
-        self.panel
-        self.facea
-        self.faceb
-        self.face
+    def __init__(self, panel_edgea: PanelEdge, panel_edgeb: PanelEdge) -> None:
+        self.panel_edgea = panel_edgea
+        self.panel_edgea.mesh_edge = self
+        self.panel_edgeb = panel_edgeb
+        self.panel_edgeb.mesh_edge = self
 
     @property
     def panela(self) -> 'Panel':
-        if self._panela is None:
-            panels_a: list['Panel'] = []
-            for panel in self.grida.panels:
-                for i in range(-1, panel.num-1):
-                    if panel.grids[i] is self.grida and panel.grids[i + 1] is self.gridb:
-                        panels_a.append(panel)
-            if len(panels_a) == 1:
-                self._panela = panels_a[0]
-                self._panela.edges.append(self)
-            elif len(panels_a) > 1:
-                raise ValueError(f'Multiple panels found for edge {self.grida} to {self.gridb}')
-            else:
-                self._panela = None
-        return self._panela
+        return self.panel_edgea.panel
 
     @property
     def panelb(self) -> 'Panel':
-        if self._panelb is None:
-            panels_b: list['Panel'] = []
-            for panel in self.gridb.panels:
-                for i in range(-1, panel.num-1):
-                    if panel.grids[i] is self.gridb and panel.grids[i + 1] is self.grida:
-                        panels_b.append(panel)
-            if len(panels_b) == 1:
-                self._panelb = panels_b[0]
-                self._panelb.edges.append(self)
-            elif len(panels_b) > 1:
-                raise ValueError(f'Multiple panels found for edge {self.gridb} to {self.grida}')
-            else:
-                self._panelb = None
-        return self._panelb
+        return self.panel_edgeb.panel
 
     @property
     def facea(self) -> 'Face':
-        if self._facea is None and self.panela is not None:
-            for face in self.panela.faces:
-                if face.grida is self.grida and face.gridb is self.gridb:
-                    self._facea = face
-                    break
-                elif face.grida is self.gridb and face.gridb is self.grida:
-                    self._facea = face
-                    break
-        return self._facea
+        return self.panel_edgea.face
 
     @property
     def faceb(self) -> 'Face':
-        if self._faceb is None and self.panelb is not None:
-            for face in self.panelb.faces:
-                if face.grida is self.gridb and face.gridb is self.grida:
-                    self._faceb = face
-                    break
-                elif face.grida is self.grida and face.gridb is self.gridb:
-                    self._faceb = face
-                    break
-        return self._faceb
+        return self.panel_edgeb.face
 
     @property
-    def panel(self) -> 'Panel':
-        if self._panel is None:
-            if self.panela is not None and self.panelb is None:
-                self._panel = self.panela
-            elif self.panelb is not None and self.panela is None:
-                self._panel = self.panelb
-            else:
-                self._panel = None
-        return self._panel
-
-    @property
-    def face(self) -> 'Face':
-        if self.panel is not None:
-            if self.panel is self.panela:
-                return self.facea
-            elif self.panel is self.panelb:
-                return self.faceb
-        return None
+    def mid_point(self) -> 'Vector':
+        if self._mid_point is None:
+            self._mid_point = 0.5 * (self.panel_edgea.grida + self.panel_edgea.gridb)
+        return self._mid_point
 
     @property
     def direcy(self) -> 'Vector':
         if self._direcy is None:
-            vecy = self.gridb - self.grida
+            vecy = self.panel_edgea.gridb - self.panel_edgea.grida
             self._direcy = vecy.to_unit()
         return self._direcy
 
@@ -162,7 +159,7 @@ class InternalEdge():
             else:
                 direcz_a = self.panela.crd.dirz
                 direcx_a = self.direcy.cross(direcz_a)
-                self._coorda = Coordinate(self.grida, direcx_a, self.direcy)
+                self._coorda = Coordinate(self.mid_point, direcx_a, self.direcy)
         return self._coorda
 
     @property
@@ -173,38 +170,29 @@ class InternalEdge():
             else:
                 direcz_b = self.panelb.crd.dirz
                 direcx_b = self.direcy.cross(direcz_b)
-                self._coordb = Coordinate(self.grida, direcx_b, self.direcy)
+                self._coordb = Coordinate(self.mid_point, direcx_b, self.direcy)
         return self._coordb
 
     @property
     def pointa(self) -> 'Vector2D':
         if self._pointa is None:
-            if self.coorda is None:
-                self._pointa = None
-            else:
-                vecag = self.coorda.point_to_local(self.panela.pnto)
-                self._pointa = Vector2D.from_obj(vecag)
+            vecag = self.coorda.point_to_local(self.panela.pnto)
+            self._pointa = Vector2D.from_obj(vecag)
         return self._pointa
 
     @property
     def pointb(self) -> 'Vector2D':
         if self._pointb is None:
-            if self.coordb is None:
-                self._pointb = None
-            else:
-                vecbg = self.coordb.point_to_local(self.panelb.pnto)
-                self._pointb = Vector2D.from_obj(vecbg)
+            vecbg = self.coordb.point_to_local(self.panelb.pnto)
+            self._pointb = Vector2D.from_obj(vecbg)
         return self._pointb
 
     @property
     def edge_point(self) -> 'Vector':
         if self._edge_point is None:
-            if self.pointa is None or self.pointb is None:
-                self._edge_point = 0.5 * (self.grida + self.gridb)
-            else:
-                m = (self.pointb.y - self.pointa.y) / (self.pointb.x - self.pointa.x)
-                c = self.pointa.y - m * self.pointa.x
-                self._edge_point = self.grida + self.direcy*c
+            m = (self.pointb.y - self.pointa.y) / (self.pointb.x - self.pointa.x)
+            c = self.pointa.y - m * self.pointa.x
+            self._edge_point = self.mid_point + self.direcy*c
         return self._edge_point
 
     @property
@@ -228,28 +216,10 @@ class InternalEdge():
         return self._panelb_len
 
     @property
-    def grida_len(self) -> float:
-        if self._grida_len is None:
-            self._grida_len = self.grida.return_magnitude()
-        return self._grida_len
-
-    @property
-    def gridb_len(self) -> float:
-        if self._gridb_len is None:
-            self._gridb_len = self.gridb.return_magnitude()
-        return self._gridb_len
-
-    @property
     def panel_tot(self) -> float:
         if self._panel_tot is None:
             self._panel_tot = self.panela_len + self.panelb_len
         return self._panel_tot
-
-    @property
-    def grid_tot(self) -> float:
-        if self._grid_tot is None:
-            self._grid_tot = self.grida_len + self.gridb_len
-        return self._grid_tot
 
     @property
     def panela_fac(self) -> float:
@@ -263,63 +233,49 @@ class InternalEdge():
             self._panelb_fac = self.panelb_len / self.panel_tot
         return self._panelb_fac
 
-    @property
-    def grida_fac(self) -> float:
-        if self._grida_fac is None:
-            self._grida_fac = self.grida_len / self.grid_tot
-        return self._grida_fac
-
-    @property
-    def gridb_fac(self) -> float:
-        if self._gridb_fac is None:
-            self._gridb_fac = self.gridb_len / self.grid_tot
-        return self._gridb_fac
-
-    @property
-    def vecec(self) -> 'Vector2D':
-        if self._vecec is None and self.panel is not None:
-            for face in self.panel.faces:
-                if (face.grida is self.grida and face.gridb is self.gridb) or \
-                   (face.grida is self.gridb and face.gridb is self.grida):
-                    break
-            face_pnte = (face.pointa + face.pointb) * 0.5
-            face_pntc = face.pointc
-            self._vecec = face_pnte - face_pntc
-        return self._vecec
-
     def __repr__(self) -> str:
-        return f'Edge({self.grida}, {self.gridb})'
+        return f'InternalEdge({self.panel_edgea}, {self.panel_edgeb})'
 
     def __str__(self) -> str:
         return self.__repr__()
 
 
-def edges_from_system(system: 'PanelSystem') -> list[InternalEdge]:
+def edges_from_system(system: 'PanelSystem') -> list[MeshEdge]:
     """Create a list of unique edges from a PanelSystem.
     Args:
         system (PanelSystem): The panel system from which to extract edges.
     Returns:
         list[Edge]: A list of unique edges in the panel system.
     """
-    total_edges = 0
-    for panel in system.dpanels.values():
-        total_edges += panel.num
-    all_edges = zeros((total_edges, 2), dtype=int)
-    k = 0
-    for panel in system.dpanels.values():
-        for i in range(-1, panel.num - 1):
-            grida = panel.grids[i]
-            gridb = panel.grids[i + 1]
-            all_edges[k, 0] = grida.gid
-            all_edges[k, 1] = gridb.gid
-            k += 1
-    sorted_edges = sort(all_edges, axis=1)
-    unique_edges = unique(sorted_edges, axis=0)
+    all_edges: list[PanelEdge] = []
+    for dpanel in system.dpanels.values():
+        for panel_edge in dpanel.panel_edges:
+            all_edges.append(panel_edge)
+    # for wpanel in system.wpanels.values():
+    #     for edge in wpanel.edges:
+    #         all_edges.append(edge)
+    num_edges = len(all_edges)
+    edge_gids = zeros((num_edges, 2), dtype=int)
+    for i, edge in enumerate(all_edges):
+        edge_gids[i, 0] = edge.grida.gid
+        edge_gids[i, 1] = edge.gridb.gid
+
+    sorted_edges = sort(edge_gids, axis=1)
+    unique_edges, edge_inverse = unique(sorted_edges, axis=0, return_inverse=True)
+    # print(f'{num_edges = }')
+    # print(f'{unique_edges = }')
+    # print(f'{unique_edges.shape[0] = }')
+    # print(f'{edge_inverse = }')
+    # print(f'{edge_inverse.size = }')
     edges = []
-    for edge in unique_edges:
-        grida = system.grids[edge[0]]
-        gridb = system.grids[edge[1]]
-        edges.append(InternalEdge(grida, gridb))
+    for i in range(unique_edges.shape[0]):
+        edge_inds = argwhere(edge_inverse == i).flatten()
+        if edge_inds.size == 1:
+            edge = BoundaryEdge(all_edges[edge_inds[0]])
+            edges.append(edge)
+        elif edge_inds.size > 1:
+            edge = InternalEdge(all_edges[edge_inds[0]], all_edges[edge_inds[1]])
+            edges.append(edge)
     return edges
 
 # def edges_array(edges: list[InternalEdge]) -> 'NDArray':
@@ -362,24 +318,30 @@ def edges_from_system(system: 'PanelSystem') -> list[InternalEdge]:
 #     earray = solve(amat, bmat)
 #     return earray
 
-def edges_parray(edges: list[InternalEdge]) -> 'NDArray':
-    num_edges = len(edges)
+def edges_parray(mesh_edges: list[MeshEdge]) -> 'NDArray':
+    num_edges = len(mesh_edges)
     max_pind = None
-    for edge in edges:
-        if max_pind is None or (edge.panela is not None and edge.panela.ind > max_pind):
-            max_pind = edge.panela.ind
-        if max_pind is None or (edge.panelb is not None and edge.panelb.ind > max_pind):
-            max_pind = edge.panelb.ind
+    for mesh_edge in mesh_edges:
+        if isinstance(mesh_edge, BoundaryEdge):
+            if max_pind is None or mesh_edge.panel_edge.panel.ind > max_pind:
+                max_pind = mesh_edge.panel_edge.panel.ind
+        elif isinstance(mesh_edge, InternalEdge):
+            if mesh_edge.panela is not None:
+                if max_pind is None or mesh_edge.panela.ind > max_pind:
+                    max_pind = mesh_edge.panela.ind
+            if mesh_edge.panelb is not None:
+                if max_pind is None or mesh_edge.panelb.ind > max_pind:
+                    max_pind = mesh_edge.panelb.ind
     parray = zeros((num_edges, max_pind + 1), dtype=float)
-    for edge in edges:
-        if edge.panel is None:
-            parray[edge.ind, edge.panela.ind] = edge.panelb_fac
-            parray[edge.ind, edge.panelb.ind] = edge.panela_fac
-        else:
-            parray[edge.ind, edge.panel.ind] = 1.0
-            vecg = edge.edge_point - edge.panel.pnto
-            vecl = edge.face.cord.vector_to_local(vecg)
+    for mesh_edge in mesh_edges:
+        if isinstance(mesh_edge, BoundaryEdge):
+            parray[mesh_edge.ind, mesh_edge.panel.ind] = 1.0
+            vecg = mesh_edge.panel_edge.edge_point - mesh_edge.panel.pnto
+            vecl = mesh_edge.face.cord.vector_to_local(vecg)
             dirl = Vector2D.from_obj(vecl)
-            dmue = edge.panel.edge_velp.dot(dirl)
-            parray[edge.ind, edge.panel.edge_indp] -= dmue
+            dmue = mesh_edge.panel.edge_velp.dot(dirl)
+            parray[mesh_edge.ind, mesh_edge.panel.edge_indp] -= dmue
+        elif isinstance(mesh_edge, InternalEdge):
+            parray[mesh_edge.ind, mesh_edge.panela.ind] = mesh_edge.panelb_fac
+            parray[mesh_edge.ind, mesh_edge.panelb.ind] = mesh_edge.panela_fac
     return parray

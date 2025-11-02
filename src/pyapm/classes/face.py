@@ -15,7 +15,6 @@ if TYPE_CHECKING:
 
 
 class Face:
-    fid: int = None
     grida: Grid = None
     gridb: Grid = None
     panel: 'Panel' = None
@@ -43,8 +42,7 @@ class Face:
     _inde: 'NDArray' = None
     _indp: 'NDArray' = None
 
-    def __init__(self, fid: int, grida: Grid, gridb: Grid, panel: 'Panel') -> None:
-        self.fid = fid
+    def __init__(self, grida: Grid, gridb: Grid, panel: 'Panel') -> None:
         self.grida = grida
         self.gridb = gridb
         self.panel = panel
@@ -60,10 +58,9 @@ class Face:
         return self._pointo
 
     def calc_normal_and_jac(self) -> tuple[Vector, float]:
-        if self._normal is None or self._area is None:
-            vecab = self.gridb - self.grida
-            vecbc = self.gridc - self.gridb
-            nrml, jac = vecab.cross(vecbc).to_unit(return_magnitude=True)
+        vecab = self.gridb - self.grida
+        vecbc = self.gridc - self.gridb
+        nrml, jac = vecab.cross(vecbc).to_unit(return_magnitude=True)
         return nrml, jac
 
     @property
@@ -89,6 +86,11 @@ class Face:
         vecy = dirz.cross(vecl)
         vecx = vecy.cross(dirz)
         self._cord = Coordinate(self.pointo, vecx, vecy)
+        if dirz.dot(self._cord.dirz) < 0.0:
+            print(f'self.panel.ind = {self.panel.ind}')
+            print(f'vecl = {vecl}')
+            print(f'vecx = {vecx}, vecy = {vecy}, dirz = {dirz}')
+            print(f'self._cord.dirz = {self._cord.dirz}')
 
     @property
     def cord(self) -> Coordinate:
@@ -249,7 +251,4 @@ class Face:
         return t123, absz
 
     def __repr__(self) -> str:
-        return f'Face(fid={self.fid}, grida={self.grida}, gridb={self.gridb}, panel={self.panel})'
-
-    def __str__(self) -> str:
-        return f'Face {self.fid} of Panel {self.panel.ind}'
+        return f'Face(grida={self.grida}, gridb={self.gridb}, gridc={self.gridc}, panel={self.panel})'

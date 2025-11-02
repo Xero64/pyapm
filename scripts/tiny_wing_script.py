@@ -68,9 +68,14 @@ for dpanel in psys.surfaces[0].strips[num_strips//2].dpanels:
 xelst = []
 muelst = []
 for edge in psys.edges:
-    if edge.panela in dpanels or edge.panelb in dpanels:
-        xelst.append(float(edge.edge_point.x))
-        muelst.append(float(pres.mue[edge.ind]))
+    if hasattr(edge, 'panel'):
+        if edge.panel in dpanels:
+            xelst.append(float(edge.edge_point.x))
+            muelst.append(float(pres.mue[edge.ind]))
+    elif hasattr(edge, 'panela') and hasattr(edge, 'panelb'):
+        if edge.panela in dpanels or edge.panelb in dpanels:
+            xelst.append(float(edge.edge_point.x))
+            muelst.append(float(pres.mue[edge.ind]))
 
 xglst = []
 muglst = []
@@ -161,12 +166,20 @@ ffrcplot += pnlpl.face_force_plot(scale=0.05, head_size=0.05, line_width=0.001)
 ffrcplot += text2d("Face Force Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 ffrcplot.display()
 
+# #%%
+# # Print Output
+# for dpanel in psys.dpanels.values():
+#     for facet in dpanel.facets:
+#         if facet.cord.dirz.dot(dpanel.crd.dirz) < 0.0:
+#             print(f'{dpanel = }')
+#             for grid in dpanel.grids:
+#                 print(f'  {grid = }')
+#             for panel_edge in dpanel.panel_edges:
+#                 print(f'  {panel_edge = }')
+#                 print(f'  {panel_edge.edge_point = }')
+#             for facet in dpanel.facets:
+#                 print(f'  {facet = }')
+#                 print(f'  {facet.cord.dirz = }')
+#             print(f'{dpanel.crd.dirz = }')
+
 #%%
-# Print Output
-for dpanel in psys.dpanels.values():
-    for facet in dpanel.facets:
-        if facet.cord.dirz.dot(dpanel.crd.dirz) < 0.0:
-            print(f'{dpanel = }')
-            print(f'{facet = }')
-            print(f'{dpanel.crd.dirz = }')
-            print(f'{facet.cord.dirz = }')

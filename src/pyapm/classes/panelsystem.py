@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from ..tools.mass import MassCollection
-    from .edge import InternalEdge
+    from .edge import MeshEdge
     from .face import Face
     from .panelstrip import PanelStrip
     from .wakepanel import WakePanel
@@ -91,7 +91,7 @@ class PanelSystem():
     # _pnldirx: Vector = None
     # _pnldiry: Vector = None
     # _pnldirz: Vector = None
-    _edges: list['InternalEdge'] = None
+    _edges: list['MeshEdge'] = None
     _edges_parray: 'NDArray' = None
     _grids_parray: 'NDArray' = None
     _num_edges: int = None
@@ -477,7 +477,7 @@ class PanelSystem():
     #     return self._alh
 
     @property
-    def edges(self) -> list['InternalEdge']:
+    def edges(self) -> list['MeshEdge']:
         if self._edges is None:
             self._edges = edges_from_system(self)
             for i, edge in enumerate(self._edges):
@@ -745,6 +745,29 @@ class PanelSystem():
             self._dfacet_vele[i] = facet.vele
             self._dfacet_indp[i] = facet.indp
             self._dfacet_velp[i] = facet.velp
+
+        # print(f'{self._dfacet_pnts.x = }')
+        # print(f'{self._dfacet_pnts.y = }')
+        # print(f'{self._dfacet_pnts.z = }')
+        # print(f'{self._dfacet_dirx.x = }')
+        # print(f'{self._dfacet_dirx.y = }')
+        # print(f'{self._dfacet_dirx.z = }')
+        # print(f'{self._dfacet_diry.x = }')
+        # print(f'{self._dfacet_diry.y = }')
+        # print(f'{self._dfacet_diry.z = }')
+        # print(f'{self._dfacet_dirz.x = }')
+        # print(f'{self._dfacet_dirz.y = }')
+        # print(f'{self._dfacet_dirz.z = }')
+        # print(f'{self._dfacet_area = }')
+        # print(f'{self._dfacet_indg = }')
+        # print(f'{self._dfacet_velg.x = }')
+        # print(f'{self._dfacet_velg.y = }')
+        # print(f'{self._dfacet_inde = }')
+        # print(f'{self._dfacet_vele.x = }')
+        # print(f'{self._dfacet_vele.y = }')
+        # print(f'{self._dfacet_indp = }')
+        # print(f'{self._dfacet_velp.x = }')
+        # print(f'{self._dfacet_velp.y = }')
 
     @property
     def dfacet_pnts(self) -> Vector:
@@ -1192,7 +1215,7 @@ class PanelSystem():
                     pnls[pid] = pnl
                     if grp.noload:
                         pnls[pid].noload = True
-                    pnls[pid].grp = grp
+                    pnls[pid].group = grp
                 grp.add_panel(pnl)
             else:
                 pnlgrds = [grds[gidi] for gidi in pd['gids']]
@@ -1215,10 +1238,10 @@ class PanelSystem():
             grpid = ctrldct.get('group', None)
             if grpid is not None:
                 grpid = int(grpid)
-                grp = sys.grps[grpid]
+                grp = sys.groups[grpid]
                 grp.add_control(ctrl)
-            if ctrlname not in sys.ctrls:
-                sys.ctrls[ctrlname] = (ind, ind+1, ind+2, ind+3)
+            if ctrlname not in sys.controls:
+                sys.controls[ctrlname] = (ind, ind + 1, ind + 2, ind + 3)
                 ind += 4
 
         masses = {}
@@ -1299,6 +1322,7 @@ class PanelSystem():
                 masses = masses_from_json(massfilepath)
         sys.masses = masses
         mass = sysdct.get('mass', None)
+
         if isinstance(mass, float):
             sys.mass = MassObject(sys.name, mass = mass,
                                   xcm = sys.rref.x,
@@ -1357,9 +1381,9 @@ class PanelSystem():
                 data['state'][resname]['qco2v'] = result.qco2v
             if abs(result.rbo2v) > tolerance:
                 data['state'][resname]['rbo2v'] = result.rbo2v
-            for control in self.ctrls:
-                if abs(result.ctrls[control]) > tolerance:
-                    data['state'][resname][control] = result.ctrls[control]
+            for control in self.controls:
+                if abs(result.controls[control]) > tolerance:
+                    data['state'][resname][control] = result.controls[control]
 
         if outfilepath is None:
             outfilepath = infilepath

@@ -8,12 +8,13 @@ from pygeom.geom3d.tools import angle_between_vectors
 
 from .face import Face
 from .grid import Grid
+from .edge import PanelEdge, InternalEdge
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from ..core.flow import Flow
-    from .edge import InternalEdge
+    from .edge import MeshEdge
     from .panelgroup import PanelGroup
     from .panelsection import PanelSection
     from .panelsheet import PanelSheet
@@ -45,9 +46,10 @@ class Panel():
     _area: float = None
     _nrm: Vector = None
     _crd: Coordinate = None
-    _faces: list[Face] = None
-    _edges: list['InternalEdge'] = None
-    _panel_gradient: 'NDArray' = None
+    # _faces: list[Face] = None
+    _panel_edges: list['PanelEdge'] = None
+    _mesh_edges: list['MeshEdge'] = None
+    # _panel_gradient: 'NDArray' = None
     _facets: list[Face] = None
     # _hsvs: list[HorseshoeDoublet] = None
     _grdpnls: list[list['Panel']] = None
@@ -171,24 +173,24 @@ class Panel():
     def vecas(self) -> Vector:
         if self._vecas is None:
             self._vecas = Vector.zeros(self.num)
-            for i, face in enumerate(self.faces):
-                self._vecas[i] = face.grida
+            for i in range(self.num):
+                self._vecas[i] = self.grids[i - 1]
         return self._vecas
 
     @property
     def vecbs(self) -> Vector:
         if self._vecbs is None:
             self._vecbs = Vector.zeros(self.num)
-            for i, face in enumerate(self.faces):
-                self._vecbs[i] = face.gridb
+            for i in range(self.num):
+                self._vecbs[i] = self.grids[i]
         return self._vecbs
 
     @property
     def veccs(self) -> Vector:
         if self._veccs is None:
             self._veccs = Vector.zeros(self.num)
-            for i, face in enumerate(self.faces):
-                self._veccs[i] = face.gridc
+            for i in range(self.num):
+                self._veccs[i] = self.pnto
         return self._veccs
 
     def check_panel(self, pnl: 'Panel') -> tuple[bool, bool, bool]:
@@ -236,50 +238,69 @@ class Panel():
         return self._crd
 
     @property
-    def edges(self) -> list['InternalEdge']:
-        if self._edges is None:
-            self._edges = []
-        return self._edges
-
-    @property
-    def faces(self) -> list[Face]:
-        if self._faces is None:
-            self._faces = []
+    def panel_edges(self) -> list['PanelEdge']:
+        if self._panel_edges is None:
+            self._panel_edges = []
             for i in range(self.num):
                 a = i - 1
                 b = i
-                grda = self.grids[a]
-                grdb = self.grids[b]
-                face = Face(i, grda, grdb, self)
-                face.set_dirl(self.crd.dirx)
-                self._faces.append(face)
-        return self._faces
+                grida = self.grids[a]
+                gridb = self.grids[b]
+                edge = PanelEdge(grida, gridb, self)
+                self._panel_edges.append(edge)
+        return self._panel_edges
+
+    @property
+    def mesh_edges(self) -> list['MeshEdge']:
+        if self._mesh_edges is None:
+            self._mesh_edges = []
+            for panel_edge in self.panel_edges:
+                self._mesh_edges.append(panel_edge.mesh_edge)
+        return self._mesh_edges
+
+    # @property
+    # def faces(self) -> list[Face]:
+    #     if self._faces is None:
+    #         self._faces = []
+    #         for i in range(self.num):
+    #             a = i - 1
+    #             b = i
+    #             grda = self.grids[a]
+    #             grdb = self.grids[b]
+    #             face = Face(i, grda, grdb, self)
+    #             face.set_dirl(self.crd.dirx)
+    #             self._faces.append(face)
+    #     return self._faces
 
     def calc_edge_gradient(self) -> None:
-        conedge = [edge for edge in self.edges if edge.panel is None]
-        numconedge = len(conedge)
-        self._edge_velp = Vector2D.zeros(numconedge + 1)
-        self._edge_indp = zeros(numconedge + 1, dtype=int)
+        intedges: list[InternalEdge] = []
+        for mesh_edge in self.mesh_edges:
+            if isinstance(mesh_edge, InternalEdge):
+                intedges.append(mesh_edge)
+        numintedge = len(intedges)
+        self._edge_velp = Vector2D.zeros(numintedge + 1)
+        self._edge_indp = zeros(numintedge + 1, dtype=int)
         self._edge_indp[0] = self.ind
-        for i, edge in enumerate(conedge):
-            vecg = edge.edge_point - self.pnto
-            if edge.panela is self:
-                face = edge.facea
+        for i, intedge in enumerate(intedges):
+            vecg = intedge.edge_point - self.pnto
+            if intedge.panela is self:
+                face = intedge.facea
                 vecl = face.cord.vector_to_local(vecg)
                 dirl = Vector2D.from_obj(vecl).to_unit()
-                self._edge_indp[0] = edge.panela.ind
-                self._edge_velp[0] += dirl*edge.panelb_fac
-                self._edge_indp[i+1] = edge.panelb.ind
-                self._edge_velp[i+1] += dirl*edge.panela_fac
-            else:
-                face = edge.faceb
+                self._edge_indp[0] = intedge.panela.ind
+                self._edge_velp[0] += dirl*intedge.panelb_fac
+                self._edge_indp[i+1] = intedge.panelb.ind
+                self._edge_velp[i+1] += dirl*intedge.panela_fac
+            elif intedge.panelb is self:
+                face = intedge.faceb
                 vecl = face.cord.vector_to_local(vecg)
                 dirl = Vector2D.from_obj(vecl).to_unit()
-                self._edge_indp[0] = edge.panelb.ind
-                self._edge_velp[0] += dirl*edge.panela_fac
-                self._edge_indp[i+1] = edge.panela.ind
-                self._edge_velp[i+1] += dirl*edge.panelb_fac
-        self._edge_velp /= numconedge
+                self._edge_indp[0] = intedge.panelb.ind
+                self._edge_velp[0] += dirl*intedge.panela_fac
+                self._edge_indp[i+1] = intedge.panela.ind
+                self._edge_velp[i+1] += dirl*intedge.panelb_fac
+        if numintedge > 0:
+            self._edge_velp /= numintedge
 
         # self._edge_velg = Vector2D.zeros(self.num)
         # self._edge_velp = Vector2D.zeros()
@@ -337,81 +358,60 @@ class Panel():
     def facets(self) -> list[Face]:
         if self._facets is None:
             self._facets = []
-            # edges: list['InternalEdge'] = []
-            # for face in self.faces:
-            #     for edge in self.edges:
-            #         if edge.grida is face.grida and edge.gridb is face.gridb:
-            #             edges.append(edge)
-            #             break
-            #         elif edge.grida is face.gridb and edge.gridb is face.grida:
-            #             edges.append(edge)
-            #             break
-            for i, edge in enumerate(self.edges):
-                if edge.panela is self:
-                    facet = Face(2*i, edge.grida, edge.edge_point, self)
-                elif edge.panelb is self:
-                    facet = Face(2*i, edge.gridb, edge.edge_point, self)
+            for panel_edge in self.panel_edges:
+                facet = Face(panel_edge.grida, panel_edge.edge_point, self)
                 facet.set_dirl(self.crd.dirx)
-                if facet.cord.dirz.dot(self.crd.dirz) < 0.0:
-                    facet = Face(2*i, facet.gridb, facet.grida, self)
-                facet.set_dirl(self.crd.dirx)
-                facet.edge = edge
+                facet.edge = panel_edge
                 self._facets.append(facet)
-                if edge.panela is self:
-                    facet = Face(2*i + 1, edge.edge_point, edge.gridb, self)
-                elif edge.panelb is self:
-                    facet = Face(2*i + 1, edge.edge_point, edge.grida, self)
+                facet = Face(panel_edge.edge_point, panel_edge.gridb, self)
                 facet.set_dirl(self.crd.dirx)
-                if facet.cord.dirz.dot(self.crd.dirz) < 0.0:
-                    facet = Face(2*i + 1, facet.gridb, facet.grida, self)
-                facet.set_dirl(self.crd.dirx)
-                facet.edge = edge
+                facet.edge = panel_edge
                 self._facets.append(facet)
         return self._facets
 
-    @property
-    def panel_gradient(self) -> 'NDArray':
-        if self._panel_gradient is None:
-            n = 1.0
-            sum_x = 0.0
-            sum_y = 0.0
-            sum_xx = 0.0
-            sum_xy = 0.0
-            sum_yy = 0.0
-            x_lst = [0.0]
-            y_lst = [0.0]
-            o_lst = [1.0]
-            for edge in self.edges:
-                if edge.panel is None:
-                    pnte = self.crd.point_to_local(edge.edge_point)
-                    xe = pnte.x
-                    ye = pnte.y
-                    n += 1.0
-                    sum_x += xe
-                    sum_y += ye
-                    sum_xx += xe*xe
-                    sum_xy += xe*ye
-                    sum_yy += ye*ye
-                    x_lst.append(xe)
-                    y_lst.append(ye)
-                    o_lst.append(1.0)
-            amat = asarray([[sum_xx, sum_xy, sum_x],
-                            [sum_xy, sum_yy, sum_y],
-                            [sum_x, sum_y, n]])
-            bmat = asarray([x_lst, y_lst, o_lst])
-            cmat = solve(amat, bmat)
-            self._panel_gradient = cmat
-        return self._panel_gradient
+    # @property
+    # def panel_gradient(self) -> 'NDArray':
+    #     if self._panel_gradient is None:
+    #         n = 1.0
+    #         sum_x = 0.0
+    #         sum_y = 0.0
+    #         sum_xx = 0.0
+    #         sum_xy = 0.0
+    #         sum_yy = 0.0
+    #         x_lst = [0.0]
+    #         y_lst = [0.0]
+    #         o_lst = [1.0]
+    #         for edge in self.edges:
+    #             if edge.panel is None:
+    #                 pnte = self.crd.point_to_local(edge.edge_point)
+    #                 xe = pnte.x
+    #                 ye = pnte.y
+    #                 n += 1.0
+    #                 sum_x += xe
+    #                 sum_y += ye
+    #                 sum_xx += xe*xe
+    #                 sum_xy += xe*ye
+    #                 sum_yy += ye*ye
+    #                 x_lst.append(xe)
+    #                 y_lst.append(ye)
+    #                 o_lst.append(1.0)
+    #         amat = asarray([[sum_xx, sum_xy, sum_x],
+    #                         [sum_xy, sum_yy, sum_y],
+    #                         [sum_x, sum_y, n]])
+    #         bmat = asarray([x_lst, y_lst, o_lst])
+    #         cmat = solve(amat, bmat)
+    #         self._panel_gradient = cmat
+    #     return self._panel_gradient
 
     def diff_mu(self, mu: 'NDArray', mug: 'NDArray') -> Vector2D:
         qjac = Vector2D(0.0, 0.0)
         jac = 0.0
         i = 0
-        for face in self.faces:
+        for panel_edge in self.panel_edges:
             i += 1
-            qxJ = face.face_qxJ(mu, mug)
+            qxJ = panel_edge.face.face_qxJ(mu, mug)
             qjac += qxJ
-            jac += face.jac
+            jac += panel_edge.face.jac
         q = qjac/jac
         return q
 
