@@ -10,7 +10,7 @@ from .grid import Grid
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
-    from .edge import Edge
+    from .edge import InternalEdge
     from .panel import Panel
 
 
@@ -20,7 +20,7 @@ class Face:
     gridb: Grid = None
     panel: 'Panel' = None
     ind: int = None
-    edge: 'Edge' = None
+    edge: 'InternalEdge' = None
     _pointo: Vector = None
     _normal: Vector = None
     _jac: float = None

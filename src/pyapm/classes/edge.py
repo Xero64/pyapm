@@ -1,21 +1,38 @@
 from typing import TYPE_CHECKING
 
 from numpy import sort, unique, zeros
-from numpy.linalg import solve
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import Coordinate
+
+from ..classes.face import Face
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
     from pygeom.geom3d import Vector
 
-    from ..classes.face import Face
     from ..classes.grid import Grid
     from ..classes.panel import Panel
     from ..classes.panelsystem import PanelSystem
 
-
 class Edge():
+    grida: 'Grid' = None
+    gridb: 'Grid' = None
+    panel: 'Panel' = None
+    _face: Face = None
+
+    def __init__(self, grida: 'Grid', gridb: 'Grid', panel: 'Panel') -> None:
+        self.grida = grida
+        self.gridb = gridb
+        self.panel = panel
+
+    @property
+    def face(self) -> Face:
+        if self._face is None:
+            self._face = Face(-1, self.grida, self.gridb, self.panel)
+        return self._face
+
+
+class InternalEdge():
     grida: 'Grid' = None
     gridb: 'Grid' = None
     ind: int = None
@@ -277,7 +294,7 @@ class Edge():
         return self.__repr__()
 
 
-def edges_from_system(system: 'PanelSystem') -> list[Edge]:
+def edges_from_system(system: 'PanelSystem') -> list[InternalEdge]:
     """Create a list of unique edges from a PanelSystem.
     Args:
         system (PanelSystem): The panel system from which to extract edges.
@@ -302,10 +319,10 @@ def edges_from_system(system: 'PanelSystem') -> list[Edge]:
     for edge in unique_edges:
         grida = system.grids[edge[0]]
         gridb = system.grids[edge[1]]
-        edges.append(Edge(grida, gridb))
+        edges.append(InternalEdge(grida, gridb))
     return edges
 
-# def edges_array(edges: list[Edge]) -> 'NDArray':
+# def edges_array(edges: list[InternalEdge]) -> 'NDArray':
 #     num_edges = len(edges)
 #     # conedges = [edge for edge in edges if edge.panel is None]
 #     # num_edges = len(conedges)
@@ -345,7 +362,7 @@ def edges_from_system(system: 'PanelSystem') -> list[Edge]:
 #     earray = solve(amat, bmat)
 #     return earray
 
-def edges_parray(edges: list[Edge]) -> 'NDArray':
+def edges_parray(edges: list[InternalEdge]) -> 'NDArray':
     num_edges = len(edges)
     max_pind = None
     for edge in edges:

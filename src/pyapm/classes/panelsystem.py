@@ -26,7 +26,7 @@ if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from ..tools.mass import MassCollection
-    from .edge import Edge
+    from .edge import InternalEdge
     from .face import Face
     from .panelstrip import PanelStrip
     from .wakepanel import WakePanel
@@ -91,7 +91,7 @@ class PanelSystem():
     # _pnldirx: Vector = None
     # _pnldiry: Vector = None
     # _pnldirz: Vector = None
-    _edges: list['Edge'] = None
+    _edges: list['InternalEdge'] = None
     _edges_parray: 'NDArray' = None
     _grids_parray: 'NDArray' = None
     _num_edges: int = None
@@ -477,7 +477,7 @@ class PanelSystem():
     #     return self._alh
 
     @property
-    def edges(self) -> list['Edge']:
+    def edges(self) -> list['InternalEdge']:
         if self._edges is None:
             self._edges = edges_from_system(self)
             for i, edge in enumerate(self._edges):

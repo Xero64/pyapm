@@ -8,13 +8,12 @@ from pygeom.geom3d.tools import angle_between_vectors
 
 from .face import Face
 from .grid import Grid
-from .horseshoedoublet import HorseshoeDoublet
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
     from ..core.flow import Flow
-    from .edge import Edge
+    from .edge import InternalEdge
     from .panelgroup import PanelGroup
     from .panelsection import PanelSection
     from .panelsheet import PanelSheet
@@ -47,7 +46,7 @@ class Panel():
     _nrm: Vector = None
     _crd: Coordinate = None
     _faces: list[Face] = None
-    _edges: list['Edge'] = None
+    _edges: list['InternalEdge'] = None
     _panel_gradient: 'NDArray' = None
     _facets: list[Face] = None
     # _hsvs: list[HorseshoeDoublet] = None
@@ -237,7 +236,7 @@ class Panel():
         return self._crd
 
     @property
-    def edges(self) -> list['Edge']:
+    def edges(self) -> list['InternalEdge']:
         if self._edges is None:
             self._edges = []
         return self._edges
@@ -338,7 +337,7 @@ class Panel():
     def facets(self) -> list[Face]:
         if self._facets is None:
             self._facets = []
-            # edges: list['Edge'] = []
+            # edges: list['InternalEdge'] = []
             # for face in self.faces:
             #     for edge in self.edges:
             #         if edge.grida is face.grida and edge.gridb is face.gridb:
