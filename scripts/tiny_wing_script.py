@@ -146,7 +146,7 @@ mugplot += text2d("Grid Mu Plot", position=(0.5, 0.5), is_html=True, label_box=F
 mugplot.display()
 
 fvxplot = pnlpl.plot()
-fvxplot += pnlpl.face_vx_plot(color_range=(-80.0, 80.0))
+fvxplot += pnlpl.face_vx_plot(color_range=(0.0, 80.0))
 fvxplot += text2d("Face Vx Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 fvxplot.display()
 
@@ -181,5 +181,3 @@ ffrcplot.display()
 #                 print(f'  {facet = }')
 #                 print(f'  {facet.cord.dirz = }')
 #             print(f'{dpanel.crd.dirz = }')
-
-#%%

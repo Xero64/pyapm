@@ -41,9 +41,9 @@ class PanelStrip():
         return self.sheet.nohsv
 
     def mesh_panels(self, pid: int) -> int:
-        if len(self.profile_a.grids) != len(self.profile_b.grids):
-            raise ValueError('The len(profile_a.grids) must equal the len(profile_b.grids).')
-        num = len(self.profile_a.grids) - 1
+        # if len(self.profile_a.grids) != len(self.profile_b.grids):
+        #     raise ValueError('The len(profile_a.grids) must equal the len(profile_b.grids).')
+        num = min(len(self.profile_a.grids), len(self.profile_b.grids)) - 1
 
         # Mesh Dirichlet Panels
         self.dpanels = []

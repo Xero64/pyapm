@@ -177,51 +177,49 @@ class PanelSection(PanelProfile):
             profile = profile - offvec
         return profile
 
-    # def mesh_grids(self, gid: int) -> int:
-    #     shape = self.get_shape()
-    #     num = shape.size
-    #     tip_te_closed = False
-    #     if self.scttyp == 'begtip' or self.scttyp == 'endtip':
-    #         vec = shape[-1] - shape[0]
-    #         if vec.return_magnitude() < 1e-12:
-    #             tip_te_closed = True
-    #             num -= 1
-    #     self.grids = []
-    #     for i in range(num):
-    #         self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
-    #         gid += 1
-    #     if tip_te_closed:
-    #         self.grids.append(self.grids[0])
+    def mesh_grids(self, gid: int) -> int:
+        gid = super().mesh_grids(gid)
 
-    #     # Mesh Trailing Edge Grid
-    #     tevec = (shape[0] + shape[-1])/2
-    #     self.tegrid = Grid(gid, tevec.x, tevec.y, tevec.z)
-    #     gid += 1
+        if self.scttyp == 'begtip' or self.scttyp == 'endtip':
 
-    #     return gid
+            self.grids[-1] = self.grids[0]
+
+            botgrids = self.grids[2:self.cnum + 1]
+            topgrids = self.grids[2*self.cnum:self.cnum + 1:-1]
+
+            for botgrid, topgrid in zip(botgrids, topgrids):
+                midvec = (botgrid + topgrid)/2
+                midgrid = Grid(gid, midvec.x, midvec.y, midvec.z)
+                self.grids.append(midgrid)
+                gid += 1
+
+        return gid
 
     def mesh_panels(self, pid: int) -> int:
         mesh = False
-        reverse = False
         if self.scttyp == 'begtip':
             mesh = True
             reverse = True
         elif self.scttyp == 'endtip':
             mesh = True
+            reverse = False
         self.dpanels = []
         if mesh:
-            numgrd = len(self.grids)
-            n = numgrd - 1
-            numpnl = int(n / 2)
-            for i in range(1, numpnl):
+
+            botgrids = self.grids[1:self.cnum + 2]
+            topgrids = self.grids[2*self.cnum + 1:self.cnum:-1]
+            midgrids: list[Grid] = []
+            midgrids.extend(self.grids[2*self.cnum + 2:])
+            midgrids.append(self.grids[self.cnum + 1])
+
+            num = min(len(botgrids), len(topgrids), len(midgrids))
+
+            for i in range(self.cnum):
                 grds: list[Grid] = []
-                grds.append(self.grids[i])
-                grds.append(self.grids[i+1])
-                grds.append(self.grids[n-i-1])
-                grds.append(self.grids[n-i])
-                dist = (grds[0] - grds[-1]).return_magnitude()
-                if dist < TOL:
-                    grds = grds[:-1]
+                grds.append(botgrids[i])
+                grds.append(botgrids[i+1])
+                grds.append(midgrids[i+1])
+                grds.append(midgrids[i])
                 if reverse:
                     grds.reverse()
                 pnlgrds = []
@@ -232,6 +230,24 @@ class PanelSection(PanelProfile):
                 pnl.section = self
                 self.dpanels.append(pnl)
                 pid += 1
+
+            for i in range(self.cnum):
+                grds: list[Grid] = []
+                grds.append(midgrids[i])
+                grds.append(midgrids[i+1])
+                grds.append(topgrids[i+1])
+                grds.append(topgrids[i])
+                if reverse:
+                    grds.reverse()
+                pnlgrds = []
+                for grd in grds:
+                    if grd not in pnlgrds:
+                        pnlgrds.append(grd)
+                pnl = Panel(pid, pnlgrds)
+                pnl.section = self
+                self.dpanels.append(pnl)
+                pid += 1
+
         return pid
 
     @classmethod
