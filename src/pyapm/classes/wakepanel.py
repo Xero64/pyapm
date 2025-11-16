@@ -6,6 +6,7 @@ from numpy import ones
 from pyapm.classes import Grid
 from pyapm.core.flow import Flow
 from pygeom.geom3d import Vector
+from .edge import BoundEdge, VortexEdge
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -27,6 +28,10 @@ class WakePanel:
     sheet: 'PanelSheet' = None
     section: 'PanelSection' = None
     surface: 'PanelSurface' = None
+    _bound_edge: 'BoundEdge' = None
+    _vortex_edges: list['VortexEdge'] = None
+    _grids: list[Grid] = None
+    _panel_edges: list['BoundEdge | VortexEdge'] = None
     _num: int = None
     _pntos: Vector = None
     _vecas: Vector = None
@@ -120,6 +125,45 @@ class WakePanel:
         if self._vecb is None:
             self._vecb = Vector.from_obj(self.gridbs[-1])
         return self._vecb
+
+    @property
+    def bound_edge(self) -> 'BoundEdge':
+        if self._bound_edge is None:
+            grida = self.gridas[0]
+            gridb = self.gridbs[0]
+            self._bound_edge = BoundEdge(grida, gridb, self)
+        return self._bound_edge
+
+    @property
+    def vortex_edges(self) -> list['VortexEdge']:
+        if self._vortex_edges is None:
+            self._vortex_edges = []
+            for i in range(self.num):
+                grida = self.gridas[self.num - i]
+                gridb = self.gridas[self.num - i - 1]
+                self._vortex_edges.append(VortexEdge(grida, gridb, self))
+            for i in range(self.num):
+                grida = self.gridbs[i]
+                gridb = self.gridbs[i + 1]
+                self._vortex_edges.append(VortexEdge(grida, gridb, self))
+        return self._vortex_edges
+
+    @property
+    def grids(self) -> list[Grid]:
+        if self._grids is None:
+            self._grids = []
+            self._grids.extend(reversed(self.gridas))
+            self._grids.extend(self.gridbs)
+        return self._grids
+
+    @property
+    def panel_edges(self) -> list['BoundEdge | VortexEdge']:
+        if self._panel_edges is None:
+            self._panel_edges = []
+            self._panel_edges.extend(self.vortex_edges[:self.num])
+            self._panel_edges.append(self.bound_edge)
+            self._panel_edges.extend(self.vortex_edges[self.num:])
+        return self._panel_edges
 
     def constant_doublet_phi(self, pnts: Vector, **kwargs: dict[str, float]) -> 'NDArray':
 

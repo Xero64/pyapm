@@ -14,7 +14,7 @@ if TYPE_CHECKING:
     from .panel import Panel
 
 
-class Face:
+class Face():
     grida: Grid = None
     gridb: Grid = None
     panel: 'Panel' = None

@@ -28,6 +28,7 @@ if TYPE_CHECKING:
     from ..tools.mass import MassCollection
     from .edge import MeshEdge
     from .face import Face
+    from .grid import Vertex
     from .panelstrip import PanelStrip
     from .wakepanel import WakePanel
 
@@ -115,6 +116,7 @@ class PanelSystem():
     _dfacet_diry: Vector2D = None
     _dfacet_dirz: Vector2D = None
     _dfacet_area: 'NDArray' = None
+    _vertices: list['Vertex'] = None
 
     def __init__(self, name: str, bref: float, cref: float,
                  sref: float, rref: Vector) -> None:
@@ -480,8 +482,8 @@ class PanelSystem():
     def edges(self) -> list['MeshEdge']:
         if self._edges is None:
             self._edges = edges_from_system(self)
-            for i, edge in enumerate(self._edges):
-                edge.ind = i
+            for ind, edge in enumerate(self._edges):
+                edge.ind = ind
         return self._edges
 
     @property
@@ -834,6 +836,17 @@ class PanelSystem():
         if self._dfacet_area is None:
             self.assemble_dfacets()
         return self._dfacet_area
+
+    @property
+    def vertices(self) -> list['Vertex']:
+        if self._vertices is None:
+            self._vertices = []
+            for grid in self.grids.values():
+                for vertex in grid.vertices:
+                    self._vertices.append(vertex)
+            for ind, vertex in enumerate(self._vertices):
+                vertex.ind = ind
+        return self._vertices
 
     # def assemble_panels_vel(self, *, mach: float = 0.0) -> None:
     #     if self._apd is None:

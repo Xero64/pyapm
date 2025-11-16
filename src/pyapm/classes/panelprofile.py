@@ -78,21 +78,43 @@ class PanelProfile():
         shape = self.get_shape()
         num = shape.size
 
+        self.grids = []
+
+        # Check if profile is closed
+        te_closed = (shape[0] - shape[-1]).return_magnitude() < 1e-12
+
         # Mesh Trailing Edge Grid
         tevec = (shape[0] + shape[-1])/2
-
-        # Mesh Profile Grids
-        self.grids = []
-        self.grids.append(Grid(gid, tevec.x, tevec.y, tevec.z))
-        gid += 1
-        for i in range(num):
-            self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
-            gid += 1
-        self.grids.append(Grid(gid, tevec.x, tevec.y, tevec.z))
-        gid += 1
-
         self.tegrid = Grid(gid, tevec.x, tevec.y, tevec.z)
         gid += 1
+
+        self.grids.append(self.tegrid)
+
+        if te_closed:
+            self.grids.append(self.tegrid)
+            for i in range(1, num-1):
+                self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
+                gid += 1
+            self.grids.append(self.tegrid)
+        else:
+            for i in range(num):
+                self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
+                gid += 1
+
+        self.grids.append(self.tegrid)
+
+        # # Mesh Profile Grids
+        # self.grids = []
+        # self.grids.append(Grid(gid, tevec.x, tevec.y, tevec.z))
+        # gid += 1
+        # for i in range(num):
+        #     self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
+        #     gid += 1
+        # self.grids.append(Grid(gid, tevec.x, tevec.y, tevec.z))
+        # gid += 1
+
+        # self.tegrid = Grid(gid, tevec.x, tevec.y, tevec.z)
+        # gid += 1
 
         return gid
 

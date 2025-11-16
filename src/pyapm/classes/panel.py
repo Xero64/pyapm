@@ -1,13 +1,12 @@
 from typing import TYPE_CHECKING
 
-from numpy import arange, asarray, full, minimum, ones, pi, sqrt, zeros
-from numpy.linalg import solve
+from numpy import arange, full, minimum, ones, pi, sqrt, zeros
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import IHAT, KHAT, Coordinate, Vector
 from pygeom.geom3d.tools import angle_between_vectors
 
 from .face import Face
-from .grid import Grid
+from .grid import Grid, Vertex
 from .edge import PanelEdge, InternalEdge
 
 if TYPE_CHECKING:
@@ -51,6 +50,7 @@ class Panel():
     _mesh_edges: list['MeshEdge'] = None
     # _panel_gradient: 'NDArray' = None
     _facets: list[Face] = None
+    _vertices: list[Vertex] = None
     # _hsvs: list[HorseshoeDoublet] = None
     _grdpnls: list[list['Panel']] = None
     _grdinds: list[list[int]] = None
@@ -368,6 +368,38 @@ class Panel():
                 facet.edge = panel_edge
                 self._facets.append(facet)
         return self._facets
+
+    @property
+    def vertices(self) -> list[Vertex]:
+        if self._vertices is None:
+            self._vertices = []
+            for grid in self.grids:
+                for vertex in grid.vertices:
+                    if self in vertex.panels:
+                        self._vertices.append(vertex)
+                        break
+        return self._vertices
+
+    def grids_before_and_after(self, grid: Grid) -> tuple[Grid, Grid]:
+        ind = self.grids.index(grid)
+        ind_bef = ind - 1
+        ind_aft = ind + 1
+        if ind_aft >= self.num:
+            ind_aft -= self.num
+        grida = self.grids[ind_bef]
+        gridb = self.grids[ind_aft]
+        return grida, gridb
+
+    def edges_before_and_after(self, grid: Grid) -> tuple[PanelEdge,
+                                                          PanelEdge]:
+        ind = self.grids.index(grid)
+        ind_bef = ind
+        ind_aft = ind + 1
+        if ind_aft >= self.num:
+            ind_aft -= self.num
+        edgea = self.panel_edges[ind_bef]
+        edgeb = self.panel_edges[ind_aft]
+        return edgea, edgeb
 
     # @property
     # def panel_gradient(self) -> 'NDArray':

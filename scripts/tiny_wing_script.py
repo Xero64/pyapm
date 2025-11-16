@@ -6,6 +6,7 @@ from matplotlib.pyplot import figure
 from numpy.linalg import norm
 from pyapm.classes import PanelSystem
 from pyapm.classes.panel import Panel
+from pyapm.classes.grid import panel_groups_from_grid
 from pyapm.outputs.k3d import PanelPlot
 from pyapm.outputs.msh import panelresult_to_msh
 
@@ -15,33 +16,19 @@ jsonfilepath = '../files/Tiny_Wing.json'
 psys = PanelSystem.from_json(jsonfilepath)
 display_markdown(psys)
 
+# psys.assemble_panels_phi()
+# psys.solve_system()
+
 #%%
 # Solve Panel Result
-# rho = 1.225
-# speed = 50.0
-# alpha = 5.0
-
-# pres = PanelResult('Test Case', psys)
-# pres.set_density(rho=rho)
-# pres.set_state(alpha=alpha, speed=speed)
-
 pres = psys.results['Alpha 5 deg, Speed 50 m/s']
-
-#%%
-# Assemble and Solve
-psys.assemble_panels_phi()
-# psys.assemble_horseshoes_phi()
-psys.solve_system()
+display_markdown(pres)
+display_markdown(pres.surface_loads)
 
 #%%
 # Output MSH File
 mshfilepath = '../results/' + psys.name + '.msh'
 panelresult_to_msh(pres, mshfilepath)
-
-#%%
-# Display Result
-display_markdown(pres)
-display_markdown(pres.surface_loads)
 
 #%%
 # Print Outs
@@ -110,11 +97,11 @@ ax.scatter(xelst, muelst, marker='x', color='red')
 ax.scatter(xglst, muglst, marker='+', color='green')
 _ = ax.set_title('Mu Distribution Along Chord')
 
-fig = figure(figsize=(12, 8))
-ax = fig.gca()
-ax.grid(True)
-ax.plot(xflst, vxflst)
-_ = ax.set_title('Facet Vx Distribution Along Chord')
+# fig = figure(figsize=(12, 8))
+# ax = fig.gca()
+# ax.grid(True)
+# ax.plot(xflst, vxflst)
+# _ = ax.set_title('Facet Vx Distribution Along Chord')
 
 #%%
 # Display Result
@@ -166,18 +153,7 @@ ffrcplot += pnlpl.face_force_plot(scale=0.05, head_size=0.05, line_width=0.001)
 ffrcplot += text2d("Face Force Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 ffrcplot.display()
 
-# #%%
-# # Print Output
-# for dpanel in psys.dpanels.values():
-#     for facet in dpanel.facets:
-#         if facet.cord.dirz.dot(dpanel.crd.dirz) < 0.0:
-#             print(f'{dpanel = }')
-#             for grid in dpanel.grids:
-#                 print(f'  {grid = }')
-#             for panel_edge in dpanel.panel_edges:
-#                 print(f'  {panel_edge = }')
-#                 print(f'  {panel_edge.edge_point = }')
-#             for facet in dpanel.facets:
-#                 print(f'  {facet = }')
-#                 print(f'  {facet.cord.dirz = }')
-#             print(f'{dpanel.crd.dirz = }')
+#%%
+# Print Counts
+print(f'Number of Grids {len(psys.grids)}')
+print(f'Number of Vertices {len(psys.vertices)}')

@@ -4,15 +4,18 @@ from numpy import argwhere, sort, unique, zeros
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import Coordinate
 
-from ..classes.face import Face
+from .face import Face
+from .grid import Vertex
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
     from pygeom.geom3d import Vector
 
-    from ..classes.grid import Grid
-    from ..classes.panel import Panel
-    from ..classes.panelsystem import PanelSystem
+    from .grid import Grid
+    from .panel import Panel
+    from .wakepanel import WakePanel
+    from .panelsystem import PanelSystem
+
 
 class PanelEdge():
     grida: 'Grid' = None
@@ -47,6 +50,15 @@ class PanelEdge():
         else:
             return None
 
+    def is_internal(self) -> bool:
+        if self.mesh_edge is not None:
+            return isinstance(self.mesh_edge, InternalEdge)
+        else:
+            raise ValueError('Mesh edge not assigned to panel edge.')
+
+    def not_internal(self) -> bool:
+        return not self.is_internal()
+
     def __repr__(self) -> str:
         return f'PanelEdge({self.grida}, {self.gridb}, {self.panel})'
 
@@ -54,8 +66,74 @@ class PanelEdge():
         return self.__repr__()
 
 
+class BoundEdge():
+    grida: 'Grid' = None
+    gridb: 'Grid' = None
+    wake_panel: 'WakePanel' = None
+    mesh_edge: 'MeshEdge' = None
+
+    def __init__(self, grida: 'Grid', gridb: 'Grid', wake_panel: 'WakePanel') -> None:
+        self.grida = grida
+        self.gridb = gridb
+        self.wake_panel = wake_panel
+
+    @property
+    def edge_point(self) -> 'Vector':
+        if self.mesh_edge is not None:
+            return self.mesh_edge.edge_point
+        else:
+            return None
+
+    @property
+    def ind(self) -> int:
+        if self.mesh_edge is not None:
+            return self.mesh_edge.ind
+        else:
+            return None
+
+    def __repr__(self) -> str:
+        return f'BoundEdge({self.grida}, {self.gridb}, {self.wake_panel})'
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
+class VortexEdge():
+    grida: 'Grid' = None
+    gridb: 'Grid' = None
+    wake_panel: 'Panel' = None
+    mesh_edge: 'MeshEdge' = None
+
+    def __init__(self, grida: 'Grid', gridb: 'Grid',
+                 wake_panel: 'WakePanel') -> None:
+        self.grida = grida
+        self.gridb = gridb
+        self.wake_panel = wake_panel
+
+    @property
+    def edge_point(self) -> 'Vector':
+        if self.mesh_edge is not None:
+            return self.mesh_edge.edge_point
+        else:
+            return None
+
+    @property
+    def ind(self) -> int:
+        if self.mesh_edge is not None:
+            return self.mesh_edge.ind
+        else:
+            return None
+
+    def __repr__(self) -> str:
+        return f'VortexEdge({self.grida}, {self.gridb}, {self.wake_panel})'
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
 class MeshEdge():
     ind: int = None
+    edge_type: str = None
     _edge_point: 'Vector' = None
 
     def __init__(self) -> None:
@@ -69,10 +147,9 @@ class MeshEdge():
 class BoundaryEdge(MeshEdge):
     panel_edge: PanelEdge = None
     _mid_point: 'Vector' = None
-    _edge_point: 'Vector' = None
 
-    def __init__(self, edge: PanelEdge) -> None:
-        self.panel_edge = edge
+    def __init__(self, panel_edge: PanelEdge) -> None:
+        self.panel_edge = panel_edge
         self.panel_edge.mesh_edge = self
 
     @property
@@ -93,6 +170,13 @@ class BoundaryEdge(MeshEdge):
     def edge_point(self) -> 'Vector':
         return self.mid_point
 
+    def return_Dmue(self) -> float:
+        vecg = self.panel_edge.edge_point - self.panel.pnto
+        vecl = self.face.cord.vector_to_local(vecg)
+        dirl = Vector2D.from_obj(vecl)
+        Dmue = self.panel.edge_velp.dot(dirl)
+        return Dmue
+
     def __repr__(self) -> str:
         return f'BoundaryEdge({self.panel_edge})'
 
@@ -103,6 +187,7 @@ class BoundaryEdge(MeshEdge):
 class InternalEdge(MeshEdge):
     panel_edgea: PanelEdge = None
     panel_edgeb: PanelEdge = None
+    edge_type: str = 'internal'
     _mid_point: 'Vector' = None
     _direcy: 'Vector' = None
     _coorda: 'Coordinate' = None
@@ -116,7 +201,8 @@ class InternalEdge(MeshEdge):
     _panela_fac: float = None
     _panelb_fac: float = None
 
-    def __init__(self, panel_edgea: PanelEdge, panel_edgeb: PanelEdge) -> None:
+    def __init__(self, panel_edgea: PanelEdge,
+                 panel_edgeb: PanelEdge) -> None:
         self.panel_edgea = panel_edgea
         self.panel_edgea.mesh_edge = self
         self.panel_edgeb = panel_edgeb
@@ -240,6 +326,102 @@ class InternalEdge(MeshEdge):
         return self.__repr__()
 
 
+class WakeBoundEdge(MeshEdge):
+    panel_edge: PanelEdge = None
+    adjacent_edge: PanelEdge = None
+    bound_edge: BoundEdge = None
+    edge_type: str = 'wake_bound'
+    _mid_point: 'Vector' = None
+    _edge_point: Vertex = None
+
+    def __init__(self, panel_edge: 'PanelEdge',
+                 adjacent_edge: 'PanelEdge',
+                 bound_edge: 'BoundEdge') -> None:
+        self.panel_edge = panel_edge
+        self.panel_edge.mesh_edge = self
+        self.adjacent_edge = adjacent_edge
+        self.bound_edge = bound_edge
+
+    @property
+    def panel(self) -> 'Panel':
+        return self.panel_edge.panel
+
+    @property
+    def face(self) -> 'Face':
+        return self.panel_edge.face
+
+    @property
+    def mid_point(self) -> 'Vector':
+        if self._mid_point is None:
+            self._mid_point = 0.5 * (self.panel_edge.grida + self.panel_edge.gridb)
+        return self._mid_point
+
+    @property
+    def edge_point(self) -> 'Vector':
+        return self.mid_point
+
+    def return_Dmue(self) -> float:
+        vecg = self.panel_edge.edge_point - self.panel.pnto
+        vecl = self.face.cord.vector_to_local(vecg)
+        dirl = Vector2D.from_obj(vecl)
+        Dmue = self.panel.edge_velp.dot(dirl)
+        return Dmue
+
+    def __repr__(self) -> str:
+        return f'WakeEdge({self.panel_edge}, {self.adjacent_edge}, {self.bound_edge})'
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
+class WakeVortexEdge(MeshEdge):
+    panel_edge: PanelEdge = None
+    adjacent_edge: PanelEdge = None
+    vortex_edge: VortexEdge = None
+    edge_type: str = 'wake_vortex'
+    _mid_point: 'Vector' = None
+    _edge_point: Vertex = None
+
+    def __init__(self, panel_edge: 'PanelEdge',
+                 adjacent_edge: 'PanelEdge',
+                 vortex_edge: 'VortexEdge') -> None:
+        self.panel_edge = panel_edge
+        self.panel_edge.mesh_edge = self
+        self.adjacent_edge = adjacent_edge
+        self.vortex_edge = vortex_edge
+
+    @property
+    def panel(self) -> 'Panel':
+        return self.panel_edge.panel
+
+    @property
+    def face(self) -> 'Face':
+        return self.panel_edge.face
+
+    @property
+    def mid_point(self) -> 'Vector':
+        if self._mid_point is None:
+            self._mid_point = 0.5 * (self.panel_edge.grida + self.panel_edge.gridb)
+        return self._mid_point
+
+    @property
+    def edge_point(self) -> 'Vector':
+        return self.mid_point
+
+    def return_Dmue(self) -> float:
+        vecg = self.panel_edge.edge_point - self.panel.pnto
+        vecl = self.face.cord.vector_to_local(vecg)
+        dirl = Vector2D.from_obj(vecl)
+        Dmue = self.panel.edge_velp.dot(dirl)
+        return Dmue
+
+    def __repr__(self) -> str:
+        return f'WakeVortexEdge({self.panel_edge}, {self.adjacent_edge}, {self.vortex_edge})'
+
+    def __str__(self) -> str:
+        return self.__repr__()
+
+
 def edges_from_system(system: 'PanelSystem') -> list[MeshEdge]:
     """Create a list of unique edges from a PanelSystem.
     Args:
@@ -247,13 +429,12 @@ def edges_from_system(system: 'PanelSystem') -> list[MeshEdge]:
     Returns:
         list[Edge]: A list of unique edges in the panel system.
     """
-    all_edges: list[PanelEdge] = []
+
+    all_edges: list[PanelEdge | BoundEdge | VortexEdge] = []
     for dpanel in system.dpanels.values():
-        for panel_edge in dpanel.panel_edges:
-            all_edges.append(panel_edge)
-    # for wpanel in system.wpanels.values():
-    #     for edge in wpanel.edges:
-    #         all_edges.append(edge)
+        all_edges.extend(dpanel.panel_edges)
+    for wpanel in system.wpanels.values():
+        all_edges.extend(wpanel.panel_edges)
     num_edges = len(all_edges)
     edge_gids = zeros((num_edges, 2), dtype=int)
     for i, edge in enumerate(all_edges):
@@ -262,20 +443,53 @@ def edges_from_system(system: 'PanelSystem') -> list[MeshEdge]:
 
     sorted_edges = sort(edge_gids, axis=1)
     unique_edges, edge_inverse = unique(sorted_edges, axis=0, return_inverse=True)
-    # print(f'{num_edges = }')
-    # print(f'{unique_edges = }')
-    # print(f'{unique_edges.shape[0] = }')
-    # print(f'{edge_inverse = }')
-    # print(f'{edge_inverse.size = }')
+
     edges = []
     for i in range(unique_edges.shape[0]):
         edge_inds = argwhere(edge_inverse == i).flatten()
-        if edge_inds.size == 1:
-            edge = BoundaryEdge(all_edges[edge_inds[0]])
+        ind_edges = [all_edges[ind] for ind in edge_inds]
+        if len(edge_inds) == 1:
+            panel_edge = ind_edges[0]
+            edge = BoundaryEdge(panel_edge)
             edges.append(edge)
-        elif edge_inds.size > 1:
-            edge = InternalEdge(all_edges[edge_inds[0]], all_edges[edge_inds[1]])
+        elif len(edge_inds) == 2:
+            panel_edgea = ind_edges[0]
+            panel_edgeb = ind_edges[1]
+            edge = InternalEdge(panel_edgea, panel_edgeb)
             edges.append(edge)
+        elif len(edge_inds) == 3:
+            bound_edge = None
+            vortex_edge = None
+            panel_edges = []
+            for ind_edge in ind_edges:
+                if isinstance(ind_edge, BoundEdge):
+                    bound_edge = ind_edge
+                elif isinstance(ind_edge, VortexEdge):
+                    vortex_edge = ind_edge
+                else:
+                    panel_edges.append(ind_edge)
+            if len(panel_edges) != 2:
+                raise ValueError('Error identifying edges for wake edge.')
+            if bound_edge is None and vortex_edge is None:
+                raise ValueError('Error identifying edges for wake edge.')
+            if bound_edge is not None:
+                panel_edgea = panel_edges[0]
+                panel_edgeb = panel_edges[1]
+                edge = WakeBoundEdge(panel_edgea, panel_edgeb, bound_edge)
+                edges.append(edge)
+                edge = WakeBoundEdge(panel_edgeb, panel_edgea, bound_edge)
+                edges.append(edge)
+            elif vortex_edge is not None:
+                panel_edgea = panel_edges[0]
+                panel_edgeb = panel_edges[1]
+                edge = WakeVortexEdge(panel_edgea, panel_edgeb, vortex_edge)
+                edges.append(edge)
+                edge = WakeVortexEdge(panel_edgeb, panel_edgea, vortex_edge)
+                edges.append(edge)
+        else:
+            print(f'edge_inds = {edge_inds}')
+            raise ValueError('Error identifying edges for panel system.')
+
     return edges
 
 # def edges_array(edges: list[InternalEdge]) -> 'NDArray':
@@ -336,12 +550,17 @@ def edges_parray(mesh_edges: list[MeshEdge]) -> 'NDArray':
     for mesh_edge in mesh_edges:
         if isinstance(mesh_edge, BoundaryEdge):
             parray[mesh_edge.ind, mesh_edge.panel.ind] = 1.0
-            vecg = mesh_edge.panel_edge.edge_point - mesh_edge.panel.pnto
-            vecl = mesh_edge.face.cord.vector_to_local(vecg)
-            dirl = Vector2D.from_obj(vecl)
-            dmue = mesh_edge.panel.edge_velp.dot(dirl)
-            parray[mesh_edge.ind, mesh_edge.panel.edge_indp] -= dmue
+            Dmue = mesh_edge.return_Dmue()
+            parray[mesh_edge.ind, mesh_edge.panel.edge_indp] -= Dmue
         elif isinstance(mesh_edge, InternalEdge):
             parray[mesh_edge.ind, mesh_edge.panela.ind] = mesh_edge.panelb_fac
             parray[mesh_edge.ind, mesh_edge.panelb.ind] = mesh_edge.panela_fac
+        elif isinstance(mesh_edge, WakeBoundEdge):
+            parray[mesh_edge.ind, mesh_edge.panel.ind] = 1.0
+            Dmue = mesh_edge.return_Dmue()
+            parray[mesh_edge.ind, mesh_edge.panel.edge_indp] -= Dmue
+        elif isinstance(mesh_edge, WakeVortexEdge):
+            parray[mesh_edge.ind, mesh_edge.panel.ind] = 1.0
+            Dmue = mesh_edge.return_Dmue()
+            parray[mesh_edge.ind, mesh_edge.panel.edge_indp] -= Dmue
     return parray
