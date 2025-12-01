@@ -5,7 +5,7 @@ from k3d.colormaps import matplotlib_color_maps
 from k3d.helpers import map_colors
 from k3d.plot import Plot
 from numpy import concatenate, float32, uint32, zeros
-from pyapm.classes.grid import Grid
+from pyapm.classes.grid import Vertex
 
 if TYPE_CHECKING:
     from k3d.objects import Mesh, Vectors
@@ -87,21 +87,21 @@ class PanelPlot:
         self._pntos = zeros((self.system.num_dpanels, 3), dtype=float32)
 
         edge_beg = self.system.num_dpanels
-        grid_beg = self.system.num_dpanels + self.system.num_edges
+        vert_beg = self.system.num_dpanels + self.system.num_edges
 
         for i, dfacet in enumerate(self.system.dfacets):
             self._finds[i*3:i*3 + 3] = i
             self._pinds[i*3:i*3 + 3] = dfacet.panel.ind
-            if isinstance(dfacet.grida, Grid):
-                self._vinds[i*3] = grid_beg + dfacet.grida.ind
+            if isinstance(dfacet.vertexa, Vertex):
+                self._vinds[i*3] = vert_beg + dfacet.vertexa.ind
                 self._vinds[i*3 + 1] = edge_beg + dfacet.edge.ind
-                self._verts[i*3, :] = dfacet.grida.to_xyz()
+                self._verts[i*3, :] = dfacet.vertexa.to_xyz()
                 self._verts[i*3 + 1, :] = dfacet.edge.edge_point.to_xyz()
-            elif isinstance(dfacet.gridb, Grid):
+            elif isinstance(dfacet.vertexb, Vertex):
                 self._vinds[i*3] = edge_beg + dfacet.edge.ind
-                self._vinds[i*3 + 1] = grid_beg + dfacet.gridb.ind
+                self._vinds[i*3 + 1] = vert_beg + dfacet.vertexb.ind
                 self._verts[i*3, :] = dfacet.edge.edge_point.to_xyz()
-                self._verts[i*3 + 1, :] = dfacet.gridb.to_xyz()
+                self._verts[i*3 + 1, :] = dfacet.vertexb.to_xyz()
             self._vinds[i*3 + 2] = dfacet.panel.ind
             self._verts[i*3 + 2, :] = dfacet.panel.pnto.to_xyz()
             self._faces[i, 0] = i*3
@@ -203,7 +203,7 @@ class PanelPlot:
         values = vecs.stack_xyz().astype(float32)*scale
         return vectors(self.pntos, values, **kwargs)
 
-    def panel_mud_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+    def panel_mu_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
         if self.result is None:
             raise ValueError('Result must be set to plot mud.')
         return self.panel_mesh_plot(self.result.mud, **kwargs)
@@ -213,7 +213,7 @@ class PanelPlot:
             raise ValueError('Result must be set to plot sigma.')
         return self.panel_mesh_plot(self.result.sigd, **kwargs)
 
-    def grid_mesh_plot(self, values: 'NDArray', **kwargs: dict[str, Any]) -> 'Mesh':
+    def vertex_mesh_plot(self, values: 'NDArray', **kwargs: dict[str, Any]) -> 'Mesh':
         kwargs['color'] = kwargs.get('color', 0xffd500)
         kwargs['wireframe'] = kwargs.get('wireframe', False)
         kwargs['flat_shading'] = kwargs.get('flat_shading', False)
@@ -222,17 +222,17 @@ class PanelPlot:
         attribute = values[self.vinds].astype(float32)
         return mesh(self.verts, self.faces, attribute=attribute, **kwargs)
 
-    def grid_mu_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+    def vertex_mu_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
         if self.result is None:
             raise ValueError('Result must be set to plot mu.')
-        values = concatenate((self.result.mud, self.result.mue, self.result.mug))
-        return self.grid_mesh_plot(values, **kwargs)
+        values = concatenate((self.result.mud, self.result.mue, self.result.muv))
+        return self.vertex_mesh_plot(values, **kwargs)
 
-    def grid_sigma_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
+    def vertex_sigma_plot(self, **kwargs: dict[str, Any]) -> 'Mesh':
         if self.result is None:
             raise ValueError('Result must be set to plot sigma.')
-        values = concatenate((self.result.sigd, self.result.sige, self.result.sigg))
-        return self.grid_mesh_plot(values, **kwargs)
+        values = concatenate((self.result.sigd, self.result.sige, self.result.sigv))
+        return self.vertex_mesh_plot(values, **kwargs)
 
     def panel_vectors_plot(self, vecs: 'Vector', **kwargs: dict[str, Any]) -> 'Vectors':
         return self.panel_vectors(vecs, **kwargs)

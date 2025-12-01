@@ -5,7 +5,7 @@ from numpy.linalg import inv
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import Coordinate, Vector
 
-from .grid import Grid
+from .grid import Grid, Vertex
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -20,6 +20,8 @@ class Face():
     panel: 'Panel' = None
     ind: int = None
     edge: 'InternalEdge' = None
+    _vertexa: Vertex = None
+    _vertexb: Vertex = None
     _pointo: Vector = None
     _normal: Vector = None
     _jac: float = None
@@ -35,10 +37,10 @@ class Face():
     _ybc: float = None
     _yca: float = None
     _baryinv: float = None
-    _velg: Vector2D = None
+    _velv: Vector2D = None
     _vele: Vector2D = None
     _velp: Vector2D = None
-    _indg: 'NDArray' = None
+    _indv: 'NDArray' = None
     _inde: 'NDArray' = None
     _indp: 'NDArray' = None
 
@@ -50,6 +52,26 @@ class Face():
     @property
     def gridc(self) -> Vector:
         return self.panel.pnto
+
+    @property
+    def vertexa(self) -> Vertex:
+        if self._vertexa is None:
+            if isinstance(self.grida, Grid):
+                for vertex in self.grida.vertices:
+                    if self.panel in vertex.panels:
+                        self._vertexa = vertex
+                        break
+        return self._vertexa
+
+    @property
+    def vertexb(self) -> Vertex:
+        if self._vertexb is None:
+            if isinstance(self.gridb, Grid):
+                for vertex in self.gridb.vertices:
+                    if self.panel in vertex.panels:
+                        self._vertexb = vertex
+                        break
+        return self._vertexb
 
     @property
     def pointo(self) -> Vector:
@@ -159,30 +181,30 @@ class Face():
         return self._yca
 
     def calc_vel_and_ind(self) -> None:
-        if isinstance(self.grida, Grid) and isinstance(self.gridb, Grid):
-            self._velg = Vector2D.from_iter_xy([self.ybc, self.yca],
+        if isinstance(self.vertexa, Vertex) and isinstance(self.vertexb, Vertex):
+            self._velv = Vector2D.from_iter_xy([self.ybc, self.yca],
                                                [self.xcb, self.xac])/self.jac
-            self._indg = asarray([self.grida.ind, self.gridb.ind], dtype=int)
+            self._indv = asarray([self.vertexa.ind, self.vertexb.ind], dtype=int)
             self._inde = asarray([], dtype=int)
             self._vele = Vector2D.zeros(self._inde.shape)
-        elif isinstance(self.grida, Grid):
-            self._velg = Vector2D(self.ybc, self.xcb)/self.jac
-            self._indg = asarray([self.grida.ind], dtype=int)
+        elif isinstance(self.vertexa, Vertex):
+            self._velv = Vector2D(self.ybc, self.xcb)/self.jac
+            self._indv = asarray([self.vertexa.ind], dtype=int)
             self._inde = asarray([self.edge.ind], dtype=int)
             self._vele = Vector2D(self.yca, self.xac)/self.jac
-        elif isinstance(self.gridb, Grid):
+        elif isinstance(self.vertexb, Vertex):
             self._vele = Vector2D(self.ybc, self.xcb)/self.jac
             self._inde = asarray([self.edge.ind], dtype=int)
-            self._indg = asarray([self.gridb.ind], dtype=int)
-            self._velg = Vector2D(self.yca, self.xac)/self.jac
+            self._indv = asarray([self.vertexb.ind], dtype=int)
+            self._velv = Vector2D(self.yca, self.xac)/self.jac
         self._velp = Vector2D(self.yab, self.xba)/self.jac
         self._indp = asarray([self.panel.ind], dtype=int)
 
     @property
-    def velg(self) -> Vector2D:
-        if self._velg is None:
+    def velv(self) -> Vector2D:
+        if self._velv is None:
             self.calc_vel_and_ind()
-        return self._velg
+        return self._velv
 
     @property
     def vele(self) -> Vector2D:
@@ -197,10 +219,10 @@ class Face():
         return self._velp
 
     @property
-    def indg(self) -> 'NDArray':
-        if self._indg is None:
+    def indv(self) -> 'NDArray':
+        if self._indv is None:
             self.calc_vel_and_ind()
-        return self._indg
+        return self._indv
 
     @property
     def inde(self) -> 'NDArray':

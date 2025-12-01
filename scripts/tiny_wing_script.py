@@ -6,7 +6,6 @@ from matplotlib.pyplot import figure
 from numpy.linalg import norm
 from pyapm.classes import PanelSystem
 from pyapm.classes.panel import Panel
-from pyapm.classes.grid import panel_groups_from_grid
 from pyapm.outputs.k3d import PanelPlot
 from pyapm.outputs.msh import panelresult_to_msh
 
@@ -75,12 +74,12 @@ for grid in psys.grids.values():
         xglst.append(float(grid.x))
         muglst.append(float(pres.mug[grid.ind]))
 
-xflst = []
-vxflst = []
-for dpanel in dpanels:
-    for facet in dpanel.facets:
-        xflst.append(float(facet.cord.pnt.x))
-        vxflst.append(float(pres.fres.fvel.x[facet.ind]))
+# xflst = []
+# vxflst = []
+# for dpanel in dpanels:
+#     for facet in dpanel.facets:
+#         xflst.append(float(facet.cord.pnt.x))
+#         vxflst.append(float(pres.fres.fvel.x[facet.ind]))
 
 print(f'xplst = {xplst}')
 print(f'muplst = {muplst}')
@@ -107,28 +106,28 @@ _ = ax.set_title('Mu Distribution Along Chord')
 # Display Result
 pnlpl = PanelPlot(psys, pres)
 
-mshplot = pnlpl.plot()
-mshplot += pnlpl.panel_mesh()
-mshplot += text2d("Panel Mesh", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
-mshplot.display()
+# mshplot = pnlpl.plot()
+# mshplot += pnlpl.panel_mesh()
+# mshplot += text2d("Panel Mesh", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
+# mshplot.display()
 
-sigplot = pnlpl.plot()
-sigplot += pnlpl.panel_sigma_plot()
-sigplot += text2d("Panel Sigma Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
-sigplot.display()
+# sigplot = pnlpl.plot()
+# sigplot += pnlpl.panel_sigma_plot()
+# sigplot += text2d("Panel Sigma Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
+# sigplot.display()
 
-siggplot = pnlpl.plot()
-siggplot += pnlpl.grid_sigma_plot()
-siggplot += text2d("Grid Sigma Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
-siggplot.display()
+# sigvplot = pnlpl.plot()
+# sigvplot += pnlpl.vertex_sigma_plot()
+# sigvplot += text2d("Vertex Sigma Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
+# sigvplot.display()
 
 mudplot = pnlpl.plot()
-mudplot += pnlpl.panel_mud_plot()
+mudplot += pnlpl.panel_mu_plot()
 mudplot += text2d("Panel Mud Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 mudplot.display()
 
 mugplot = pnlpl.plot()
-mugplot += pnlpl.grid_mu_plot()
+mugplot += pnlpl.vertex_mu_plot()
 mugplot += text2d("Grid Mu Plot", position=(0.5, 0.5), is_html=True, label_box=False, color=0x000000)
 mugplot.display()
 
@@ -152,8 +151,3 @@ ffrcplot += pnlpl.panel_mesh()
 ffrcplot += pnlpl.face_force_plot(scale=0.05, head_size=0.05, line_width=0.001)
 ffrcplot += text2d("Face Force Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 ffrcplot.display()
-
-#%%
-# Print Counts
-print(f'Number of Grids {len(psys.grids)}')
-print(f'Number of Vertices {len(psys.vertices)}')

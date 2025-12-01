@@ -13,7 +13,7 @@ from pygeom.geom3d import Vector
 from ..tools import betm_from_mach
 from ..tools.mass import MassObject, masses_from_data, masses_from_json
 from .edge import edges_from_system, edges_parray
-from .grid import Grid, grids_parray
+from .grid import Grid, grids_parray, vertices_parray
 from .panel import Panel
 from .panelcontrol import PanelControl
 from .panelgroup import PanelGroup
@@ -95,6 +95,7 @@ class PanelSystem():
     _edges: list['MeshEdge'] = None
     _edges_parray: 'NDArray' = None
     _grids_parray: 'NDArray' = None
+    _vertices_parray: 'NDArray' = None
     _num_edges: int = None
     # _triarr: 'NDArray' = None
     # _tgrida: Vector = None
@@ -106,10 +107,10 @@ class PanelSystem():
     _dfacets: list['Face'] = None
     _num_dfacets: int = None
     _dfacet_pnt: Vector = None
-    _dfacet_indg: 'NDArray' = None
+    _dfacet_indv: 'NDArray' = None
     _dfacet_inde: 'NDArray' = None
     _dfacet_indp: 'NDArray' = None
-    _dfacet_velg: Vector2D = None
+    _dfacet_velv: Vector2D = None
     _dfacet_vele: Vector2D = None
     _dfacet_velp: Vector2D = None
     _dfacet_dirx: Vector2D = None
@@ -499,6 +500,12 @@ class PanelSystem():
         return self._grids_parray
 
     @property
+    def vertices_parray(self) -> 'NDArray':
+        if self._vertices_parray is None:
+            self._vertices_parray = vertices_parray(self.vertices)
+        return self._vertices_parray
+
+    @property
     def num_edges(self) -> int:
         if self._num_edges is None:
             self._num_edges = len(self.edges)
@@ -722,13 +729,15 @@ class PanelSystem():
         return self._num_dfacets
 
     def assemble_dfacets(self) -> None:
+        self.vertices  # Ensure vertices are generated
+
         self._dfacet_pnts = Vector.zeros(self.num_dfacets)
         self._dfacet_dirx = Vector.zeros(self.num_dfacets)
         self._dfacet_diry = Vector.zeros(self.num_dfacets)
         self._dfacet_dirz = Vector.zeros(self.num_dfacets)
         self._dfacet_area = zeros(self.num_dfacets)
-        self._dfacet_indg = zeros(self.num_dfacets, dtype=int)
-        self._dfacet_velg = Vector2D.zeros(self.num_dfacets)
+        self._dfacet_indv = zeros(self.num_dfacets, dtype=int)
+        self._dfacet_velv = Vector2D.zeros(self.num_dfacets)
         self._dfacet_inde = zeros(self.num_dfacets, dtype=int)
         self._dfacet_vele = Vector2D.zeros(self.num_dfacets)
         self._dfacet_indp = zeros(self.num_dfacets, dtype=int)
@@ -741,8 +750,8 @@ class PanelSystem():
             self._dfacet_diry[i] = facet.cord.diry
             self._dfacet_dirz[i] = facet.cord.dirz
             self._dfacet_area[i] = facet.area
-            self._dfacet_indg[i] = facet.indg
-            self._dfacet_velg[i] = facet.velg
+            self._dfacet_indv[i] = facet.indv
+            self._dfacet_velv[i] = facet.velv
             self._dfacet_inde[i] = facet.inde
             self._dfacet_vele[i] = facet.vele
             self._dfacet_indp[i] = facet.indp
@@ -778,10 +787,10 @@ class PanelSystem():
         return self._dfacet_pnts
 
     @property
-    def dfacet_indg(self) -> 'NDArray':
-        if self._dfacet_indg is None:
+    def dfacet_indv(self) -> 'NDArray':
+        if self._dfacet_indv is None:
             self.assemble_dfacets()
-        return self._dfacet_indg
+        return self._dfacet_indv
 
     @property
     def dfacet_inde(self) -> 'NDArray':
@@ -796,10 +805,10 @@ class PanelSystem():
         return self._dfacet_indp
 
     @property
-    def dfacet_velg(self) -> Vector2D:
-        if self._dfacet_velg is None:
+    def dfacet_velv(self) -> Vector2D:
+        if self._dfacet_velv is None:
             self.assemble_dfacets()
-        return self._dfacet_velg
+        return self._dfacet_velv
 
     @property
     def dfacet_vele(self) -> Vector2D:
@@ -840,6 +849,7 @@ class PanelSystem():
     @property
     def vertices(self) -> list['Vertex']:
         if self._vertices is None:
+            self.edges  # Ensure edges are generated
             self._vertices = []
             for grid in self.grids.values():
                 for vertex in grid.vertices:

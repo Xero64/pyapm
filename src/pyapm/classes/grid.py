@@ -167,3 +167,30 @@ def panel_groups_from_grid(grid: Grid) -> list[list['Panel']]:
             continue
 
     return panel_groups
+
+def vertices_parray(vertices: list[Vertex]) -> 'NDArray':
+    num_verts = len(vertices)
+    max_pind = None
+    for vertex in vertices:
+        for panel in vertex.panels:
+            if max_pind is None or panel.ind > max_pind:
+                max_pind = panel.ind
+    parray = zeros((num_verts, max_pind + 1), dtype=float)
+    for vertex in vertices:
+        distances = []
+        indices = []
+        for panel in vertex.panels:
+            distance = (vertex - panel.pnto).return_magnitude()
+            distances.append(distance)
+            indices.append(panel.ind)
+        distances = asarray(distances)
+        rec_distances = zeros(distances.shape)
+        reciprocal(distances, where=distances!=0.0, out=rec_distances)
+        check = distances == 0.0
+        if check.any():
+            rec_distances[check] = 1.0
+            rec_distances[~check] = 0.0
+        rec_distances_sum = rec_distances.sum()
+        weights = rec_distances / rec_distances_sum
+        parray[vertex.ind, indices] = weights
+    return parray
