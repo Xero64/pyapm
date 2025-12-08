@@ -1662,11 +1662,11 @@ class StabilityNearFieldResult():
     @property
     def dmu(self) -> 'NDArray':
         if self._dmu is None:
-            self._dmu = zeros(len(self.res.system.pnls))
+            self._dmu = zeros(len(self.res.system.dpanels))
             if self.dvfs is not None:
-                self._dmu += self.res.unmu[:, 0].dot(self.dvfs)
+                self._dmu += self.res.unmud[:, 0].dot(self.dvfs)
             if self.dofs is not None:
-                self._dmu += self.res.unmu[:, 1].dot(self.dofs)
+                self._dmu += self.res.unmud[:, 1].dot(self.dofs)
         return self._dmu
 
     @property
@@ -1719,8 +1719,8 @@ class StabilityNearFieldResult():
     @property
     def dfrc(self) -> Vector:
         if self._dfrc is None:
-            nrms = self.res.system.nrms
-            pnla = self.res.system.pnla
+            nrms = self.res.system.normals
+            pnla = self.res.system.panel_area
             self._dfrc = -nrms*self.dprs*pnla
         return self._dfrc
 

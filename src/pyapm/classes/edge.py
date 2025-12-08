@@ -70,7 +70,7 @@ class BoundEdge():
     grida: 'Grid' = None
     gridb: 'Grid' = None
     wake_panel: 'WakePanel' = None
-    mesh_edge: 'MeshEdge' = None
+    mesh_edge: 'WakeBoundEdge' = None
 
     def __init__(self, grida: 'Grid', gridb: 'Grid', wake_panel: 'WakePanel') -> None:
         self.grida = grida
@@ -340,7 +340,9 @@ class WakeBoundEdge(MeshEdge):
         self.panel_edge = panel_edge
         self.panel_edge.mesh_edge = self
         self.adjacent_edge = adjacent_edge
+        self.adjacent_edge.mesh_edge = self
         self.bound_edge = bound_edge
+        self.bound_edge.mesh_edge = self
 
     @property
     def panel(self) -> 'Panel':
@@ -450,13 +452,15 @@ def edges_from_system(system: 'PanelSystem') -> list[MeshEdge]:
         ind_edges = [all_edges[ind] for ind in edge_inds]
         if len(edge_inds) == 1:
             panel_edge = ind_edges[0]
-            edge = BoundaryEdge(panel_edge)
-            edges.append(edge)
+            if isinstance(panel_edge, PanelEdge):
+                edge = BoundaryEdge(panel_edge)
+                edges.append(edge)
         elif len(edge_inds) == 2:
             panel_edgea = ind_edges[0]
             panel_edgeb = ind_edges[1]
-            edge = InternalEdge(panel_edgea, panel_edgeb)
-            edges.append(edge)
+            if isinstance(panel_edgea, PanelEdge) and isinstance(panel_edgeb, PanelEdge):
+                edge = InternalEdge(panel_edgea, panel_edgeb)
+                edges.append(edge)
         elif len(edge_inds) == 3:
             bound_edge = None
             vortex_edge = None

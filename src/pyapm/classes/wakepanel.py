@@ -39,7 +39,7 @@ class WakePanel:
     _veccs: Vector = None
     _veca: Vector = None
     _vecb: Vector = None
-    adjpanels: list['WakePanel | Panel'] = None
+    _adjpanels: list['WakePanel | Panel'] = None
 
     def __init__(self, pid: int, gridas: list[Grid], gridbs: list[Grid],
                  dirw: Vector = None) -> None:
@@ -164,6 +164,23 @@ class WakePanel:
             self._panel_edges.append(self.bound_edge)
             self._panel_edges.extend(self.vortex_edges[self.num:])
         return self._panel_edges
+
+    @property
+    def adjpanels(self) -> list['WakePanel | Panel']:
+        if self._adjpanels is None:
+            self._adjpanels = []
+            panel_edgea = self.bound_edge.mesh_edge.panel_edge
+            panel_edgeb = self.bound_edge.mesh_edge.adjacent_edge
+            if self.bound_edge.grida is panel_edgea.grida and \
+               self.bound_edge.gridb is panel_edgea.gridb:
+                   panel_edgea, panel_edgeb = panel_edgeb, panel_edgea
+            self._adjpanels.append(panel_edgea.panel)
+            self._adjpanels.append(panel_edgeb.panel)
+        return self._adjpanels
+
+    @adjpanels.setter
+    def adjpanels(self, value: list['WakePanel | Panel']) -> None:
+        self._adjpanels = value
 
     def constant_doublet_phi(self, pnts: Vector, **kwargs: dict[str, float]) -> 'NDArray':
 

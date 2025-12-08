@@ -27,7 +27,7 @@ class PanelTrim(Result):
             'qco2v': ('qco2v', 0.0),
             'rbo2v': ('rbo2v', 0.0),
         }
-        for control in self.ctrls:
+        for control in self.controls:
             self.targets[control] = (control, 0.0)
 
     def set_state(self, mach: float | None = None, speed: float | None = None,
@@ -60,7 +60,7 @@ class PanelTrim(Result):
             self.targets['alpha'] = ('CL', CLt)
         if CYt is not None:
             self.targets['beta'] = ('CY', CYt)
-        controls = self.ctrls.keys()
+        controls = self.controls.keys()
         moment = {}
         if Clt is not None:
             moment['Cl'] = Clt
@@ -91,7 +91,7 @@ class PanelTrim(Result):
         super().set_state(**self.initstate)
 
     def set_initial_controls(self, initctrls: dict[str, float]) -> None:
-        for control in self.ctrls:
+        for control in self.controls:
             if control in self.targets:
                 if self.targets[control][0] == control:
                     initctrls[control] = self.targets[control][1]
@@ -170,6 +170,7 @@ class PanelTrim(Result):
         return Ddff
 
     def trim(self, crit: float = 1e-6, imax: int = 100, display: bool = False) -> None:
+        display = True
         Ctgt = self.target_Cmat()
         Ccur = self.current_Cmat()
         Cdff = Ctgt - Ccur
@@ -299,7 +300,7 @@ class PanelTrim(Result):
         trim_condition.set_initial_state(initstate)
 
         initctrls = {}
-        for control in system.ctrls:
+        for control in system.controls:
             initctrls[control] = resdict.get(control, 0.0)
         trim_condition.set_initial_controls(initctrls)
 

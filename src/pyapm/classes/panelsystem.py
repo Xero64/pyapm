@@ -1,6 +1,7 @@
 from json import dump, load
 from os.path import dirname, exists, join
 # from time import perf_counter
+from time import perf_counter
 from typing import TYPE_CHECKING, Any
 
 # from matplotlib.pyplot import figure
@@ -20,6 +21,7 @@ from .panelgroup import PanelGroup
 from .panelresult import PanelResult
 from .panelsurface import PanelSurface
 from .paneltrim import PanelTrim
+from .wakepanel import WakePanel
 
 if TYPE_CHECKING:
     # from matplotlib.axes import Axes
@@ -30,18 +32,17 @@ if TYPE_CHECKING:
     from .face import Face
     from .grid import Vertex
     from .panelstrip import PanelStrip
-    from .wakepanel import WakePanel
 
 
 class PanelSystem():
     name: str = None
-    grids: dict[int, Grid] = None
-    dpanels: dict[int, Panel] = None
-    wpanels: dict[int, 'WakePanel'] = None
     bref: float = None
     cref: float = None
     sref: float = None
     rref: Vector = None
+    grids: dict[int, Grid] = None
+    dpanels: dict[int, Panel] = None
+    wpanels: dict[int, 'WakePanel'] = None
     controls: dict[str, tuple[int]] = None
     surfaces: list['PanelSurface'] = None
     groups: dict[int, 'PanelGroup'] = None
@@ -95,6 +96,7 @@ class PanelSystem():
     _edges: list['MeshEdge'] = None
     _edges_parray: 'NDArray' = None
     _grids_parray: 'NDArray' = None
+    _vertices: list['Vertex'] = None
     _vertices_parray: 'NDArray' = None
     _num_edges: int = None
     # _triarr: 'NDArray' = None
@@ -117,7 +119,6 @@ class PanelSystem():
     _dfacet_diry: Vector2D = None
     _dfacet_dirz: Vector2D = None
     _dfacet_area: 'NDArray' = None
-    _vertices: list['Vertex'] = None
 
     def __init__(self, name: str, bref: float, cref: float,
                  sref: float, rref: Vector) -> None:
@@ -145,10 +146,14 @@ class PanelSystem():
     def update(self) -> None:
         for ind, grid in enumerate(self.grids.values()):
             grid.ind = ind
-        for ind, panel in enumerate(self.dpanels.values()):
-            panel.ind = ind
-        for ind, panel in enumerate(self.wpanels.values()):
-            panel.ind = ind
+        for ind, dpanel in enumerate(self.dpanels.values()):
+            dpanel.ind = ind
+        for ind, wpanel in enumerate(self.wpanels.values()):
+            wpanel.ind = ind
+        for ind, edge in enumerate(self.edges):
+            edge.ind = ind
+        for ind, vertex in enumerate(self.vertices):
+            vertex.ind = ind
 
     def reset(self) -> None:
         for attr in self.__dict__:
@@ -482,9 +487,14 @@ class PanelSystem():
     @property
     def edges(self) -> list['MeshEdge']:
         if self._edges is None:
+            print('Assembling edges...')
+            start = perf_counter()
             self._edges = edges_from_system(self)
             for ind, edge in enumerate(self._edges):
                 edge.ind = ind
+            finish = perf_counter()
+            elapsed = finish - start
+            print(f'Edges assembly time is {elapsed:.3f} seconds.')
         return self._edges
 
     @property
@@ -498,6 +508,23 @@ class PanelSystem():
         if self._grids_parray is None:
             self._grids_parray = grids_parray(self.grids.values())
         return self._grids_parray
+
+    @property
+    def vertices(self) -> list['Vertex']:
+        if self._vertices is None:
+            self.edges  # Ensure edges are generated
+            print('Assembling vertices...')
+            start = perf_counter()
+            self._vertices = []
+            for grid in self.grids.values():
+                for vertex in grid.vertices:
+                    self._vertices.append(vertex)
+            for ind, vertex in enumerate(self._vertices):
+                vertex.ind = ind
+            finish = perf_counter()
+            elapsed = finish - start
+            print(f'Vertices assembly time is {elapsed:.3f} seconds.')
+        return self._vertices
 
     @property
     def vertices_parray(self) -> 'NDArray':
@@ -660,6 +687,9 @@ class PanelSystem():
 
     def assemble_panels_phi(self, *, mach: float = 0.0) -> None:
 
+        print(f'Assembling panel phi influence arrays for Mach {mach}...')
+        start = perf_counter()
+
         betm = betm_from_mach(mach)
 
         if self._aphdd is None:
@@ -670,10 +700,12 @@ class PanelSystem():
         aphdd = zeros((self.num_dpanels, self.num_dpanels))
         aphsd = zeros((self.num_dpanels, self.num_dpanels))
 
-        for panel in self.dpanels.values():
-            aphdp, aphsp = panel.constant_doublet_source_phi(self.points, betx = betm)
-            aphdd[:, panel.ind] = aphdp
-            aphsd[:, panel.ind] = aphsp
+        for i, dpanel in enumerate(self.dpanels.values()):
+            aphdp, aphsp = dpanel.constant_doublet_source_phi(self.points, betx = betm)
+            aphdd[:, dpanel.ind] = aphdp
+            aphsd[:, dpanel.ind] = aphsp
+            if (i + 1) % 1000 == 0 or (i + 1) == self.num_dpanels:
+                print(f'  Processed {i + 1} of {self.num_dpanels} panels.')
 
         self._aphdd[mach] = aphdd
         self._aphsd[mach] = aphsd
@@ -683,17 +715,28 @@ class PanelSystem():
 
         aphdw = zeros((self.num_dpanels, self.num_wpanels))
 
-        for panel in self.wpanels.values():
-            aphdp = panel.constant_doublet_phi(self.points, betx = betm)
-            aphdw[:, panel.ind] += aphdp
+        for i, wpanel in enumerate(self.wpanels.values()):
+            aphdp = wpanel.constant_doublet_phi(self.points, betx = betm)
+            aphdw[:, wpanel.ind] += aphdp
+            if (i + 1) % 1000 == 0 or (i + 1) == self.num_wpanels:
+                print(f'  Processed {i + 1} of {self.num_wpanels} panels.')
 
         self._aphdw[mach] = aphdw
+
+        finish = perf_counter()
+        elapsed = finish - start
+        print(f'Panel phi influence arrays assembly time is {elapsed:.3f} seconds.')
 
     def ainv(self, mach: float = 0.0) -> 'NDArray':
         if self._ainv is None:
             self._ainv = {}
         if mach not in self._ainv:
+            print(f'Calculating inverse of A matrix for Mach {mach}...')
+            start = perf_counter()
             self._ainv[mach] = inv(self.aphdd(mach))
+            finish = perf_counter()
+            elapsed = finish - start
+            print(f'A matrix inverse calculation time is {elapsed:.3f} seconds.')
         return self._ainv[mach]
 
     def bmat(self, mach: float = 0.0) -> 'NDArray':
@@ -846,18 +889,6 @@ class PanelSystem():
             self.assemble_dfacets()
         return self._dfacet_area
 
-    @property
-    def vertices(self) -> list['Vertex']:
-        if self._vertices is None:
-            self.edges  # Ensure edges are generated
-            self._vertices = []
-            for grid in self.grids.values():
-                for vertex in grid.vertices:
-                    self._vertices.append(vertex)
-            for ind, vertex in enumerate(self._vertices):
-                vertex.ind = ind
-        return self._vertices
-
     # def assemble_panels_vel(self, *, mach: float = 0.0) -> None:
     #     if self._apd is None:
     #         self._apd = {}
@@ -965,8 +996,15 @@ class PanelSystem():
 
         if self._unmud is None:
             self._unmud = {}
+
         if self._unmuw is None:
             self._unmuw = {}
+
+        if self._unphi is None:
+            self._unphi = {}
+
+        print(f'Solving Dirichlet system for Mach {mach:.2f}...')
+        start = perf_counter()
 
         Ai = self.ainv(mach)
         Bm = self.bmat(mach)
@@ -988,12 +1026,13 @@ class PanelSystem():
 
         self._unmud[mach] = Im
         self._unmuw[mach] = Jm
-
-        if self._unphi is None:
-            self._unphi = {}
         self._unphi[mach] = self.aphdd(mach)@self.unmud(mach)
         self._unphi[mach] += self.aphdw(mach)@self.unmuw(mach)
         self._unphi[mach] -= self.bphs(mach)
+
+        finish = perf_counter()
+        elapsed = finish - start
+        print(f'Dirichlet system solution time is {elapsed:.3f} seconds.')
 
     # def solve_neumann_system(self, mach: float = 0.0) -> None:
     #     if self._unmu is None:
@@ -1166,90 +1205,103 @@ class PanelSystem():
         """Create a PanelSystem from a JSON file."""
 
         with open(jsonfilepath, 'rt') as jsonfile:
-            sysdct = load(jsonfile)
+            sysdict = load(jsonfile)
 
-        sysdct['source'] = jsonfilepath
+        sysdict['source'] = jsonfilepath
 
         filetype = None
-        if 'type' in sysdct:
-            filetype = sysdct['type']
-        elif 'panels' in sysdct and 'grids' in sysdct:
+        if 'type' in sysdict:
+            filetype = sysdict['type']
+        elif 'mesh' in sysdict:
             filetype = 'mesh'
-        elif 'surfaces' in sysdct:
+        elif 'surfaces' in sysdict:
             filetype = 'geom'
 
         if filetype == 'geom':
-            sys = cls.from_geom(sysdct, trim=False)
+            system = cls.from_geom(sysdict, trim=False)
         elif filetype == 'mesh':
-            sys = cls.from_mesh(sysdct, trim=False)
+            system = cls.from_mesh(sysdict, trim=False)
         else:
             raise ValueError('Incorrect file type.')
 
-        sys.source = jsonfilepath
+        system.source = jsonfilepath
 
-        sys.load_initial_state(sys.source)
+        system.load_initial_state(system.source)
 
         if trim:
-            sys.trim()
+            system.trim()
 
-        return sys
+        return system
 
     @classmethod
-    def from_mesh(cls, sysdct: dict[str, Any],
+    def from_mesh(cls, system_dict: dict[str, Any],
                   trim: bool = True) -> 'PanelSystem':
 
-        name = sysdct['name']
-        bref = sysdct['bref']
-        cref = sysdct['cref']
-        sref = sysdct['sref']
-        xref = sysdct['xref']
-        yref = sysdct['yref']
-        zref = sysdct['zref']
+        name = system_dict['name']
+        bref = system_dict['bref']
+        cref = system_dict['cref']
+        sref = system_dict['sref']
+        xref = system_dict['xref']
+        yref = system_dict['yref']
+        zref = system_dict['zref']
         rref = Vector(xref, yref, zref)
+        system = cls(name, bref, cref, sref, rref)
 
-        grds: dict[int, Grid] = {}
-        griddata: dict[str, Any] = sysdct['grids']
-        for gidstr, gd in griddata.items():
-            gid = int(gidstr)
-            if 'te' not in gd:
-                gd['te'] = False
-            grds[gid] = Grid(gid, gd['x'], gd['y'], gd['z'])
+        groups: dict[int, PanelGroup] = {}
+        group_dict: dict[int, dict[str, Any]] = system_dict.get('groups', {})
+        for groupid_str, group_dict in group_dict.items():
+            groupid = int(groupid_str)
+            grpname = group_dict.get('name', f'Group {groupid}')
+            groups[groupid] = PanelGroup(grpname)
+            groups[groupid].exclude = group_dict.get('exclude', False)
+            groups[groupid].noload = group_dict.get('noload', False)
+            groups[groupid].nohsv = group_dict.get('nohsv', False)
+        system.groups = groups
 
-        grps: dict[int, PanelGroup] = {}
-        groupdata: dict[int, dict[str, Any]] = sysdct.get('groups', {})
-        for grpidstr, grpdata in groupdata.items():
-            grpid = int(grpidstr)
-            grpname = grpdata.get('name', f'Group {grpid}')
-            grps[grpid] = PanelGroup(grpname)
-            grps[grpid].exclude = grpdata.get('exclude', False)
-            grps[grpid].noload = grpdata.get('noload', False)
-            grps[grpid].nohsv = grpdata.get('nohsv', False)
+        if 'mesh' in system_dict:
 
-        pnls: dict[int, Panel] = {}
-        paneldata: dict[int, dict[str, Any]] = sysdct['panels']
-        for pidstr, pd in paneldata.items():
-            pid = int(pidstr)
-            if 'grpid' in pd:
-                grpid = pd['grpid']
-                grp = grps[grpid]
-                if not grp.exclude:
-                    pnlgrds = [grds[gidi] for gidi in pd['gids']]
-                    pnl = Panel(pid, pnlgrds)
-                    pnls[pid] = pnl
-                    if grp.noload:
-                        pnls[pid].noload = True
-                    pnls[pid].group = grp
-                grp.add_panel(pnl)
-            else:
-                pnlgrds = [grds[gidi] for gidi in pd['gids']]
-                pnls[pid] = Panel(pid, pnlgrds)
+            mesh_dict: str | dict[str, Any] = system_dict['mesh']
 
-        sys = cls(name, bref, cref, sref, rref)
-        sys.set_mesh(grds, pnls)
-        sys.groups = grps
+            if isinstance(mesh_dict, str):
+                source = system_dict.get('source')
+                meshpath = dirname(source)
+                meshfilepath = join(meshpath, mesh_dict)
+                with open(meshfilepath, 'rt') as meshfile:
+                    mesh_dict: dict[str, Any] = load(meshfile)
+
+            grids_dict: dict[str, Any] = mesh_dict.get('grids', {})
+            grids: dict[int, Grid] = {}
+            for gidstr, gd in grids_dict.items():
+                gid = int(gidstr)
+                grids[gid] = Grid(gid, gd['x'], gd['y'], gd['z'])
+
+            dpanels_dict: dict[str, dict[str, Any]] = mesh_dict.get('dpanels', {})
+            dpanels: dict[int, Panel] = {}
+            for pid_str, dpanel_dict in dpanels_dict.items():
+                pid = int(pid_str)
+                gids = dpanel_dict.get('gids', [])
+                pnlgrds = [grids[gid] for gid in gids]
+                dpanels[pid] = Panel(pid, pnlgrds)
+                if 'group_id' in dpanel_dict:
+                    group_id = dpanel_dict['group_id']
+                    group = groups[group_id]
+                    dpanels[pid].group = group
+                    group.add_panel(dpanels[pid])
+
+            wpanels_dict: dict[str, dict[str, Any]] = mesh_dict.get('wpanels', {})
+            wpanels: dict[int, WakePanel] = {}
+            for pid_str, wpanel_dict in wpanels_dict.items():
+                pid = int(pid_str)
+                gidas = wpanel_dict.get('gidas', [])
+                gidbs = wpanel_dict.get('gidbs', [])
+                gridas = [grids[gid] for gid in gidas]
+                gridbs = [grids[gid] for gid in gidbs]
+                wpanels[pid] = WakePanel(pid, gridas, gridbs)
+
+            system.set_mesh(grids, dpanels, wpanels)
 
         ind = 2
-        ctrldata: dict[str, dict[str, Any]] = sysdct.get('controls', {})
+        ctrldata: dict[str, dict[str, Any]] = system_dict.get('controls', {})
         for desc, ctrldct in ctrldata.items():
             ctrlname = ctrldct.get('name', desc)
             posgain = ctrldct.get('posgain', 1.0)
@@ -1261,115 +1313,115 @@ class PanelSystem():
             grpid = ctrldct.get('group', None)
             if grpid is not None:
                 grpid = int(grpid)
-                grp = sys.groups[grpid]
+                grp = system.groups[grpid]
                 grp.add_control(ctrl)
-            if ctrlname not in sys.controls:
-                sys.controls[ctrlname] = (ind, ind + 1, ind + 2, ind + 3)
+            if ctrlname not in system.controls:
+                system.controls[ctrlname] = (ind, ind + 1, ind + 2, ind + 3)
                 ind += 4
 
         masses = {}
-        if 'masses' in sysdct:
-            if isinstance(sysdct['masses'], list):
-                masses = masses_from_json(sysdct['masses'])
-        sys.masses = masses
+        if 'masses' in system_dict:
+            if isinstance(system_dict['masses'], list):
+                masses = masses_from_json(system_dict['masses'])
+        system.masses = masses
 
-        if 'cases' in sysdct and sysdct:
-            sys.results_from_dict(sysdct['cases'], trim = False)
+        if 'cases' in system_dict and system_dict:
+            system.results_from_dict(system_dict['cases'], trim = False)
 
-        if 'source' in sysdct:
-            sys.source = sysdct['source']
+        if 'source' in system_dict:
+            system.source = system_dict['source']
 
-        sys.load_initial_state(sys.source)
+        system.load_initial_state(system.source)
 
         if trim:
-            sys.trim()
+            system.trim()
 
-        return sys
+        return system
 
     @classmethod
-    def from_geom(cls, sysdct: dict[str, any],
+    def from_geom(cls, system_dict: dict[str, any],
                   trim: bool = True) -> 'PanelSystem':
 
-        jsonfilepath = sysdct.get('source', '.')
+        name = system_dict['name']
+        bref = system_dict['bref']
+        cref = system_dict['cref']
+        sref = system_dict['sref']
+        xref = system_dict['xref']
+        yref = system_dict['yref']
+        zref = system_dict['zref']
+        rref = Vector(xref, yref, zref)
+        system = cls(name, bref, cref, sref, rref)
+
+        jsonfilepath = system_dict.get('source', '.')
 
         path = dirname(jsonfilepath)
 
-        surfsdata: list[dict[str, Any]] = sysdct.get('surfaces', [])
+        surfaces_dict: list[dict[str, Any]] = system_dict.get('surfaces', [])
 
-        for surfdata in surfsdata:
-            if 'defaults' in surfdata:
-                if 'airfoil' in surfdata['defaults']:
-                    airfoil = surfdata['defaults']['airfoil']
+        for surface_dict in surfaces_dict:
+            if 'defaults' in surface_dict:
+                if 'airfoil' in surface_dict['defaults']:
+                    airfoil = surface_dict['defaults']['airfoil']
                     if airfoil[-4:] == '.dat':
                         airfoil = join(path, airfoil)
                         if not exists(airfoil):
                             print(f'Airfoil {airfoil} does not exist.')
-                            del surfdata['defaults']['airfoil']
+                            del surface_dict['defaults']['airfoil']
                         else:
-                            surfdata['defaults']['airfoil'] = airfoil
-            sectsdata: list[dict[str, Any]] = surfdata.get('sections', [])
-            for sectdata in sectsdata:
-                if 'airfoil' in sectdata:
-                    airfoil = sectdata['airfoil']
+                            surface_dict['defaults']['airfoil'] = airfoil
+            sections_dict: list[dict[str, Any]] = surface_dict.get('sections', [])
+            for section_dict in sections_dict:
+                if 'airfoil' in section_dict:
+                    airfoil = section_dict['airfoil']
                     if airfoil[-4:] == '.dat':
                         airfoil = join(path, airfoil)
                         if not exists(airfoil):
                             print(f'Airfoil {airfoil} does not exist.')
-                            del sectdata['airfoil']
+                            del section_dict['airfoil']
                         else:
-                            sectdata['airfoil'] = airfoil
+                            section_dict['airfoil'] = airfoil
 
-        name = sysdct['name']
-        srfcs = []
-        for surfdata in sysdct['surfaces']:
-            srfc = PanelSurface.from_dict(surfdata)
-            srfcs.append(srfc)
-        bref = sysdct['bref']
-        cref = sysdct['cref']
-        sref = sysdct['sref']
-        xref = sysdct['xref']
-        yref = sysdct['yref']
-        zref = sysdct['zref']
-        rref = Vector(xref, yref, zref)
-        sys = cls(name, bref, cref, sref, rref)
-        sys.set_geom(srfcs)
+        surfaces = []
+        for surface_dict in system_dict['surfaces']:
+            surface = PanelSurface.from_dict(surface_dict)
+            surfaces.append(surface)
+        system.set_geom(surfaces)
 
         masses = {}
-        if 'masses' in sysdct:
-            if isinstance(sysdct['masses'], dict):
-                masses = masses_from_data(sysdct['masses'])
-            elif isinstance(sysdct['masses'], str):
-                if sysdct['masses'][-5:] == '.json':
-                    massfilename = sysdct['masses']
+        if 'masses' in system_dict:
+            if isinstance(system_dict['masses'], dict):
+                masses = masses_from_data(system_dict['masses'])
+            elif isinstance(system_dict['masses'], str):
+                if system_dict['masses'][-5:] == '.json':
+                    massfilename = system_dict['masses']
                     massfilepath = join(path, massfilename)
                 masses = masses_from_json(massfilepath)
-        sys.masses = masses
-        mass = sysdct.get('mass', None)
+        system.masses = masses
+        mass = system_dict.get('mass', None)
 
         if isinstance(mass, float):
-            sys.mass = MassObject(sys.name, mass = mass,
-                                  xcm = sys.rref.x,
-                                  ycm = sys.rref.y,
-                                  zcm = sys.rref.z)
+            system.mass = MassObject(system.name, mass = mass,
+                                  xcm = system.rref.x,
+                                  ycm = system.rref.y,
+                                  zcm = system.rref.z)
         elif isinstance(mass, str):
-            sys.mass = masses[mass]
+            system.mass = masses[mass]
         else:
-            sys.mass = MassObject(sys.name, mass = 1.0,
-                                  xcm = sys.rref.x,
-                                  ycm = sys.rref.y,
-                                  zcm = sys.rref.z)
+            system.mass = MassObject(system.name, mass = 1.0,
+                                  xcm = system.rref.x,
+                                  ycm = system.rref.y,
+                                  zcm = system.rref.z)
 
-        if 'cases' in sysdct and sysdct:
-            sys.results_from_dict(sysdct['cases'], trim = False)
+        if 'cases' in system_dict and system_dict:
+            system.results_from_dict(system_dict['cases'], trim = False)
 
-        sys.source = jsonfilepath
+        system.source = jsonfilepath
 
-        sys.load_initial_state(sys.source)
-
+        system.load_initial_state(system.source)
         if trim:
-            sys.trim()
+            system.trim()
 
-        return sys
+        return system
 
     def results_from_dict(self, cases: dict[str, Any],
                           trim: bool = True) -> 'PanelResult':

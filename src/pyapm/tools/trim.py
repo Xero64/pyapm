@@ -79,7 +79,7 @@ class LoopingTrim():
         self.initstate = initstate
 
     def set_initial_controls(self, initctrls: dict[str, float]) -> None:
-        for control in self.sys.ctrls:
+        for control in self.sys.controls:
             initctrls.setdefault(control, 0.0)
         self.initctrls = initctrls
 
@@ -242,7 +242,7 @@ class TurningTrim():
         self.initstate = initstate
 
     def set_initial_controls(self, initctrls: dict[str, float]) -> None:
-        for control in self.sys.ctrls:
+        for control in self.sys.controls:
             initctrls.setdefault(control, 0.0)
         self.initctrls = initctrls
 
