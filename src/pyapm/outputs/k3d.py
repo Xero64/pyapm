@@ -294,3 +294,9 @@ class PanelPlot:
         if self.result is None:
             raise ValueError('Result must be set to plot face forces.')
         return self.face_vectors_plot(self.result.fres.ffrc, **kwargs)
+
+    def face_cpvec_plot(self, **kwargs: dict[str, Any]) -> 'Vectors':
+        if self.result is None:
+            raise ValueError('Result must be set to plot face forces.')
+        cpvec = self.result.fres.ffrc/self.system.dfacet_area/self.result.qfs
+        return self.face_vectors_plot(cpvec, **kwargs)

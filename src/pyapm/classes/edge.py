@@ -340,7 +340,6 @@ class WakeBoundEdge(MeshEdge):
         self.panel_edge = panel_edge
         self.panel_edge.mesh_edge = self
         self.adjacent_edge = adjacent_edge
-        self.adjacent_edge.mesh_edge = self
         self.bound_edge = bound_edge
         self.bound_edge.mesh_edge = self
 
@@ -391,6 +390,7 @@ class WakeVortexEdge(MeshEdge):
         self.panel_edge.mesh_edge = self
         self.adjacent_edge = adjacent_edge
         self.vortex_edge = vortex_edge
+        self.vortex_edge.mesh_edge = self
 
     @property
     def panel(self) -> 'Panel':
