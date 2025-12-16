@@ -382,6 +382,12 @@ class WakeVortexEdge(MeshEdge):
     edge_type: str = 'wake_vortex'
     _mid_point: 'Vector' = None
     _edge_point: Vertex = None
+    _panela_len: float = None
+    _panelb_len: float = None
+    _panel_tot: float = None
+    _panela_fac: float = None
+    _panelb_fac: float = None
+    _wake_fac: int = None
 
     def __init__(self, panel_edge: 'PanelEdge',
                  adjacent_edge: 'PanelEdge',
@@ -401,6 +407,18 @@ class WakeVortexEdge(MeshEdge):
         return self.panel_edge.face
 
     @property
+    def panela(self) -> 'Panel':
+        return self.panel_edge.panel
+
+    @property
+    def panelb(self) -> 'Panel':
+        return self.adjacent_edge.panel
+
+    @property
+    def panelw(self) -> 'WakePanel':
+        return self.vortex_edge.wake_panel
+
+    @property
     def mid_point(self) -> 'Vector':
         if self._mid_point is None:
             self._mid_point = 0.5 * (self.panel_edge.grida + self.panel_edge.gridb)
@@ -409,6 +427,53 @@ class WakeVortexEdge(MeshEdge):
     @property
     def edge_point(self) -> 'Vector':
         return self.mid_point
+
+    @property
+    def panela_len(self) -> float:
+        if self._panela_len is None:
+            if self.panela is None:
+                self._panela_len = 0.0
+            else:
+                panela_vec = self.edge_point - self.panela.pnto
+                self._panela_len = panela_vec.return_magnitude()
+        return self._panela_len
+
+    @property
+    def panelb_len(self) -> float:
+        if self._panelb_len is None:
+            if self.panelb is None:
+                self._panelb_len = 0.0
+            else:
+                panelb_vec = self.edge_point - self.panelb.pnto
+                self._panelb_len = panelb_vec.return_magnitude()
+        return self._panelb_len
+
+    @property
+    def panel_tot(self) -> float:
+        if self._panel_tot is None:
+            self._panel_tot = self.panela_len + self.panelb_len
+        return self._panel_tot
+
+    @property
+    def panela_fac(self) -> float:
+        if self._panela_fac is None:
+            self._panela_fac = self.panela_len / self.panel_tot
+        return self._panela_fac
+
+    @property
+    def panelb_fac(self) -> float:
+        if self._panelb_fac is None:
+            self._panelb_fac = self.panelb_len / self.panel_tot
+        return self._panelb_fac
+
+    @property
+    def wake_fac(self) -> float:
+        if self._wake_fac is None:
+            if self.panel_edge.grida is self.vortex_edge.grida and self.panel_edge.gridb is self.vortex_edge.gridb:
+                self._wake_fac = -self.panelb_fac
+            elif self.panel_edge.grida is self.vortex_edge.gridb and self.panel_edge.gridb is self.vortex_edge.grida:
+                self._wake_fac = self.panela_fac
+        return self._wake_fac
 
     def return_Dmue(self) -> float:
         vecg = self.panel_edge.edge_point - self.panel.pnto
@@ -536,35 +601,40 @@ def edges_from_system(system: 'PanelSystem') -> list[MeshEdge]:
 #     earray = solve(amat, bmat)
 #     return earray
 
-def edges_parray(mesh_edges: list[MeshEdge]) -> 'NDArray':
+def edges_parrays(mesh_edges: list[MeshEdge], num_dpanels: int,
+                  num_wpanels: int) -> tuple['NDArray', 'NDArray']:
     num_edges = len(mesh_edges)
-    max_pind = None
+    # max_pind = None
+    # for mesh_edge in mesh_edges:
+    #     if isinstance(mesh_edge, BoundaryEdge):
+    #         if max_pind is None or mesh_edge.panel_edge.panel.ind > max_pind:
+    #             max_pind = mesh_edge.panel_edge.panel.ind
+    #     elif isinstance(mesh_edge, InternalEdge):
+    #         if mesh_edge.panela is not None:
+    #             if max_pind is None or mesh_edge.panela.ind > max_pind:
+    #                 max_pind = mesh_edge.panela.ind
+    #         if mesh_edge.panelb is not None:
+    #             if max_pind is None or mesh_edge.panelb.ind > max_pind:
+    #                 max_pind = mesh_edge.panelb.ind
+    parrayd = zeros((num_edges, num_dpanels), dtype=float)
+    parrayw = zeros((num_edges, num_wpanels), dtype=float)
     for mesh_edge in mesh_edges:
         if isinstance(mesh_edge, BoundaryEdge):
-            if max_pind is None or mesh_edge.panel_edge.panel.ind > max_pind:
-                max_pind = mesh_edge.panel_edge.panel.ind
-        elif isinstance(mesh_edge, InternalEdge):
-            if mesh_edge.panela is not None:
-                if max_pind is None or mesh_edge.panela.ind > max_pind:
-                    max_pind = mesh_edge.panela.ind
-            if mesh_edge.panelb is not None:
-                if max_pind is None or mesh_edge.panelb.ind > max_pind:
-                    max_pind = mesh_edge.panelb.ind
-    parray = zeros((num_edges, max_pind + 1), dtype=float)
-    for mesh_edge in mesh_edges:
-        if isinstance(mesh_edge, BoundaryEdge):
-            parray[mesh_edge.ind, mesh_edge.panel.ind] = 1.0
+            parrayd[mesh_edge.ind, mesh_edge.panel.ind] = 1.0
             Dmue = mesh_edge.return_Dmue()
-            parray[mesh_edge.ind, mesh_edge.panel.edge_indp] -= Dmue
+            parrayd[mesh_edge.ind, mesh_edge.panel.edge_indp] -= Dmue
         elif isinstance(mesh_edge, InternalEdge):
-            parray[mesh_edge.ind, mesh_edge.panela.ind] = mesh_edge.panelb_fac
-            parray[mesh_edge.ind, mesh_edge.panelb.ind] = mesh_edge.panela_fac
+            parrayd[mesh_edge.ind, mesh_edge.panela.ind] = mesh_edge.panelb_fac
+            parrayd[mesh_edge.ind, mesh_edge.panelb.ind] = mesh_edge.panela_fac
         elif isinstance(mesh_edge, WakeBoundEdge):
-            parray[mesh_edge.ind, mesh_edge.panel.ind] = 1.0
+            parrayd[mesh_edge.ind, mesh_edge.panel.ind] = 1.0
             Dmue = mesh_edge.return_Dmue()
-            parray[mesh_edge.ind, mesh_edge.panel.edge_indp] -= Dmue
+            parrayd[mesh_edge.ind, mesh_edge.panel.edge_indp] -= Dmue
         elif isinstance(mesh_edge, WakeVortexEdge):
-            parray[mesh_edge.ind, mesh_edge.panel.ind] = 1.0
+            parrayd[mesh_edge.ind, mesh_edge.panel.ind] = 1.0
             Dmue = mesh_edge.return_Dmue()
-            parray[mesh_edge.ind, mesh_edge.panel.edge_indp] -= Dmue
-    return parray
+            parrayd[mesh_edge.ind, mesh_edge.panel.edge_indp] -= Dmue
+            # parrayd[mesh_edge.ind, mesh_edge.panela.ind] = mesh_edge.panelb_fac
+            # parrayd[mesh_edge.ind, mesh_edge.panelb.ind] = mesh_edge.panela_fac
+            # parrayw[mesh_edge.ind, mesh_edge.panelw.ind] = mesh_edge.wake_fac
+    return parrayd, parrayw

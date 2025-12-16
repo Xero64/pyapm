@@ -13,7 +13,7 @@ from pygeom.geom3d import Vector
 
 from ..tools import betm_from_mach
 from ..tools.mass import MassObject, masses_from_data, masses_from_json
-from .edge import edges_from_system, edges_parray
+from .edge import edges_from_system, edges_parrays
 from .grid import Grid, grids_parray, vertices_parray
 from .panel import Panel
 from .panelcontrol import PanelControl
@@ -94,7 +94,8 @@ class PanelSystem():
     # _pnldiry: Vector = None
     # _pnldirz: Vector = None
     _edges: list['MeshEdge'] = None
-    _edges_parray: 'NDArray' = None
+    _edges_parrayd: 'NDArray' = None
+    _edges_parrayw: 'NDArray' = None
     _grids_parray: 'NDArray' = None
     _vertices: list['Vertex'] = None
     _vertices_parray: 'NDArray' = None
@@ -498,10 +499,19 @@ class PanelSystem():
         return self._edges
 
     @property
-    def edges_parray(self) -> 'NDArray':
-        if self._edges_parray is None:
-            self._edges_parray = edges_parray(self.edges)
-        return self._edges_parray
+    def edges_parrayd(self) -> 'NDArray':
+        if self._edges_parrayd is None:
+            (self._edges_parrayd,
+             self._edges_parrayw) = edges_parrays(self.edges,
+                                                  self.num_dpanels,
+                                                  self.num_wpanels)
+        return self._edges_parrayd
+
+    @property
+    def edges_parrayw(self) -> 'NDArray':
+        if self._edges_parrayw is None:
+            self._edges_parrayd, self._edges_parrayw = edges_parrays(self.edges)
+        return self._edges_parrayw
 
     @property
     def grids_parray(self) -> 'NDArray':

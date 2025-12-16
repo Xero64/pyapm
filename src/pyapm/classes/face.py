@@ -10,7 +10,7 @@ from .grid import Grid, Vertex
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
-    from .edge import InternalEdge
+    from .edge import PanelEdge
     from .panel import Panel
 
 
@@ -19,7 +19,7 @@ class Face():
     gridb: Grid = None
     panel: 'Panel' = None
     ind: int = None
-    edge: 'InternalEdge' = None
+    edge: 'PanelEdge' = None
     _vertexa: Vertex = None
     _vertexb: Vertex = None
     _pointo: Vector = None
@@ -108,11 +108,6 @@ class Face():
         vecy = dirz.cross(vecl)
         vecx = vecy.cross(dirz)
         self._cord = Coordinate(self.pointo, vecx, vecy)
-        if dirz.dot(self._cord.dirz) < 0.0:
-            print(f'self.panel.ind = {self.panel.ind}')
-            print(f'vecl = {vecl}')
-            print(f'vecx = {vecx}, vecy = {vecy}, dirz = {dirz}')
-            print(f'self._cord.dirz = {self._cord.dirz}')
 
     @property
     def cord(self) -> Coordinate:
@@ -236,9 +231,18 @@ class Face():
             self.calc_vel_and_ind()
         return self._indp
 
-    def face_qxJ(self, mud: 'NDArray', mug: 'NDArray') -> Vector2D:
-        mua = mug[self.grida.ind]
-        mub = mug[self.gridb.ind]
+    def face_qxJ(self, mud: 'NDArray', mue: 'NDArray', muv: 'NDArray') -> Vector2D:
+        if isinstance(self.vertexa, Vertex) and isinstance(self.vertexb, Vertex):
+            mua = muv[self.vertexa.ind]
+            mub = muv[self.vertexb.ind]
+        elif isinstance(self.vertexa, Vertex):
+            mua = muv[self.vertexa.ind]
+            mub = mue[self.edge.ind]
+        elif isinstance(self.vertexb, Vertex):
+            mua = mue[self.edge.ind]
+            mub = muv[self.vertexb.ind]
+        else:
+            raise ValueError('Face has no vertex assigned for velocity calculation.')
         muc = mud[self.panel.ind]
         qxJ = mua*self.ybc + mub*self.yca + muc*self.yab
         qyJ = mua*self.xcb + mub*self.xac + muc*self.xba

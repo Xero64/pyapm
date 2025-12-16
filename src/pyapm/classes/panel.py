@@ -435,13 +435,13 @@ class Panel():
     #         self._panel_gradient = cmat
     #     return self._panel_gradient
 
-    def diff_mu(self, mu: 'NDArray', mug: 'NDArray') -> Vector2D:
+    def diff_mu(self, mud: 'NDArray', mue: 'NDArray', muv: 'NDArray') -> Vector2D:
         qjac = Vector2D(0.0, 0.0)
         jac = 0.0
         i = 0
         for panel_edge in self.panel_edges:
             i += 1
-            qxJ = panel_edge.face.face_qxJ(mu, mug)
+            qxJ = panel_edge.face.face_qxJ(mud, mue, muv)
             qjac += qxJ
             jac += panel_edge.face.jac
         q = qjac/jac

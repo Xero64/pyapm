@@ -375,13 +375,13 @@ class PanelResult():
             self._muv = self.calc_muv(self.mud)
         return self._muv
 
-    def calc_mue(self, mup: 'NDArray') -> 'NDArray':
-        return self.system.edges_parray @ mup
+    def calc_mue(self, mud: 'NDArray', muw: 'NDArray') -> 'NDArray':
+        return self.system.edges_parrayd @ mud + self.system.edges_parrayw @ muw
 
     @property
     def mue(self):
         if self._mue is None:
-            self._mue = self.calc_mue(self.mud)
+            self._mue = self.calc_mue(self.mud, self.muw)
         return self._mue
 
     def calc_mug(self, mu: 'NDArray') -> 'NDArray':
@@ -470,11 +470,14 @@ class PanelResult():
     #     # print(f'{qt = }')
     #     return Vector2D(vl + ql, vt + qt)
 
-    def calc_qloc(self, mu: 'NDArray', mug: 'NDArray | None' = None, *,
+    def calc_qloc(self, mud: 'NDArray', mue: 'NDArray | None' = None,
+                  muv: 'NDArray | None' = None, *,
                   vfs: Vector | None = None,
                   ofs: Vector | None = None) -> Vector2D:
-        if mug is None:
-            mug = self.calc_mug(mu)
+        if mue is None:
+            mue = self.calc_mue(mud)
+        if muv is None:
+            muv = self.calc_muv(mud)
         vfsg = Vector.zeros(self.arm.shape)
         if vfs is not None:
             vfsg += vfs
@@ -485,7 +488,7 @@ class PanelResult():
         for panel in self.system.dpanels.values():
             vel_fs = panel.crd.vector_to_local(vfsg[panel.ind])
             vfsl_2d[panel.ind] = Vector2D.from_obj(vel_fs)
-            diff_mu[panel.ind] = panel.diff_mu(mu, mug)
+            diff_mu[panel.ind] = panel.diff_mu(mud, mue, muv)
         # print(f'{diff_mu.x = }')
         # print(f'{diff_mu.y = }')
         return vfsl_2d - diff_mu
@@ -493,7 +496,7 @@ class PanelResult():
     @property
     def qloc(self) -> Vector2D:
         if self._qloc is None:
-            self._qloc = self.calc_qloc(self.mud, self.mug,
+            self._qloc = self.calc_qloc(self.mud, self.mue, self.muv,
                                         vfs = self.vfs, ofs = self.ofs)
             # self._qloc = self.calc_qloc_old(self.mu, vfs = self.vfs,
             #                                 ofs = self.ofs)
@@ -514,7 +517,7 @@ class PanelResult():
     @property
     def fres(self) -> 'FaceResult':
         if self._fres is None:
-            self._fres = FaceResult(self, self.mud)
+            self._fres = FaceResult(self, self.mud, self.muw)
         return self._fres
 
     @property
@@ -1229,6 +1232,7 @@ class FaceResult():
     result: PanelResult = None
     _system: 'System' = None
     fmud: 'NDArray' = None
+    fmuw: 'NDArray' = None
     _fmug: 'NDArray' = None
     _fmue: 'NDArray' = None
     _fmuv: 'NDArray' = None
@@ -1251,9 +1255,10 @@ class FaceResult():
     _Cm: float = None
     _Cn: float = None
 
-    def __init__(self, result: PanelResult, fmud: 'NDArray') -> None:
+    def __init__(self, result: PanelResult, fmud: 'NDArray', fmuw: 'NDArray') -> None:
         self.result = result
         self.fmud = fmud
+        self.fmuw = fmuw
 
     @property
     def system(self) -> 'System':
@@ -1270,7 +1275,7 @@ class FaceResult():
     @property
     def fmue(self) -> 'NDArray':
         if self._fmue is None:
-            self._fmue = self.system.edges_parray @ self.fmud
+            self._fmue = self.result.calc_mue(self.fmud, self.fmuw)
         return self._fmue
 
     @property
