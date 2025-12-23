@@ -148,12 +148,14 @@ fcpplot.display()
 
 ffrcplot = pnlpl.plot()
 ffrcplot += pnlpl.panel_mesh()
-ffrcplot += pnlpl.face_force_plot(scale=0.05, head_size=0.05, line_width=0.001)
+ffrcplot += pnlpl.face_force_plot(scale=0.5, head_size=0.05, line_width=0.001)
 ffrcplot += text2d("Face Force Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
 ffrcplot.display()
 
-fcpplot = pnlpl.plot()
-fcpplot += pnlpl.panel_mesh()
-fcpplot += pnlpl.face_cpvec_plot(scale=0.25, head_size=0.05, line_width=0.001)
-fcpplot += text2d("Face Cp Vector Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
-fcpplot.display()
+# fcpplot = pnlpl.plot()
+# fcpplot += pnlpl.panel_mesh()
+# fcpplot += pnlpl.face_cpvec_plot(scale=0.25, head_size=0.05, line_width=0.001)
+# fcpplot += text2d("Face Cp Vector Plot", position=(0.5, 0.95), is_html=True, label_box=False, color=0x000000)
+# fcpplot.display()
+
+#%%

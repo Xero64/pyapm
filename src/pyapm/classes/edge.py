@@ -470,7 +470,7 @@ class WakeVortexEdge(MeshEdge):
     def wake_fac(self) -> float:
         if self._wake_fac is None:
             if self.panel_edge.grida is self.vortex_edge.grida and self.panel_edge.gridb is self.vortex_edge.gridb:
-                self._wake_fac = -self.panelb_fac
+                self._wake_fac = -self.panela_fac
             elif self.panel_edge.grida is self.vortex_edge.gridb and self.panel_edge.gridb is self.vortex_edge.grida:
                 self._wake_fac = self.panela_fac
         return self._wake_fac
@@ -631,10 +631,10 @@ def edges_parrays(mesh_edges: list[MeshEdge], num_dpanels: int,
             Dmue = mesh_edge.return_Dmue()
             parrayd[mesh_edge.ind, mesh_edge.panel.edge_indp] -= Dmue
         elif isinstance(mesh_edge, WakeVortexEdge):
-            parrayd[mesh_edge.ind, mesh_edge.panel.ind] = 1.0
-            Dmue = mesh_edge.return_Dmue()
-            parrayd[mesh_edge.ind, mesh_edge.panel.edge_indp] -= Dmue
-            # parrayd[mesh_edge.ind, mesh_edge.panela.ind] = mesh_edge.panelb_fac
-            # parrayd[mesh_edge.ind, mesh_edge.panelb.ind] = mesh_edge.panela_fac
-            # parrayw[mesh_edge.ind, mesh_edge.panelw.ind] = mesh_edge.wake_fac
+            # parrayd[mesh_edge.ind, mesh_edge.panel.ind] = 1.0
+            # Dmue = mesh_edge.return_Dmue()
+            # parrayd[mesh_edge.ind, mesh_edge.panel.edge_indp] -= Dmue
+            parrayd[mesh_edge.ind, mesh_edge.panela.ind] = mesh_edge.panelb_fac
+            parrayd[mesh_edge.ind, mesh_edge.panelb.ind] = mesh_edge.panela_fac
+            parrayw[mesh_edge.ind, mesh_edge.panelw.ind] = mesh_edge.wake_fac
     return parrayd, parrayw
