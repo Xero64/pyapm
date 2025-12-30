@@ -15,7 +15,7 @@ if TYPE_CHECKING:
     from .panel import Panel
     from .panelcontrol import PanelControl
     from .panelsection import PanelSection
-    from .panelsurface import SurfaceFunction
+    from .panelsurface import SurfaceFunction, PanelSurface
     from .wakepanel import WakePanel
 
 
@@ -35,6 +35,7 @@ class PanelSheet():
     _tilt: float = None
     _area: float = None
     _controls: dict[str, 'PanelControl'] = None
+    surface: 'PanelSurface' = None
     grids: list['Grid'] = None
     dpanels: list['Panel'] = None
     wpanels: list['WakePanel'] = None
@@ -192,12 +193,20 @@ class PanelSheet():
             self._strips = []
             if not self.nomesh:
                 if len(self.profiles) == 0:
-                    self._strips.append(PanelStrip(self.section_1, self.section_2, self))
+                    strip = PanelStrip(self.section_1, self.section_2)
+                    strip.sheet = self
+                    self._strips.append(strip)
                 else:
-                    self._strips.append(PanelStrip(self.section_1, self.profiles[0], self))
-                    for i in range(len(self.profiles)-1):
-                        self._strips.append(PanelStrip(self.profiles[i], self.profiles[i+1], self))
-                    self._strips.append(PanelStrip(self.profiles[-1], self.section_2, self))
+                    strip = PanelStrip(self.section_1, self.profiles[0])
+                    strip.sheet = self
+                    self._strips.append(strip)
+                    for i in range(self.bnum - 2):
+                        strip = PanelStrip(self.profiles[i], self.profiles[i+1])
+                        strip.sheet = self
+                        self._strips.append(strip)
+                    strip = PanelStrip(self.profiles[-1], self.section_2)
+                    strip.sheet = self
+                    self._strips.append(strip)
         return self._strips
 
     @property

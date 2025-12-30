@@ -6,19 +6,148 @@ from numpy import ones
 from pyapm.classes import Grid
 from pyapm.core.flow import Flow
 from pygeom.geom3d import Vector
-from .edge import BoundEdge, VortexEdge
+
+from .edge import BoundEdge, VortexEdge, InternalEdge, PanelEdge
+from .panel import Panel
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
 
-    from .panel import Panel
     from .panelgroup import PanelGroup
     from .panelsection import PanelSection
     from .panelsheet import PanelSheet
     from .panelsurface import PanelSurface
 
 
-class WakePanel:
+class TrailingPanel(Panel):
+
+    _panel_edges: list['PanelEdge'] = None
+    _adjpanels: list[Panel] = None
+
+    def __init__(self, pid: int, grids: list[Grid]) -> None:
+        self.pid = pid
+        self.grids = grids
+
+    @property
+    def panel_edges(self) -> list['PanelEdge']:
+        if self._panel_edges is None:
+            self._panel_edges = []
+            for i in range(self.num):
+                a = i - 1
+                b = i
+                grida = self.grids[a]
+                gridb = self.grids[b]
+                edge = PanelEdge(grida, gridb, self)
+                self._panel_edges.append(edge)
+        return self._panel_edges
+
+    @property
+    def adjpanels(self) -> list[Panel]:
+        if self._adjpanels is None:
+            self._adjpanels = []
+            for edge in self.panel_edges:
+                if isinstance(edge.mesh_edge, InternalEdge):
+                    if edge.mesh_edge.panel_edgea.panel is not self:
+                        adj_edge = edge.mesh_edge.panel_edgea
+                        self._adjpanels.append(adj_edge.panel)
+                    else:
+                        adj_edge = edge.mesh_edge.panel_edgeb
+                        self._adjpanels.append(adj_edge.panel)
+        return self._adjpanels
+
+    @adjpanels.setter
+    def adjpanels(self, value: list[Panel]) -> None:
+        self._adjpanels = value
+
+    def constant_doublet_phi(self, pnts: Vector,
+                             **kwargs: dict[str, float]) -> 'NDArray':
+
+        from pyapm import USE_CUPY
+
+        if USE_CUPY:
+            from pyapm.tools.cupy import cupy_ctdp as ctdp
+        else:
+            from pyapm.tools.numpy import numpy_ctdp as ctdp
+
+        shp = pnts.shape
+        ndm = pnts.ndim
+
+        pntshp = (*shp, 1)
+        pnts = pnts.reshape(pntshp)
+
+        vecshp = (*ones(ndm, dtype=int), self.num)
+        vecas = self.vecas.reshape(vecshp)
+        vecbs = self.vecbs.reshape(vecshp)
+        veccs = self.veccs.reshape(vecshp)
+
+        aphidi = ctdp(pnts, vecas, vecbs, veccs, **kwargs)
+
+        aphid = aphidi.sum(axis=-1)
+
+        return aphid
+
+    def constant_doublet_vel(self, pnts: Vector,
+                             **kwargs: dict[str, float]) -> Vector:
+
+        from pyapm import USE_CUPY
+
+        if USE_CUPY:
+            from pyapm.tools.cupy import cupy_ctdv as ctdv
+        else:
+            from pyapm.tools.numpy import numpy_ctdv as ctdv
+
+        shp = pnts.shape
+        ndm = pnts.ndim
+
+        pntshp = (*shp, 1)
+        pnts = pnts.reshape(pntshp)
+
+        vecshp = (*ones(ndm, dtype=int), 4*self.num)
+        vecas = self.vecas.reshape(vecshp)
+        vecbs = self.vecbs.reshape(vecshp)
+        veccs = self.veccs.reshape(vecshp)
+
+        aveldi = ctdv(pnts, vecas, vecbs, veccs, **kwargs)
+
+        aveld = aveldi.sum(axis=-1)
+
+        return aveld
+
+    def constant_doublet_flow(self, pnts: Vector,
+                              **kwargs: dict[str, float]) -> 'Flow':
+
+        from pyapm import USE_CUPY
+
+        if USE_CUPY:
+            from pyapm.tools.cupy import cupy_ctdf as ctdf
+        else:
+            from pyapm.tools.numpy import numpy_ctdf as ctdf
+
+        shp = pnts.shape
+        ndm = pnts.ndim
+
+        pntshp = (*shp, 1)
+        pnts = pnts.reshape(pntshp)
+
+        vecshp = (*ones(ndm, dtype=int), 4*self.num)
+        vecas = self.vecas.reshape(vecshp)
+        vecbs = self.vecbs.reshape(vecshp)
+        veccs = self.veccs.reshape(vecshp)
+
+        aflwdi = ctdf(pnts, vecas, vecbs, veccs, **kwargs)
+
+        afldw = aflwdi.sum(axis=-1)
+
+        return afldw
+
+    def __str__(self) -> str:
+        return f'TrailingPanel({self.pid:d})'
+
+    def __repr__(self) -> str:
+        return self.__str__()
+
+
+class WakePanel():
     pid: int = None
     gridas: list[Grid] = None
     gridbs: list[Grid] = None
@@ -39,7 +168,7 @@ class WakePanel:
     _veccs: Vector = None
     _veca: Vector = None
     _vecb: Vector = None
-    _adjpanels: list['WakePanel | Panel'] = None
+    _adjpanels: list[Panel] = None
 
     def __init__(self, pid: int, gridas: list[Grid], gridbs: list[Grid],
                  dirw: Vector = None) -> None:
@@ -166,7 +295,7 @@ class WakePanel:
         return self._panel_edges
 
     @property
-    def adjpanels(self) -> list['WakePanel | Panel']:
+    def adjpanels(self) -> list['TrailingPanel | Panel']:
         if self._adjpanels is None:
             self._adjpanels = []
             panel_edgea = self.bound_edge.mesh_edge.panel_edge
@@ -179,7 +308,7 @@ class WakePanel:
         return self._adjpanels
 
     @adjpanels.setter
-    def adjpanels(self, value: list['WakePanel | Panel']) -> None:
+    def adjpanels(self, value: list['TrailingPanel | Panel']) -> None:
         self._adjpanels = value
 
     def constant_doublet_phi(self, pnts: Vector, **kwargs: dict[str, float]) -> 'NDArray':
@@ -273,7 +402,7 @@ class WakePanel:
         return aflw
 
     def __repr__(self):
-        return f'WakePanel(pid={self.pid})'
+        return f'TrailingPanel({self.pid})'
 
     def __str__(self):
         return self.__repr__()

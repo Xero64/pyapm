@@ -13,8 +13,8 @@ if TYPE_CHECKING:
 
     from .grid import Grid
     from .panel import Panel
-    from .wakepanel import WakePanel
     from .panelsystem import PanelSystem
+    from .wakepanel import WakePanel
 
 
 class PanelEdge():
@@ -64,6 +64,55 @@ class PanelEdge():
 
     def __str__(self) -> str:
         return self.__repr__()
+
+
+# class TrailingPanelEdge():
+#     grida: 'Grid' = None
+#     gridb: 'Grid' = None
+#     panel: 'Panel' = None
+#     mesh_edge: 'MeshEdge' = None
+#     _face: Face = None
+
+#     def __init__(self, grida: 'Grid', gridb: 'Grid', panel: 'Panel') -> None:
+#         self.grida = grida
+#         self.gridb = gridb
+#         self.panel = panel
+
+#     @property
+#     def face(self) -> Face:
+#         if self._face is None:
+#             self._face = Face(self.grida, self.gridb, self.panel)
+#             self._face.set_dirl(self.panel.crd.dirx)
+#         return self._face
+
+#     @property
+#     def edge_point(self) -> 'Vector':
+#         if self.mesh_edge is not None:
+#             return self.mesh_edge.edge_point
+#         else:
+#             return None
+
+#     @property
+#     def ind(self) -> int:
+#         if self.mesh_edge is not None:
+#             return self.mesh_edge.ind
+#         else:
+#             return None
+
+#     def is_internal(self) -> bool:
+#         if self.mesh_edge is not None:
+#             return isinstance(self.mesh_edge, InternalEdge)
+#         else:
+#             raise ValueError('Mesh edge not assigned to panel edge.')
+
+#     def not_internal(self) -> bool:
+#         return not self.is_internal()
+
+#     def __repr__(self) -> str:
+#         return f'PanelEdge({self.grida}, {self.gridb}, {self.panel})'
+
+#     def __str__(self) -> str:
+#         return self.__repr__()
 
 
 class BoundEdge():
@@ -187,7 +236,7 @@ class BoundaryEdge(MeshEdge):
 class InternalEdge(MeshEdge):
     panel_edgea: PanelEdge = None
     panel_edgeb: PanelEdge = None
-    edge_type: str = 'internal'
+    _edge_type: str = None
     _mid_point: 'Vector' = None
     _direcy: 'Vector' = None
     _coorda: 'Coordinate' = None
@@ -207,6 +256,20 @@ class InternalEdge(MeshEdge):
         self.panel_edgea.mesh_edge = self
         self.panel_edgeb = panel_edgeb
         self.panel_edgeb.mesh_edge = self
+
+    @property
+    def edge_type(self) -> str:
+        from .panel import Panel
+        if self._edge_type is None:
+            tepanela = hasattr(self.panela, 'adjpanels')
+            tepanelb = hasattr(self.panelb, 'adjpanels')
+            if tepanela and tepanelb:
+                self._edge_type = 'trailing edge'
+            elif tepanela or tepanelb:
+                self._edge_type = 'blunt edge'
+            else:
+                self._edge_type = 'internal edge'
+        return self._edge_type
 
     @property
     def panela(self) -> 'Panel':
@@ -509,7 +572,8 @@ def edges_from_system(system: 'PanelSystem') -> list[MeshEdge]:
         edge_gids[i, 1] = edge.gridb.gid
 
     sorted_edges = sort(edge_gids, axis=1)
-    unique_edges, edge_inverse = unique(sorted_edges, axis=0, return_inverse=True)
+    unique_edges, edge_inverse = unique(sorted_edges, axis=0,
+                                        return_inverse=True)
 
     edges = []
     for i in range(unique_edges.shape[0]):
@@ -524,8 +588,20 @@ def edges_from_system(system: 'PanelSystem') -> list[MeshEdge]:
             panel_edgea = ind_edges[0]
             panel_edgeb = ind_edges[1]
             if isinstance(panel_edgea, PanelEdge) and isinstance(panel_edgeb, PanelEdge):
-                edge = InternalEdge(panel_edgea, panel_edgeb)
-                edges.append(edge)
+                tpanela = hasattr(panel_edgea.panel, 'adjpanels')
+                tpanelb = hasattr(panel_edgeb.panel, 'adjpanels')
+                if tpanela and tpanelb:
+                    edge = InternalEdge(panel_edgea, panel_edgeb)
+                    edges.append(edge)
+                elif tpanela and not tpanelb:
+                    edge = BoundaryEdge(panel_edgeb)
+                    edges.append(edge)
+                elif not tpanela and tpanelb:
+                    edge = BoundaryEdge(panel_edgea)
+                    edges.append(edge)
+                else:
+                    edge = InternalEdge(panel_edgea, panel_edgeb)
+                    edges.append(edge)
         elif len(edge_inds) == 3:
             bound_edge = None
             vortex_edge = None

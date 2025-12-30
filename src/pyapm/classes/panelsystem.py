@@ -21,7 +21,7 @@ from .panelgroup import PanelGroup
 from .panelresult import PanelResult
 from .panelsurface import PanelSurface
 from .paneltrim import PanelTrim
-from .wakepanel import WakePanel
+from .wakepanel import TrailingPanel, WakePanel
 
 if TYPE_CHECKING:
     # from matplotlib.axes import Axes
@@ -42,7 +42,7 @@ class PanelSystem():
     rref: Vector = None
     grids: dict[int, Grid] = None
     dpanels: dict[int, Panel] = None
-    wpanels: dict[int, 'WakePanel'] = None
+    wpanels: dict[int, TrailingPanel | WakePanel] = None
     controls: dict[str, tuple[int]] = None
     surfaces: list['PanelSurface'] = None
     groups: dict[int, 'PanelGroup'] = None
@@ -133,7 +133,7 @@ class PanelSystem():
 
     def set_mesh(self, grids: dict[int, Grid],
                  dpanels: dict[int, Panel],
-                 wpanels: dict[int, 'WakePanel']) -> None:
+                 wpanels: dict[int, TrailingPanel | WakePanel]) -> None:
         self.grids = grids
         self.dpanels = dpanels
         self.wpanels = wpanels
@@ -151,6 +151,12 @@ class PanelSystem():
             dpanel.ind = ind
         for ind, wpanel in enumerate(self.wpanels.values()):
             wpanel.ind = ind
+
+        # for strip in self.strips:
+        #     print(f'strip.ind = {strip.ind}')
+        #     print(f'{strip.profile_a.grids = }')
+        #     print(f'{strip.profile_b.grids = }')
+
         for ind, edge in enumerate(self.edges):
             edge.ind = ind
         for ind, vertex in enumerate(self.vertices):
@@ -1279,14 +1285,16 @@ class PanelSystem():
                 with open(meshfilepath, 'rt') as meshfile:
                     mesh_dict: dict[str, Any] = load(meshfile)
 
-            grids_dict: dict[str, Any] = mesh_dict.get('grids', {})
             grids: dict[int, Grid] = {}
+
+            grids_dict: dict[str, Any] = mesh_dict.get('grids', {})
             for gidstr, gd in grids_dict.items():
                 gid = int(gidstr)
                 grids[gid] = Grid(gid, gd['x'], gd['y'], gd['z'])
 
-            dpanels_dict: dict[str, dict[str, Any]] = mesh_dict.get('dpanels', {})
             dpanels: dict[int, Panel] = {}
+
+            dpanels_dict: dict[str, dict[str, Any]] = mesh_dict.get('dpanels', {})
             for pid_str, dpanel_dict in dpanels_dict.items():
                 pid = int(pid_str)
                 gids = dpanel_dict.get('gids', [])
@@ -1298,8 +1306,21 @@ class PanelSystem():
                     dpanels[pid].group = group
                     group.add_panel(dpanels[pid])
 
+            wpanels: dict[int, TrailingPanel | WakePanel] = {}
+
+            wpanels_dict: dict[str, dict[str, Any]] = mesh_dict.get('tpanels', {})
+            for pid_str, wpanel_dict in wpanels_dict.items():
+                pid = int(pid_str)
+                gids = wpanel_dict.get('gids', [])
+                pnlgrds = [grids[gid] for gid in gids]
+                wpanels[pid] = TrailingPanel(pid, pnlgrds)
+                if 'group_id' in wpanel_dict:
+                    group_id = wpanel_dict['group_id']
+                    group = groups[group_id]
+                    wpanels[pid].group = group
+                    group.add_panel(wpanels[pid])
+
             wpanels_dict: dict[str, dict[str, Any]] = mesh_dict.get('wpanels', {})
-            wpanels: dict[int, WakePanel] = {}
             for pid_str, wpanel_dict in wpanels_dict.items():
                 pid = int(pid_str)
                 gidas = wpanel_dict.get('gidas', [])

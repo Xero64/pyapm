@@ -11,7 +11,7 @@ from pyapm.outputs.msh import panelresult_to_msh
 
 #%%
 # Create Panel System
-jsonfilepath = '../files/Tiny_Wing.json'
+jsonfilepath = '../files/Tiny_Wing_Blunt.json'
 psys = PanelSystem.from_json(jsonfilepath)
 display_markdown(psys)
 
@@ -22,6 +22,9 @@ display_markdown(psys)
 # Solve Panel Result
 pres = psys.results['Alpha 5 deg, Speed 50 m/s']
 display_markdown(pres)
+
+print('Surface Loads:')
+
 display_markdown(pres.surface_loads)
 
 #%%
@@ -159,3 +162,8 @@ ffrcplot.display()
 # fcpplot.display()
 
 #%%
+# Print Out Edges
+# for edge in psys.edges:
+#     if hasattr(edge, 'edge_type'):
+#         print(edge.edge_type)
+#     print(edge)

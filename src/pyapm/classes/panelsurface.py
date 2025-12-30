@@ -32,6 +32,7 @@ class PanelSurface():
     cnum: int = None
     cspc: str = None
     twist: float = None
+    _num: int = None
     _sheets: list[PanelSheet] = None
     _strips: list[PanelStrip] = None
     _profiles: list[PanelProfile] = None
@@ -41,7 +42,8 @@ class PanelSurface():
     wpanels: list[Panel] = None
 
     def __init__(self, name: str, point: Vector, twist: float, mirror: bool,
-                 sections: list[PanelSection], functions: list['SurfaceFunction'], close: bool):
+                 sections: list[PanelSection], functions: list['SurfaceFunction'],
+                 close: bool) -> None:
         self.name = name
         self.point = point
         self.twist = twist
@@ -51,7 +53,7 @@ class PanelSurface():
         self.close = close
         self.update()
 
-    def update(self):
+    def update(self) -> None:
         bval = 0.0
         for i in range(len(self.sections)):
             self.sections[i].bval = bval
@@ -67,22 +69,32 @@ class PanelSurface():
             sections.reverse()
             self.sections = sections[:-1] + self.sections
 
-    def set_chord_spacing(self, cnum: int):
+    def set_chord_spacing(self, cnum: int) -> None:
         self.cnum = cnum
         for section in self.sections:
             section.set_cnum(self.cnum)
 
     @property
-    def sheets(self):
+    def num(self) -> int:
+        if self._num is None:
+            self._num = len(self.sections)
+        return self._num
+
+    @property
+    def sheets(self) -> list[PanelSheet]:
         if self._sheets is None:
             self._sheets = []
-            for i in range(len(self.sections) - 1):
-                self._sheets.append(PanelSheet(self.sections[i], self.sections[i+1]))
-                self._sheets[i].functions = self.functions
+            for i in range(self.num - 1):
+                section_1 = self.sections[i]
+                section_2 = self.sections[i+1]
+                sheet = PanelSheet(section_1, section_2)
+                sheet.functions = self.functions
+                sheet.surface = self
+                self._sheets.append(sheet)
         return self._sheets
 
     @property
-    def strips(self):
+    def strips(self) -> list[PanelStrip]:
         if self._strips is None:
             self._strips = []
             for sheet in self.sheets:
@@ -90,15 +102,15 @@ class PanelSurface():
         return self._strips
 
     @property
-    def profiles(self):
+    def profiles(self) -> list[PanelProfile]:
         if self._profiles is None:
             self._profiles = []
             for sheet in self.sheets:
-                sct1 = sheet.sct1
-                sct2 = sheet.sct2
-                self._profiles.append(sct1)
+                section_1 = sheet.section_1
+                section_2 = sheet.section_2
+                self._profiles.append(section_1)
                 self._profiles += sheet.profiles
-            self._profiles.append(sct2)
+            self._profiles.append(section_2)
         return self._profiles
 
     @property
@@ -295,24 +307,25 @@ class PanelSurface():
         close = True
         if 'close' in surfdata:
             close = surfdata['close']
-        surf = cls(name, point, twist, mirror, sections, funcs, close)
-        surf.set_chord_spacing(cnum)
+        surface = cls(name, point, twist, mirror, sections, funcs, close)
+        surface.set_chord_spacing(cnum)
         # Set the span for the surface functions
-        bpos = [section.bpos for section in surf.sections]
+        bpos = [section.bpos for section in surface.sections]
         bmax = max(bpos)
         bmin = min(bpos)
         brng = bmax - bmin
-        for fnc in surf.functions.values():
+        for fnc in surface.functions.values():
             fnc.bmax = brng/2
-        for section in surf.sections:
+        for section in surface.sections:
+            section.surface = surface
             section.bval = abs(section.bpos)
-            if 'chord' in surf.functions:
-                section.chord = surf.functions['chord'](section.bval)
-            if 'twist' in surf.functions:
-                section.twist = surf.functions['twist'](section.bval)
-            if 'tilt' in surf.functions:
-                section.tilt = surf.functions['tilt'](section.bval)
-        return surf
+            if 'chord' in surface.functions:
+                section.chord = surface.functions['chord'](section.bval)
+            if 'twist' in surface.functions:
+                section.twist = surface.functions['twist'](section.bval)
+            if 'tilt' in surface.functions:
+                section.tilt = surface.functions['tilt'](section.bval)
+        return surface
 
     def __repr__(self):
         return f'<PanelSurface: {self.name:s}>'

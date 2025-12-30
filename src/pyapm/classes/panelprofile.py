@@ -7,19 +7,25 @@ from .grid import Grid
 
 if TYPE_CHECKING:
     from .panelsection import PanelSection
+    from .panelsheet import PanelSheet
+    from .panelsurface import PanelSurface
+
 
 class PanelProfile():
     point: Vector = None
     chord: float = None
     twist: float = None
+    sheet: 'PanelSheet' = None
     _tilt: float = None
     _coord: Coordinate = None
+    _surface: 'PanelSurface' = None
     bval: float = None
     bpos: float = None
     section_1: 'PanelSection' = None
     section_2: 'PanelSection' = None
     grids: list[Grid] = None
     tegrid: Grid = None
+    teclosed: bool = None
 
     def __init__(self, point: Vector, chord: float, twist: float) -> None:
         self.point = point
@@ -40,6 +46,16 @@ class PanelProfile():
         pntte = (shp[0] + shp[-1])/2
         dirx = (pntte - pntle).to_unit()
         self.twist = -degrees(acos(dirx.x))
+
+    @property
+    def surface(self) -> 'PanelSurface':
+        if self._surface is None:
+            self._surface = self.sheet.surface
+        return self._surface
+
+    @surface.setter
+    def surface(self, surface: 'PanelSurface') -> None:
+        self._surface = surface
 
     @property
     def tilt(self) -> float:
@@ -76,32 +92,44 @@ class PanelProfile():
 
     def mesh_grids(self, gid: int) -> int:
         shape = self.get_shape()
-        num = shape.size
-
-        self.grids = []
 
         # Check if profile is closed
-        te_closed = (shape[0] - shape[-1]).return_magnitude() < 1e-12
+        self.teclosed = (shape[0] - shape[-1]).return_magnitude() < 1e-12
+
+        tevec = (shape[0] + shape[-1])/2
+
+        if self.teclosed:
+            shape = shape[1:-1]
+
+        num = shape.size
 
         # Mesh Trailing Edge Grid
-        tevec = (shape[0] + shape[-1])/2
         self.tegrid = Grid(gid, tevec.x, tevec.y, tevec.z)
         gid += 1
 
-        self.grids.append(self.tegrid)
-
-        if te_closed:
-            self.grids.append(self.tegrid)
-            for i in range(1, num-1):
-                self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
-                gid += 1
-            self.grids.append(self.tegrid)
-        else:
-            for i in range(num):
-                self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
-                gid += 1
+        self.grids = []
 
         self.grids.append(self.tegrid)
+
+        for i in range(num):
+            grid = Grid(gid, shape[i].x, shape[i].y, shape[i].z)
+            self.grids.append(grid)
+            gid += 1
+
+        self.grids.append(self.tegrid)
+
+        # if te_closed:
+        #     self.grids.append(self.tegrid)
+        #     for i in range(1, num - 1):
+        #         self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
+        #         gid += 1
+        #     self.grids.append(self.tegrid)
+        # else:
+        #     for i in range(num):
+        #         self.grids.append(Grid(gid, shape[i].x, shape[i].y, shape[i].z))
+        #         gid += 1
+
+        # self.grids.append(self.tegrid)
 
         # # Mesh Profile Grids
         # self.grids = []

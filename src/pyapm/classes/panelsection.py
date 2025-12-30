@@ -1,4 +1,4 @@
-from typing import Any, TYPE_CHECKING
+from typing import TYPE_CHECKING, Any
 
 from numpy import absolute, cos, radians
 from pygeom.geom3d import Vector
@@ -11,7 +11,8 @@ from .panelcontrol import PanelControl
 from .panelprofile import PanelProfile
 
 if TYPE_CHECKING:
-    from ..classes.panelsheet import PanelSheet
+    from .panelsheet import PanelSheet
+    from .panelsurface import PanelSurface
 
 TOL = 1e-12
 
@@ -182,8 +183,6 @@ class PanelSection(PanelProfile):
 
         if self.scttyp == 'begtip' or self.scttyp == 'endtip':
 
-            self.grids[-1] = self.grids[0]
-
             botgrids = self.grids[2:self.cnum + 1]
             topgrids = self.grids[2*self.cnum:self.cnum + 1:-1]
 
@@ -211,8 +210,6 @@ class PanelSection(PanelProfile):
             midgrids: list[Grid] = []
             midgrids.extend(self.grids[2*self.cnum + 2:])
             midgrids.append(self.grids[self.cnum + 1])
-
-            num = min(len(botgrids), len(topgrids), len(midgrids))
 
             for i in range(self.cnum):
                 grds: list[Grid] = []

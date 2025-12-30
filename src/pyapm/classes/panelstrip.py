@@ -4,20 +4,22 @@ from numpy import sqrt
 from pygeom.geom3d import Vector
 
 from .panel import Panel
-from .wakepanel import WakePanel
+from .wakepanel import TrailingPanel, WakePanel
 from .panelprofile import PanelProfile
 
 if TYPE_CHECKING:
     from .panelsheet import PanelSheet
+    from .panelsurface import PanelSurface
 
 
 class PanelStrip():
     profile_a: PanelProfile = None
     profile_b: PanelProfile = None
-    sheet: 'PanelSheet' = None
     dpanels: list[Panel] = None
-    wpanels: list[WakePanel] = None
+    wpanels: list[TrailingPanel | WakePanel] = None
     ind: int = None
+    _sheet: 'PanelSheet' = None
+    _surface: 'PanelSurface' = None
     _point: Vector = None
     _bpos: float = None
     _chord: float = None
@@ -26,11 +28,32 @@ class PanelStrip():
     _width: float = None
     _area: float = None
 
-    def __init__(self, profile_a: PanelProfile, profile_b: PanelProfile,
-                 sheet: 'PanelSheet') -> None:
+    def __init__(self, profile_a: PanelProfile, profile_b: PanelProfile) -> None:
         self.profile_a = profile_a
         self.profile_b = profile_b
-        self.sheet = sheet
+
+    @property
+    def sheet(self) -> 'PanelSheet':
+        if self._sheet is None:
+            if self.profile_a.sheet is self.profile_b.sheet:
+                self._sheet = self.profile_a.sheet
+            else:
+                raise ValueError('PanelStrip profiles belong to different sheets.')
+        return self._sheet
+
+    @sheet.setter
+    def sheet(self, sheet: 'PanelSheet') -> None:
+        self._sheet = sheet
+
+    @property
+    def surface(self) -> 'PanelSurface':
+        if self._surface is None:
+            self._surface = self.sheet.surface
+        return self._surface
+
+    @surface.setter
+    def surface(self, surface: 'PanelSurface') -> None:
+        self._surface = surface
 
     @property
     def noload(self) -> bool:
@@ -41,53 +64,67 @@ class PanelStrip():
         return self.sheet.nohsv
 
     def mesh_panels(self, pid: int) -> int:
-        # if len(self.profile_a.grids) != len(self.profile_b.grids):
-        #     raise ValueError('The len(profile_a.grids) must equal the len(profile_b.grids).')
-        num = min(len(self.profile_a.grids), len(self.profile_b.grids)) - 1
+
+        tecloseda = self.profile_a.teclosed
+        teclosedb = self.profile_b.teclosed
+
+        if tecloseda or teclosedb:
+            num = 2*self.cnum + 1
+            beg = 0
+            end = num
+        else:
+            num = 2*self.cnum + 1
+            beg = 1
+            end = num
+
+        gridsa = self.profile_a.grids[:num + 2]
+        gridsb = self.profile_b.grids[:num + 2]
 
         # Mesh Dirichlet Panels
         self.dpanels = []
-        for i in range(num):
-            grd1 = self.profile_a.grids[i]
-            grd2 = self.profile_a.grids[i+1]
-            grd3 = self.profile_b.grids[i+1]
-            grd4 = self.profile_b.grids[i]
-            grds = [grd1, grd2, grd3, grd4]
-            pnl = Panel(pid, grds)
+        for i in range(beg, end):
+            grid1 = gridsa[i]
+            grid2 = gridsa[i+1]
+            grid3 = gridsb[i+1]
+            grid4 = gridsb[i]
+            grids = [grid1, grid2, grid3, grid4]
+            pnl = Panel(pid, grids)
             self.dpanels.append(pnl)
             pid += 1
 
         # Mesh Wake Panels
         self.wpanels = []
-        # tecloseda = (self.profile_a.tegrid == self.profile_a.grids[0] and self.profile_a.tegrid == self.profile_a.grids[-1])
-        # teclosedb = (self.profile_b.tegrid == self.profile_b.grids[0] and self.profile_b.tegrid == self.profile_b.grids[-1])
 
-        # if tecloseda and teclosedb:
+        if tecloseda or teclosedb:
+            pass
+        else:
+            grid1 = gridsa[0]
+            grid2 = gridsa[1]
+            grid3 = gridsb[1]
+            grid4 = gridsb[0]
+            grids = [grid1, grid2, grid3, grid4]
+            panel = TrailingPanel(pid, grids)
+            panel.adjpanels = (self.dpanels[0], )
+            self.wpanels.append(panel)
+            pid += 1
+
+            grid1 = gridsa[-2]
+            grid2 = gridsa[-1]
+            grid3 = gridsb[-1]
+            grid4 = gridsb[-2]
+            grids = [grid1, grid2, grid3, grid4]
+            panel = TrailingPanel(pid, grids)
+            panel.adjpanels = (self.dpanels[-1], )
+            self.wpanels.append(panel)
+            pid += 1
+
         gridas = [self.profile_b.tegrid]
         gridbs = [self.profile_a.tegrid]
         wpanel = WakePanel(pid, gridas, gridbs, dirw=Vector(1.0, 0.0, 0.0))
         wpanel.adjpanels = (self.dpanels[-1], self.dpanels[0])
         self.wpanels.append(wpanel)
         pid += 1
-        # else:
-        #     gridas = [self.profile_b.grids[0], self.profile_b.tegrid]
-        #     gridbs = [self.profile_a.grids[0], self.profile_a.tegrid]
-        #     wpanela = WakePanel(pid, gridas, gridbs)
-        #     wpanela.adjpanels = (self.dpanels[0], )
-        #     self.wpanels.append(wpanela)
-        #     pid += 1
-        #     gridas = [self.profile_a.grids[-1], self.profile_a.tegrid]
-        #     gridbs = [self.profile_b.grids[-1], self.profile_b.tegrid]
-        #     wpanelb = WakePanel(pid, gridas, gridbs)
-        #     wpanelb.adjpanels = (self.dpanels[-1], )
-        #     self.wpanels.append(wpanelb)
-        #     pid += 1
-        #     gridas = [self.profile_b.tegrid]
-        #     gridbs = [self.profile_a.tegrid]
-        #     wpanel = WakePanel(pid, gridas, gridbs, dirw=Vector(1.0, 0.0, 0.0))
-        #     wpanel.adjpanels = (self.dpanels[-1], self.dpanels[0])
-        #     self.wpanels.append(wpanel)
-        #     pid += 1
+
         return pid
 
     @property
@@ -107,6 +144,10 @@ class PanelStrip():
     @property
     def zpos(self) -> float:
         return self.point.z
+
+    @property
+    def cnum(self) -> int:
+        return self.surface.cnum
 
     @property
     def bpos(self) -> float:
