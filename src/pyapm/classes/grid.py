@@ -1,6 +1,7 @@
 from typing import TYPE_CHECKING
 
 from numpy import asarray, reciprocal, zeros
+from pygeom.geom2d import Vector2D
 from pygeom.geom3d import Vector
 
 if TYPE_CHECKING:
@@ -118,16 +119,16 @@ def panel_groups_from_grid(grid: Grid) -> list[list['Panel']]:
         paneli = panels.pop(0)
         panel_groups[-1].append(paneli)
 
-        gridi_bef, gridi_aft = paneli.grids_before_and_after(grid)
-        edgei_bef, edgei_aft = paneli.edges_before_and_after(grid)
+        gridi_bef, gridi_aft = paneli.grids_before_and_after_grid(grid)
+        edgei_bef, edgei_aft = paneli.edges_before_and_after_grid(grid)
 
         # Backward search for adjacent panels
         while len(panels) > 0 and edgei_bef.is_internal():
 
             for panelj in panels:
 
-                gridj_bef, gridj_aft = panelj.grids_before_and_after(grid)
-                edgej_bef, _ = panelj.edges_before_and_after(grid)
+                gridj_bef, gridj_aft = panelj.grids_before_and_after_grid(grid)
+                edgej_bef, _ = panelj.edges_before_and_after_grid(grid)
 
                 if gridi_bef is gridj_aft:
                     panel_groups[-1].insert(0, panelj)
@@ -147,8 +148,8 @@ def panel_groups_from_grid(grid: Grid) -> list[list['Panel']]:
 
             for panelj in panels:
 
-                gridj_bef, gridj_aft = panelj.grids_before_and_after(grid)
-                _, edgej_aft = panelj.edges_before_and_after(grid)
+                gridj_bef, gridj_aft = panelj.grids_before_and_after_grid(grid)
+                _, edgej_aft = panelj.edges_before_and_after_grid(grid)
 
                 if gridi_aft is gridj_bef:
                     panel_groups[-1].append(panelj)
@@ -168,14 +169,10 @@ def panel_groups_from_grid(grid: Grid) -> list[list['Panel']]:
 
     return panel_groups
 
-def vertices_parray(vertices: list[Vertex]) -> 'NDArray':
+def vertices_parray(vertices: list[Vertex],
+                    num_dpanel: int) -> 'NDArray':
     num_verts = len(vertices)
-    max_pind = None
-    for vertex in vertices:
-        for panel in vertex.panels:
-            if max_pind is None or panel.ind > max_pind:
-                max_pind = panel.ind
-    parray = zeros((num_verts, max_pind + 1), dtype=float)
+    parray = zeros((num_verts, num_dpanel), dtype=float)
     for vertex in vertices:
         distances = []
         indices = []
@@ -194,3 +191,21 @@ def vertices_parray(vertices: list[Vertex]) -> 'NDArray':
         weights = rec_distances / rec_distances_sum
         parray[vertex.ind, indices] = weights
     return parray
+
+# def vertices_parray(vertices: list[Vertex],
+#                     num_dpanel: int) -> 'NDArray':
+#     num_verts = len(vertices)
+#     parray = zeros((num_verts, num_dpanel), dtype=float)
+#     for vertex in vertices:
+#         numpanel = len(vertex.panels)
+#         for panel in vertex.panels:
+#             indv = panel.vertices.index(vertex)
+#             vecg = vertex - panel.pnto
+#             vecl = panel.crd.vector_to_local(vecg)
+#             dirl = Vector2D.from_obj(vecl)
+#             indp = panel.vert_indps[indv]
+#             velp = panel.vert_velps[indv]
+#             Dmue = velp.dot(dirl)
+#             parray[vertex.ind, panel.ind] += 1.0/numpanel
+#             parray[vertex.ind, indp] += Dmue/numpanel
+#     return parray

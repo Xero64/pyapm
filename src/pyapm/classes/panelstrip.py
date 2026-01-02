@@ -104,7 +104,7 @@ class PanelStrip():
             grid4 = gridsb[0]
             grids = [grid1, grid2, grid3, grid4]
             panel = TrailingPanel(pid, grids)
-            panel.adjpanels = (self.dpanels[0], )
+            # panel.adjpanels = (self.dpanels[0], )
             self.wpanels.append(panel)
             pid += 1
 
@@ -114,14 +114,14 @@ class PanelStrip():
             grid4 = gridsb[-2]
             grids = [grid1, grid2, grid3, grid4]
             panel = TrailingPanel(pid, grids)
-            panel.adjpanels = (self.dpanels[-1], )
+            # panel.adjpanels = (self.dpanels[-1], )
             self.wpanels.append(panel)
             pid += 1
 
         gridas = [self.profile_b.tegrid]
         gridbs = [self.profile_a.tegrid]
         wpanel = WakePanel(pid, gridas, gridbs, dirw=Vector(1.0, 0.0, 0.0))
-        wpanel.adjpanels = (self.dpanels[-1], self.dpanels[0])
+        # wpanel.adjpanels = (self.dpanels[-1], self.dpanels[0])
         self.wpanels.append(wpanel)
         pid += 1
 

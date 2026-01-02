@@ -2,12 +2,12 @@
 # Import Dependencies
 from typing import TYPE_CHECKING
 
-from numpy import ones
+from numpy import asarray, ones
 from pyapm.classes import Grid
 from pyapm.core.flow import Flow
 from pygeom.geom3d import Vector
 
-from .edge import BoundEdge, VortexEdge, InternalEdge, PanelEdge
+from .edge import BoundEdge, VortexEdge, BluntEdge
 from .panel import Panel
 
 if TYPE_CHECKING:
@@ -21,43 +21,37 @@ if TYPE_CHECKING:
 
 class TrailingPanel(Panel):
 
-    _panel_edges: list['PanelEdge'] = None
-    _adjpanels: list[Panel] = None
+    _adj_inds: 'NDArray' = None
+    _adj_facs: 'NDArray' = None
 
     def __init__(self, pid: int, grids: list[Grid]) -> None:
         self.pid = pid
         self.grids = grids
 
-    @property
-    def panel_edges(self) -> list['PanelEdge']:
-        if self._panel_edges is None:
-            self._panel_edges = []
-            for i in range(self.num):
-                a = i - 1
-                b = i
-                grida = self.grids[a]
-                gridb = self.grids[b]
-                edge = PanelEdge(grida, gridb, self)
-                self._panel_edges.append(edge)
-        return self._panel_edges
+    def calc_adjacents(self) -> None:
+        adj_inds = []
+        adj_facs = []
+        for mesh_edge in self.mesh_edges:
+            if isinstance(mesh_edge, BluntEdge):
+                panel = mesh_edge.panel
+                length = mesh_edge.panel_edge.length
+                adj_inds.append(panel.ind)
+                adj_facs.append(length)
+        self._adj_inds = asarray(adj_inds, dtype=int)
+        self._adj_facs = asarray(adj_facs, dtype=float)
+        self._adj_facs /= self._adj_facs.sum()
 
     @property
-    def adjpanels(self) -> list[Panel]:
-        if self._adjpanels is None:
-            self._adjpanels = []
-            for edge in self.panel_edges:
-                if isinstance(edge.mesh_edge, InternalEdge):
-                    if edge.mesh_edge.panel_edgea.panel is not self:
-                        adj_edge = edge.mesh_edge.panel_edgea
-                        self._adjpanels.append(adj_edge.panel)
-                    else:
-                        adj_edge = edge.mesh_edge.panel_edgeb
-                        self._adjpanels.append(adj_edge.panel)
-        return self._adjpanels
+    def adj_inds(self) -> 'NDArray':
+        if self._adj_inds is None:
+            self.calc_adjacents()
+        return self._adj_inds
 
-    @adjpanels.setter
-    def adjpanels(self, value: list[Panel]) -> None:
-        self._adjpanels = value
+    @property
+    def adj_facs(self) -> 'NDArray':
+        if self._adj_facs is None:
+            self.calc_adjacents()
+        return self._adj_facs
 
     def constant_doublet_phi(self, pnts: Vector,
                              **kwargs: dict[str, float]) -> 'NDArray':
@@ -168,7 +162,9 @@ class WakePanel():
     _veccs: Vector = None
     _veca: Vector = None
     _vecb: Vector = None
-    _adjpanels: list[Panel] = None
+    # _adjpanels: list[Panel] = None
+    _adj_inds: 'NDArray' = None
+    _adj_facs: 'NDArray' = None
 
     def __init__(self, pid: int, gridas: list[Grid], gridbs: list[Grid],
                  dirw: Vector = None) -> None:
@@ -294,22 +290,44 @@ class WakePanel():
             self._panel_edges.extend(self.vortex_edges[self.num:])
         return self._panel_edges
 
-    @property
-    def adjpanels(self) -> list['TrailingPanel | Panel']:
-        if self._adjpanels is None:
-            self._adjpanels = []
-            panel_edgea = self.bound_edge.mesh_edge.panel_edge
-            panel_edgeb = self.bound_edge.mesh_edge.adjacent_edge
-            if self.bound_edge.grida is panel_edgea.grida and \
-               self.bound_edge.gridb is panel_edgea.gridb:
-                   panel_edgea, panel_edgeb = panel_edgeb, panel_edgea
-            self._adjpanels.append(panel_edgea.panel)
-            self._adjpanels.append(panel_edgeb.panel)
-        return self._adjpanels
+    def calc_adjacents(self) -> None:
+        adj_inds = []
+        adj_facs = []
+        panel_edgea = self.bound_edge.mesh_edge.panel_edge
+        panel_edgeb = self.bound_edge.mesh_edge.adjacent_edge
+        if self.bound_edge.grida is panel_edgea.grida and \
+            self.bound_edge.gridb is panel_edgea.gridb:
+                panel_edgea, panel_edgeb = panel_edgeb, panel_edgea
+        panela = panel_edgea.panel
+        panelb = panel_edgeb.panel
+        faca = 1.0
+        facb = -faca
+        if not isinstance(panela, TrailingPanel):
+            adj_inds.append(panela.ind)
+            adj_facs.append(faca)
+        else:
+            adj_inds += panela.adj_inds.tolist()
+            adj_facs += (faca*panela.adj_facs).tolist()
+        if not isinstance(panelb, TrailingPanel):
+            adj_inds.append(panelb.ind)
+            adj_facs.append(facb)
+        else:
+            adj_inds += panelb.adj_inds.tolist()
+            adj_facs += (facb*panelb.adj_facs).tolist()
+        self._adj_inds = asarray(adj_inds, dtype=int)
+        self._adj_facs = asarray(adj_facs, dtype=float)
 
-    @adjpanels.setter
-    def adjpanels(self, value: list['TrailingPanel | Panel']) -> None:
-        self._adjpanels = value
+    @property
+    def adj_inds(self) -> 'NDArray':
+        if self._adj_inds is None:
+            self.calc_adjacents()
+        return self._adj_inds
+
+    @property
+    def adj_facs(self) -> 'NDArray':
+        if self._adj_facs is None:
+            self.calc_adjacents()
+        return self._adj_facs
 
     def constant_doublet_phi(self, pnts: Vector, **kwargs: dict[str, float]) -> 'NDArray':
 
@@ -402,7 +420,7 @@ class WakePanel():
         return aflw
 
     def __repr__(self):
-        return f'TrailingPanel({self.pid})'
+        return f'WakePanel({self.pid})'
 
     def __str__(self):
         return self.__repr__()

@@ -145,20 +145,19 @@ class PanelSystem():
         self.update()
 
     def update(self) -> None:
+
         for ind, grid in enumerate(self.grids.values()):
             grid.ind = ind
+
         for ind, dpanel in enumerate(self.dpanels.values()):
             dpanel.ind = ind
+
         for ind, wpanel in enumerate(self.wpanels.values()):
             wpanel.ind = ind
 
-        # for strip in self.strips:
-        #     print(f'strip.ind = {strip.ind}')
-        #     print(f'{strip.profile_a.grids = }')
-        #     print(f'{strip.profile_b.grids = }')
-
         for ind, edge in enumerate(self.edges):
             edge.ind = ind
+
         for ind, vertex in enumerate(self.vertices):
             vertex.ind = ind
 
@@ -545,7 +544,8 @@ class PanelSystem():
     @property
     def vertices_parray(self) -> 'NDArray':
         if self._vertices_parray is None:
-            self._vertices_parray = vertices_parray(self.vertices)
+            self._vertices_parray = vertices_parray(self.vertices,
+                                                    self.num_dpanels)
         return self._vertices_parray
 
     @property
@@ -763,11 +763,7 @@ class PanelSystem():
         if self._cmat is None:
             self._cmat = zeros((self.num_wpanels, self.num_dpanels))
             for wpanel in self.wpanels.values():
-                dpanel = wpanel.adjpanels[0]
-                self._cmat[wpanel.ind, dpanel.ind] = -1.0
-                if len(wpanel.adjpanels) == 2:
-                    dpanel = wpanel.adjpanels[1]
-                    self._cmat[wpanel.ind, dpanel.ind] = 1.0
+                self._cmat[wpanel.ind, wpanel.adj_inds] = -wpanel.adj_facs
         return self._cmat
 
     @property

@@ -1,13 +1,14 @@
 from typing import TYPE_CHECKING
 
-from numpy import arange, full, minimum, ones, pi, sqrt, zeros
+from numpy import (arange, bincount, full, minimum, ones, pi, sqrt, unique,
+                   zeros, concatenate)
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import IHAT, KHAT, Coordinate, Vector
 from pygeom.geom3d.tools import angle_between_vectors
 
+from .edge import InternalEdge, PanelEdge
 from .face import Face
 from .grid import Grid, Vertex
-from .edge import PanelEdge, InternalEdge
 
 if TYPE_CHECKING:
     from numpy.typing import NDArray
@@ -59,6 +60,10 @@ class Panel():
     _edge_velp: Vector2D = None
     _edge_indg: 'NDArray' = None
     _edge_indp: 'NDArray' = None
+    _edge_indps: dict[int, 'NDArray'] = None
+    _edge_velps: dict[int, Vector2D] = None
+    _vert_indps: dict[int, 'NDArray'] = None
+    _vert_velps: dict[int, Vector2D] = None
 
     def __init__(self, pid: int, grids: list[Grid]) -> None:
         self.pid = pid
@@ -258,30 +263,18 @@ class Panel():
                 self._mesh_edges.append(panel_edge.mesh_edge)
         return self._mesh_edges
 
-    # @property
-    # def faces(self) -> list[Face]:
-    #     if self._faces is None:
-    #         self._faces = []
-    #         for i in range(self.num):
-    #             a = i - 1
-    #             b = i
-    #             grda = self.grids[a]
-    #             grdb = self.grids[b]
-    #             face = Face(i, grda, grdb, self)
-    #             face.set_dirl(self.crd.dirx)
-    #             self._faces.append(face)
-    #     return self._faces
-
     def calc_edge_gradient(self) -> None:
-        intedges: list[InternalEdge] = []
-        for mesh_edge in self.mesh_edges:
+        intedges: dict[int, InternalEdge] = dict()
+        for i, mesh_edge in enumerate(self.mesh_edges):
             if isinstance(mesh_edge, InternalEdge):
-                intedges.append(mesh_edge)
+                intedges[i] = mesh_edge
         numintedge = len(intedges)
         self._edge_velp = Vector2D.zeros(numintedge + 1)
         self._edge_indp = zeros(numintedge + 1, dtype=int)
         self._edge_indp[0] = self.ind
-        for i, intedge in enumerate(intedges):
+        self._edge_indps: dict[int, 'NDArray'] = dict()
+        self._edge_velps: dict[int, Vector2D] = dict()
+        for i, (key, intedge) in enumerate(intedges.items()):
             vecg = intedge.edge_point - self.pnto
             if intedge.panela is self:
                 face = intedge.facea
@@ -291,6 +284,12 @@ class Panel():
                 self._edge_velp[0] += dirl*intedge.panelb_fac
                 self._edge_indp[i+1] = intedge.panelb.ind
                 self._edge_velp[i+1] += dirl*intedge.panela_fac
+                self._edge_indps[key] = zeros(2, dtype=int)
+                self._edge_indps[key][0] = intedge.panela.ind
+                self._edge_indps[key][1] = intedge.panelb.ind
+                self._edge_velps[key] = Vector2D.zeros(2)
+                self._edge_velps[key][0] = dirl*intedge.panelb_fac
+                self._edge_velps[key][1] = dirl*intedge.panela_fac
             elif intedge.panelb is self:
                 face = intedge.faceb
                 vecl = face.cord.vector_to_local(vecg)
@@ -299,42 +298,35 @@ class Panel():
                 self._edge_velp[0] += dirl*intedge.panela_fac
                 self._edge_indp[i+1] = intedge.panela.ind
                 self._edge_velp[i+1] += dirl*intedge.panelb_fac
+                self._edge_indps[key] = zeros(2, dtype=int)
+                self._edge_indps[key][0] = intedge.panelb.ind
+                self._edge_indps[key][1] = intedge.panela.ind
+                self._edge_velps[key] = Vector2D.zeros(2)
+                self._edge_velps[key][0] = dirl*intedge.panela_fac
+                self._edge_velps[key][1] = dirl*intedge.panelb_fac
         if numintedge > 0:
             self._edge_velp /= numintedge
+        for i in range(self.num):
+            if i not in intedges:
+                self._edge_indps[i] = self._edge_indp
+                self._edge_velps[i] = self._edge_velp
 
-        # self._edge_velg = Vector2D.zeros(self.num)
-        # self._edge_velp = Vector2D.zeros()
-        # self._edge_indg = asarray([grid.ind for grid in self.grids])
-        # self._edge_indp = self.ind
-        # edge_count = 0
-        # for i, face in enumerate(self.faces):
-        #     found = False
-        #     for edge in self.edges:
-        #         if face.grida is edge.grida and face.gridb is edge.gridb:
-        #             found = True
-        #             break
-        #         elif face.grida is edge.gridb and face.gridb is edge.grida:
-        #             found = True
-        #             break
-        #     if edge.panel is None and found:
-        #         edge_count += 1
-        #         a = i - 1
-        #         b = i
-        #         self._edge_velg[a] += face.velg[0]
-        #         self._edge_velg[b] += face.velg[1]
-        #         self._edge_velp += face.velp
-        # self._edge_velp /= edge_count
-        # self._edge_velg /= edge_count
-        # if edge_count == 1:
-        #     print(f'{self}: edge_count = {edge_count:d}')
-        #     # print(f'{self}: edge_velg = {self._edge_velg}')
-        #     print(f'{self}: edge_velp = {self._edge_velp}')
-
-    # @property
-    # def edge_velg(self) -> Vector2D:
-    #     if self._edge_velg is None:
-    #         self.calc_edge_gradient()
-    #     return self._edge_velg
+    def calc_vertex_gradient(self) -> None:
+        self._vert_indps: dict[int, 'NDArray'] = dict()
+        self._vert_velps: dict[int, Vector2D] = dict()
+        for indv in range(self.num):
+            inda, indb = indv, indv + 1
+            if indv + 1 == self.num:
+                indb = 0
+            coninds = concatenate((self.edge_indps[inda], self.edge_indps[indb]))
+            convelx = concatenate((self.edge_velps[inda].x, self.edge_velps[indb].x))
+            convely = concatenate((self.edge_velps[inda].y, self.edge_velps[indb].y))
+            uniqinds, invinds = unique(coninds, return_inverse=True)
+            uniqvelx = bincount(invinds, weights=convelx)
+            uniqvely = bincount(invinds, weights=convely)
+            uniqvels = Vector2D(uniqvelx, uniqvely)
+            self._vert_indps[indv] = uniqinds
+            self._vert_velps[indv] = uniqvels
 
     @property
     def edge_velp(self) -> Vector2D:
@@ -342,17 +334,35 @@ class Panel():
             self.calc_edge_gradient()
         return self._edge_velp
 
-    # @property
-    # def edge_indg(self) -> 'NDArray':
-    #     if self._edge_indg is None:
-    #         self.calc_edge_gradient()
-    #     return self._edge_indg
-
     @property
     def edge_indp(self) -> 'NDArray':
         if self._edge_indp is None:
             self.calc_edge_gradient()
         return self._edge_indp
+
+    @property
+    def edge_indps(self) -> dict[int, 'NDArray']:
+        if self._edge_indps is None:
+            self.calc_edge_gradient()
+        return self._edge_indps
+
+    @property
+    def edge_velps(self) -> dict[int, Vector2D]:
+        if self._edge_velps is None:
+            self.calc_edge_gradient()
+        return self._edge_velps
+
+    @property
+    def vert_indps(self) -> dict[int, 'NDArray']:
+        if self._vert_indps is None:
+            self.calc_vertex_gradient()
+        return self._vert_indps
+
+    @property
+    def vert_velps(self) -> dict[int, Vector2D]:
+        if self._vert_velps is None:
+            self.calc_vertex_gradient()
+        return self._vert_velps
 
     @property
     def facets(self) -> list[Face]:
@@ -380,7 +390,7 @@ class Panel():
                         break
         return self._vertices
 
-    def grids_before_and_after(self, grid: Grid) -> tuple[Grid, Grid]:
+    def grids_before_and_after_grid(self, grid: Grid) -> tuple[Grid, Grid]:
         ind = self.grids.index(grid)
         ind_bef = ind - 1
         ind_aft = ind + 1
@@ -390,8 +400,8 @@ class Panel():
         gridb = self.grids[ind_aft]
         return grida, gridb
 
-    def edges_before_and_after(self, grid: Grid) -> tuple[PanelEdge,
-                                                          PanelEdge]:
+    def edges_before_and_after_grid(self, grid: Grid) -> tuple[PanelEdge,
+                                                               PanelEdge]:
         ind = self.grids.index(grid)
         ind_bef = ind
         ind_aft = ind + 1
@@ -512,7 +522,7 @@ class Panel():
             ta, tb, tc = t123[0], t123[1], t123[2]
             mint = min(ta, tb, tc)
             if mint > -ttol:
-                ra, rb, rc = gres[i-1], gres[i], pres
+                ra, rb, rc = gres[i - 1], gres[i], pres
                 r = ra*ta + rb*tb + rc*tc
                 break
         return r
