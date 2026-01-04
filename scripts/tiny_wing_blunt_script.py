@@ -211,11 +211,19 @@ ffrcplot.display()
 # fcpplot.display()
 
 # #%%
+# # Find Vertex
+# for dpanel in dpanels:
+#     if dpanel.pnto.x > 0.2 and dpanel.pnto.x < 0.3:
+#         if dpanel.pnto.z > 0.0:
+#             vertex = dpanel.vertices[0]
+#             break
+
+# #%%
 # # Print Out Edges
 # from numpy import concatenate, unique, bincount
 # from pygeom.geom2d import Vector2D
 
-# vertex = psys.vertices[11]
+# # vertex = psys.vertices[11]
 # print(f'{vertex = }')
 # print(f'{vertex.panels = }')
 
@@ -237,8 +245,6 @@ ffrcplot.display()
 # for panel in panels:
 #     print('\n----------------------------------------\n')
 #     print(f'{panel = }')
-# # panel = panels[0]
-# # print(f'{panel = }')
 
 #     indv = panel.vertices.index(vertex)
 #     inda = indv
@@ -246,60 +252,58 @@ ffrcplot.display()
 #     if indv + 1 == panel.num:
 #         indb = 0
 
-#     # print(f'{indv = }')
-#     # print(f'{inda = }')
-#     # print(f'{indb = }')
-#     # print(f'panel.edge_indps[inda] = \n{panel.edge_indps[inda]}\n')
-#     # print(f'panel.edge_indps[indb] = \n{panel.edge_indps[indb]}\n')
-#     # print(f'panel.edge_velps[inda] = \n{panel.edge_velps[inda]}\n')
-#     # print(f'panel.edge_velps[indb] = \n{panel.edge_velps[indb]}\n')
+#     mesh_edgea = panel.mesh_edges[inda]
+#     mesh_edgeb = panel.mesh_edges[indb]
+#     indpa = mesh_edgea.indps
+#     indpb = mesh_edgeb.indps
+#     facpa = mesh_edgea.facps
+#     facpb = mesh_edgeb.facps
+#     veca = panel.crd.point_to_local(mesh_edgea.edge_point)
+#     vecb = panel.crd.point_to_local(mesh_edgeb.edge_point)
+#     vecv = panel.crd.point_to_local(vertex)
+#     dira = Vector2D.from_obj(veca)
+#     dirb = Vector2D.from_obj(vecb)
+#     dirv = Vector2D.from_obj(vecv)
+#     denom = dira.cross(dirb)
+#     muafac = facpa * dirv.cross(dirb) / denom
+#     mubfac = facpb * dira.cross(dirv) / denom
+#     mupfac = denom + dirv.cross(dira) + dirb.cross(dirv)
+#     mupfac = mupfac / denom
+#     print(f'{indv = }')
+#     print(f'{indpa = }')
+#     print(f'{indpb = }')
+#     print(f'{mupfac = }')
+#     print(f'{muafac = }')
+#     print(f'{mubfac = }')
+#     conindps = concatenate(([panel.ind], indpa, indpb))
+#     confacps = concatenate(([mupfac], muafac, mubfac))
+#     uniqindps, invindps = unique(conindps, return_inverse=True)
+#     uniqfacps = bincount(invindps, weights=confacps)
 
-#     coninds = concatenate((panel.edge_indps[inda], panel.edge_indps[indb]))
-#     convelx = concatenate((panel.edge_velps[inda].x, panel.edge_velps[indb].x))
-#     convely = concatenate((panel.edge_velps[inda].y, panel.edge_velps[indb].y))
+#     print(f'{conindps = }')
+#     print(f'{confacps = }')
+#     print(f'{uniqindps = }')
+#     print(f'{uniqfacps = }')
 
-#     # print(f'{coninds = }')
-#     # print(f'{convelx = }')
-#     # print(f'{convely = }')
+#     mups = pres.mud[uniqindps]
 
-#     unqinds, invinds = unique(coninds, return_inverse=True)
-#     print(f'{unqinds = }')
-#     # print(f'{invinds = }')
-
-#     sumvelx = bincount(invinds, weights=convelx)
-#     sumvely = bincount(invinds, weights=convely)
-
-#     velv = Vector2D(sumvelx, sumvely)
-#     print(f'velv = \n{velv}\n')
-
-#     mup = pres.mud[panel.ind]
-#     print(f'{mup = }')
-
-#     # muv = pres.muv[vertex.ind]
-#     # print(f'{muv = }')
-
-#     mups = pres.mud[unqinds]
-#     print(f'{mups = }')
-
-#     vecg = vertex - panel.pnto
-#     print(f'vecg = {vecg}')
-
-#     vecl = panel.crd.vector_to_local(vecg)
-#     print(f'vecl = {vecl}')
-
-#     dirl = Vector2D.from_obj(vecl)
-#     print(f'dirl = {dirl}')
-
-#     facs = dirl.dot(velv)
-#     print(f'{facs = }')
-
-#     facs = facs / facs.sum()
-#     print(f'{facs = }')
-
-#     muv_check = facs @ mups
+#     muv_check = uniqfacps @ mups
 #     print(f'{muv_check = }')
 
 #     muv_check_sum += muv_check
+
+#     mue1 = pres.mue[mesh_edgea.ind]
+#     mue2 = pres.mue[mesh_edgeb.ind]
+#     mup = pres.mud[panel.ind]
+#     print(f'{mue1 = }')
+#     print(f'{mue2 = }')
+#     print(f'{mup = }')
+
+#     mue1_chk = pres.mud[mesh_edgea.indps] @ facpa
+#     mue2_chk = pres.mud[mesh_edgeb.indps] @ facpb
+
+#     print(f'{mue1_chk = }')
+#     print(f'{mue2_chk = }')
 
 # print('\n========================================\n')
 
@@ -307,5 +311,3 @@ ffrcplot.display()
 # print(f'{muv_check_sum / len(panels) = }')
 # print(f'{muv = }')
 # print(f'{mups_avg = }')
-
-# # %%

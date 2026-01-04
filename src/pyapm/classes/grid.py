@@ -169,28 +169,28 @@ def panel_groups_from_grid(grid: Grid) -> list[list['Panel']]:
 
     return panel_groups
 
-def vertices_parray(vertices: list[Vertex],
-                    num_dpanel: int) -> 'NDArray':
-    num_verts = len(vertices)
-    parray = zeros((num_verts, num_dpanel), dtype=float)
-    for vertex in vertices:
-        distances = []
-        indices = []
-        for panel in vertex.panels:
-            distance = (vertex - panel.pnto).return_magnitude()
-            distances.append(distance)
-            indices.append(panel.ind)
-        distances = asarray(distances)
-        rec_distances = zeros(distances.shape)
-        reciprocal(distances, where=distances!=0.0, out=rec_distances)
-        check = distances == 0.0
-        if check.any():
-            rec_distances[check] = 1.0
-            rec_distances[~check] = 0.0
-        rec_distances_sum = rec_distances.sum()
-        weights = rec_distances / rec_distances_sum
-        parray[vertex.ind, indices] = weights
-    return parray
+# def vertices_parray(vertices: list[Vertex],
+#                     num_dpanel: int) -> 'NDArray':
+#     num_verts = len(vertices)
+#     parray = zeros((num_verts, num_dpanel), dtype=float)
+#     for vertex in vertices:
+#         distances = []
+#         indices = []
+#         for panel in vertex.panels:
+#             distance = (vertex - panel.pnto).return_magnitude()
+#             distances.append(distance)
+#             indices.append(panel.ind)
+#         distances = asarray(distances)
+#         rec_distances = zeros(distances.shape)
+#         reciprocal(distances, where=distances!=0.0, out=rec_distances)
+#         check = distances == 0.0
+#         if check.any():
+#             rec_distances[check] = 1.0
+#             rec_distances[~check] = 0.0
+#         rec_distances_sum = rec_distances.sum()
+#         weights = rec_distances / rec_distances_sum
+#         parray[vertex.ind, indices] = weights
+#     return parray
 
 # def vertices_parray(vertices: list[Vertex],
 #                     num_dpanel: int) -> 'NDArray':
@@ -206,6 +206,20 @@ def vertices_parray(vertices: list[Vertex],
 #             indp = panel.vert_indps[indv]
 #             velp = panel.vert_velps[indv]
 #             Dmue = velp.dot(dirl)
-#             parray[vertex.ind, panel.ind] += 1.0/numpanel
+#             Dmue = Dmue / Dmue.sum()
+#             # parray[vertex.ind, panel.ind] += 1.0/numpanel
 #             parray[vertex.ind, indp] += Dmue/numpanel
 #     return parray
+
+def vertices_parray(vertices: list[Vertex],
+                    num_dpanel: int) -> 'NDArray':
+    num_verts = len(vertices)
+    parray = zeros((num_verts, num_dpanel), dtype=float)
+    for vertex in vertices:
+        numpanel = len(vertex.panels)
+        for panel in vertex.panels:
+            indv = panel.vertices.index(vertex)
+            indps = panel.vert_indps[indv]
+            facps = panel.vert_facps[indv]
+            parray[vertex.ind, indps] += facps / numpanel
+    return parray

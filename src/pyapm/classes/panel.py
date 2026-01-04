@@ -63,7 +63,7 @@ class Panel():
     _edge_indps: dict[int, 'NDArray'] = None
     _edge_velps: dict[int, Vector2D] = None
     _vert_indps: dict[int, 'NDArray'] = None
-    _vert_velps: dict[int, Vector2D] = None
+    _vert_facps: dict[int, 'NDArray'] = None
 
     def __init__(self, pid: int, grids: list[Grid]) -> None:
         self.pid = pid
@@ -312,21 +312,48 @@ class Panel():
                 self._edge_velps[i] = self._edge_velp
 
     def calc_vertex_gradient(self) -> None:
+
         self._vert_indps: dict[int, 'NDArray'] = dict()
-        self._vert_velps: dict[int, Vector2D] = dict()
+        self._vert_facps: dict[int, 'NDArray'] = dict()
+
         for indv in range(self.num):
-            inda, indb = indv, indv + 1
+
+            vertex = self.vertices[indv]
+
+            inda = indv
+            indb = indv + 1
             if indv + 1 == self.num:
                 indb = 0
-            coninds = concatenate((self.edge_indps[inda], self.edge_indps[indb]))
-            convelx = concatenate((self.edge_velps[inda].x, self.edge_velps[indb].x))
-            convely = concatenate((self.edge_velps[inda].y, self.edge_velps[indb].y))
-            uniqinds, invinds = unique(coninds, return_inverse=True)
-            uniqvelx = bincount(invinds, weights=convelx)
-            uniqvely = bincount(invinds, weights=convely)
-            uniqvels = Vector2D(uniqvelx, uniqvely)
-            self._vert_indps[indv] = uniqinds
-            self._vert_velps[indv] = uniqvels
+
+            mesh_edgea = self.mesh_edges[inda]
+            mesh_edgeb = self.mesh_edges[indb]
+            indpa = mesh_edgea.indps
+            indpb = mesh_edgeb.indps
+            facpa = mesh_edgea.facps
+            facpb = mesh_edgeb.facps
+
+            veca = self.crd.point_to_local(mesh_edgea.edge_point)
+            vecb = self.crd.point_to_local(mesh_edgeb.edge_point)
+            vecv = self.crd.point_to_local(vertex)
+            dira = Vector2D.from_obj(veca)
+            dirb = Vector2D.from_obj(vecb)
+            dirv = Vector2D.from_obj(vecv)
+
+            denom = dira.cross(dirb)
+            muafac = facpa * dirv.cross(dirb) / denom
+            mubfac = facpb * dira.cross(dirv) / denom
+            mupfac = denom + dirv.cross(dira) + dirb.cross(dirv)
+            mupfac = mupfac / denom
+
+
+            conindps = concatenate(([self.ind], indpa, indpb))
+            confacps = concatenate(([mupfac], muafac, mubfac))
+
+            uniqindps, invinds = unique(conindps, return_inverse=True)
+            uniqfacps = bincount(invinds, weights=confacps)
+
+            self._vert_indps[indv] = uniqindps
+            self._vert_facps[indv] = uniqfacps
 
     @property
     def edge_velp(self) -> Vector2D:
@@ -359,10 +386,10 @@ class Panel():
         return self._vert_indps
 
     @property
-    def vert_velps(self) -> dict[int, Vector2D]:
-        if self._vert_velps is None:
+    def vert_facps(self) -> dict[int, 'NDArray']:
+        if self._vert_facps is None:
             self.calc_vertex_gradient()
-        return self._vert_velps
+        return self._vert_facps
 
     @property
     def facets(self) -> list[Face]:

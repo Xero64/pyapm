@@ -366,8 +366,8 @@ class PanelResult():
                     self._mud += ctrlrad*(self.unmud[:, indo].dot(self.ofs))
         return self._mud
 
-    def calc_muv(self, mup: 'NDArray') -> 'NDArray':
-        return self.system.vertices_parray @ mup
+    def calc_muv(self, mud: 'NDArray') -> 'NDArray':
+        return self.system.vertices_parray @ mud
 
     @property
     def muv(self):
@@ -375,17 +375,17 @@ class PanelResult():
             self._muv = self.calc_muv(self.mud)
         return self._muv
 
-    def calc_mue(self, mud: 'NDArray', muw: 'NDArray') -> 'NDArray':
-        return self.system.edges_parrayd @ mud + self.system.edges_parrayw @ muw
+    def calc_mue(self, mud: 'NDArray') -> 'NDArray':
+        return self.system.edges_parray @ mud
 
     @property
     def mue(self):
         if self._mue is None:
-            self._mue = self.calc_mue(self.mud, self.muw)
+            self._mue = self.calc_mue(self.mud)
         return self._mue
 
-    def calc_mug(self, mu: 'NDArray') -> 'NDArray':
-        return self.system.grids_parray @ mu
+    def calc_mug(self, mud: 'NDArray') -> 'NDArray':
+        return self.system.grids_parray @ mud
 
     @property
     def mug(self):
@@ -1275,7 +1275,7 @@ class FaceResult():
     @property
     def fmue(self) -> 'NDArray':
         if self._fmue is None:
-            self._fmue = self.result.calc_mue(self.fmud, self.fmuw)
+            self._fmue = self.result.calc_mue(self.fmud)
         return self._fmue
 
     @property
