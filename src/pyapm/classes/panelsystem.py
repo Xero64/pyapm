@@ -39,12 +39,15 @@ def matrix_inverse(mat: 'NDArray') -> 'NDArray':
 
     if USE_CUPY:
         try:
-            from numpy import asarray as np_asarray
             from cupy import asarray as cp_asarray
+            from cupy import asnumpy
             from cupy.linalg import inv
-            cmat = cp_asarray(mat)
-            cinv = inv(cmat)
-            cinv = np_asarray(cinv)
+            cp_cmat = cp_asarray(mat)
+            cp_cinv = inv(cp_cmat)
+            del cp_cmat
+            cinv = asnumpy(cp_cinv)
+            del cp_cinv
+
         except Exception as e:
             print('Cupy inverse failed, reverting to numpy inverse.')
             print(e)
