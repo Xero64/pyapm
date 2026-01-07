@@ -6,7 +6,6 @@ from typing import TYPE_CHECKING, Any
 
 # from matplotlib.pyplot import figure
 from numpy import eye, zeros
-from numpy.linalg import inv
 from py2md.classes import MDTable
 from pygeom.geom2d import Vector2D
 from pygeom.geom3d import Vector
@@ -32,6 +31,30 @@ if TYPE_CHECKING:
     from .face import Face
     from .grid import Vertex
     from .panelstrip import PanelStrip
+
+
+def matrix_inverse(mat: 'NDArray') -> 'NDArray':
+
+    from .. import USE_CUPY
+
+    if USE_CUPY:
+        try:
+            from numpy import asarray as np_asarray
+            from cupy import asarray as cp_asarray
+            from cupy.linalg import inv
+            cmat = cp_asarray(mat)
+            cinv = inv(cmat)
+            cinv = np_asarray(cinv)
+        except Exception as e:
+            print('Cupy inverse failed, reverting to numpy inverse.')
+            print(e)
+            from numpy.linalg import inv
+            cinv = inv(mat)
+    else:
+        from numpy.linalg import inv
+        cinv = inv(mat)
+
+    return cinv
 
 
 class PanelSystem():
@@ -739,7 +762,7 @@ class PanelSystem():
         if mach not in self._ainv:
             print(f'Calculating inverse of A matrix for Mach {mach}...')
             start = perf_counter()
-            self._ainv[mach] = inv(self.aphdd(mach))
+            self._ainv[mach] = matrix_inverse(self.aphdd(mach))
             finish = perf_counter()
             elapsed = finish - start
             print(f'A matrix inverse calculation time is {elapsed:.3f} seconds.')
@@ -1018,7 +1041,7 @@ class PanelSystem():
         Km = Cm@Ai
 
         Gm = Dm - Km@Bm
-        Gi = inv(Gm)
+        Gi = matrix_inverse(Gm)
 
         Lm = Bm@Gi
 
