@@ -71,11 +71,7 @@ class PanelPlot:
         return Plot(**kwargs)
 
     def calculate_faces(self) -> None:
-        # num_faces = 0
-        # num_verts = 0
-        # for panel in self.system.dpanels.values():
-        #     num_faces += panel.num
-        #     num_verts += panel.num*3
+
         num_faces = self.system.num_dfacets
         num_verts = self.system.num_dfacets*3
         self._finds = zeros(num_verts, dtype=uint32)
@@ -109,27 +105,8 @@ class PanelPlot:
             self._faces[i, 2] = i*3 + 2
             self._fpnts[i, :] = dfacet.cord.pnt.to_xyz()
 
-        # k = 0
-        # l = 0
-        # for i, panel in enumerate(self.system.dpanels.values()):
-        #     self._pntos[i, :] = panel.pnto.to_xyz()
-        #     for j in range(panel.num):
-        #         self._pinds[k] = panel.ind
-        #         self._vinds[k] = panel.grids[j - 1].ind + self.system.num_dpanels
-        #         self._verts[k, :] = panel.grids[j - 1].to_xyz()
-        #         self._faces[l, 0] = k
-        #         k += 1
-        #         self._pinds[k] = panel.ind
-        #         self._vinds[k] = panel.grids[j].ind + self.system.num_dpanels
-        #         self._verts[k, :] = panel.grids[j].to_xyz()
-        #         self._faces[l, 1] = k
-        #         k += 1
-        #         self._pinds[k] = panel.ind
-        #         self._vinds[k] = panel.ind
-        #         self._verts[k, :] = panel.pnto.to_xyz()
-        #         self._faces[l, 2] = k
-        #         k += 1
-        #         l += 1
+        for dpanel in self.system.dpanels.values():
+            self._pntos[dpanel.ind, :] = dpanel.pnto.to_xyz()
 
     @property
     def pinds(self) -> 'NDArray':
@@ -280,12 +257,22 @@ class PanelPlot:
 
     def face_vectors(self, vecs: 'Vector', **kwargs: dict[str, Any]) -> 'Vectors':
         scale = kwargs.pop('scale', 1.0)
-        mags = vecs.return_magnitude()
-        defcmap = matplotlib_color_maps.Turbo
-        colors = map_colors(mags, color_map=defcmap).reshape((-1, 1)).repeat(2, axis=1).flatten().astype(uint32).tolist()
+        mags = vecs.dot(self.system.dfacet_dirz)
+        vecbeg = self.fpnts
         values = vecs.stack_xyz().astype(float32)*scale
-        kwargs['colors'] = kwargs.setdefault('colors', colors)
-        return vectors(self.fpnts, values, **kwargs)
+        kwargs['colors'] = kwargs.setdefault('colors', None)
+        if kwargs['colors'] is None:
+            defcmap = matplotlib_color_maps.Turbo
+            colors = map_colors(-mags, color_map=defcmap).reshape((-1, 1)).repeat(2, axis=1).flatten().astype(uint32).tolist()
+            kwargs['colors'] = colors
+        reverse = kwargs.pop('reverse', True)
+        if reverse:
+            maglt0 = mags < 0.0
+            values[maglt0, :] = -values[maglt0, :]
+            vecend = self.fpnts + values
+            vecbeg[maglt0, :] = vecend[maglt0, :]
+            values[maglt0, :] = -values[maglt0, :]
+        return vectors(vecbeg, values, **kwargs)
 
     def face_vectors_plot(self, vecs: 'Vector', **kwargs: dict[str, Any]) -> 'Vectors':
         return self.face_vectors(vecs, **kwargs)
@@ -300,13 +287,13 @@ class PanelPlot:
             raise ValueError('Result must be set to plot face forces.')
         cpvec = self.result.fres.ffrc/self.system.dfacet_area/self.result.qfs
         cpmin = kwargs.pop('cpmin', None)
+        cpmax = kwargs.pop('cpmax', None)
+        if cpmin is not None or cpmax is not None:
+            cpmag = cpvec.dot(self.system.dfacet_dirz)
         if cpmin is not None:
             cpchk = cpmag < cpmin
-            cpmag = cpvec.dot(self.system.dfacet_dirz)
             cpvec[cpchk] = cpmin*self.system.dfacet_dirz[cpchk]
-        cpmax = kwargs.pop('cpmax', None)
         if cpmax is not None:
             cpchk = cpmag > cpmax
-            cpmag = cpvec.dot(self.system.dfacet_dirz)
             cpvec[cpchk] = cpmax*self.system.dfacet_dirz[cpchk]
         return self.face_vectors_plot(cpvec, **kwargs)
