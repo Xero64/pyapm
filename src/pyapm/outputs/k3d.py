@@ -299,4 +299,14 @@ class PanelPlot:
         if self.result is None:
             raise ValueError('Result must be set to plot face forces.')
         cpvec = self.result.fres.ffrc/self.system.dfacet_area/self.result.qfs
+        cpmin = kwargs.pop('cpmin', None)
+        if cpmin is not None:
+            cpchk = cpmag < cpmin
+            cpmag = cpvec.dot(self.system.dfacet_dirz)
+            cpvec[cpchk] = cpmin*self.system.dfacet_dirz[cpchk]
+        cpmax = kwargs.pop('cpmax', None)
+        if cpmax is not None:
+            cpchk = cpmag > cpmax
+            cpmag = cpvec.dot(self.system.dfacet_dirz)
+            cpvec[cpchk] = cpmax*self.system.dfacet_dirz[cpchk]
         return self.face_vectors_plot(cpvec, **kwargs)
