@@ -74,6 +74,13 @@ class Face():
         return self._vertexb
 
     @property
+    def no_load(self) -> bool:
+        no_load = False
+        if self.panel.no_load:
+            no_load = True
+        return no_load
+
+    @property
     def pointo(self) -> Vector:
         if self._pointo is None:
             self._pointo = (self.grida + self.gridb + self.gridc)/3

@@ -23,7 +23,7 @@ class PanelSheet():
     section_1: 'PanelSection' = None
     section_2: 'PanelSection' = None
     _ruled: bool = None
-    _noload: bool = None
+    _no_load: bool = None
     _nomesh: bool = None
     _nohsv: bool = None
     _bnum: int = None
@@ -64,21 +64,21 @@ class PanelSheet():
         return self._ruled
 
     @property
-    def noload(self) -> bool:
+    def no_load(self) -> bool:
         if self._noload is None:
             if self.mirror:
-                self._noload = self.section_2.noload
+                self._noload = self.section_2.no_load
             else:
-                self._noload = self.section_1.noload
+                self._noload = self.section_1.no_load
         return self._noload
 
     @property
-    def nomesh(self) -> bool:
+    def no_mesh(self) -> bool:
         if self._nomesh is None:
             if self.mirror:
-                self._nomesh = self.section_2.nomesh
+                self._nomesh = self.section_2.no_mesh
             else:
-                self._nomesh = self.section_1.nomesh
+                self._nomesh = self.section_1.no_mesh
         return self._nomesh
 
     @property
@@ -156,7 +156,7 @@ class PanelSheet():
     def profiles(self) -> list[PanelProfile]:
         if self._profiles is None:
             self._profiles = []
-            if not self.nomesh:
+            if not self.no_mesh:
                 pointdir = self.section_2.point - self.section_1.point
                 for bd in self.bdst[1:-1]:
                     point = self.section_1.point + bd*pointdir
@@ -191,7 +191,7 @@ class PanelSheet():
     def strips(self):
         if self._strips is None:
             self._strips = []
-            if not self.nomesh:
+            if not self.no_mesh:
                 if len(self.profiles) == 0:
                     strip = PanelStrip(self.section_1, self.section_2)
                     strip.sheet = self
@@ -230,7 +230,7 @@ class PanelSheet():
 
     def mesh_grids(self, gid: int) -> int:
         self.grids = []
-        if not self.nomesh:
+        if not self.no_mesh:
             for profile in self.profiles:
                 gid = profile.mesh_grids(gid)
                 self.grids += profile.grids
@@ -239,7 +239,7 @@ class PanelSheet():
     def mesh_panels(self, pid: int) -> int:
         self.dpanels = []
         self.wpanels = []
-        if not self.nomesh:
+        if not self.no_mesh:
             for strip in self.strips:
                 pid = strip.mesh_panels(pid)
                 for panel in strip.dpanels:

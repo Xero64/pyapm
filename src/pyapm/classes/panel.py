@@ -140,7 +140,7 @@ class Panel():
     @property
     def area(self):
         if self._area is None:
-            if self.noload:
+            if self.no_load:
                 self._area = 0.0
             else:
                 self._area = self.sumaxb.return_magnitude()/2
@@ -153,15 +153,15 @@ class Panel():
         return self._nrm
 
     @property
-    def noload(self) -> bool:
-        noload = False
+    def no_load(self) -> bool:
+        no_load = False
         if self.sheet is not None:
-            noload = self.sheet.noload
+            no_load = self.sheet.no_load
         if self.section is not None:
-            noload = self.section.noload
+            no_load = self.section.no_load
         if self.group is not None:
-            noload = self.group.noload
-        return noload
+            no_load = self.group.no_load
+        return no_load
 
     @property
     def nohsv(self) -> bool:

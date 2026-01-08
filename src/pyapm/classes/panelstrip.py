@@ -56,8 +56,8 @@ class PanelStrip():
         self._surface = surface
 
     @property
-    def noload(self) -> bool:
-        return self.sheet.noload
+    def no_load(self) -> bool:
+        return self.sheet.no_load
 
     @property
     def nohsv(self) -> bool:

@@ -10,7 +10,7 @@ class PanelGroup:
     _panels: list['Panel'] = None
     _controls: dict[str, 'PanelControl'] = None
     exclude: bool = False
-    noload: bool = False
+    no_load: bool = False
     nohsv: bool = False
 
     def __init__(self, name: str) -> None:

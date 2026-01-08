@@ -1316,6 +1316,7 @@ class FaceResult():
         if self._fcp is None:
             fvelm = self.fvel.return_magnitude()
             self._fcp = 1.0 - (fvelm/self.result.speed)**2
+            self._fcp[self.system.dfacet_no_load] = 0.0
         return self._fcp
 
     @property
@@ -2084,7 +2085,7 @@ class FarFieldResult():
             num = len(system.strips)
             self._drag = zeros(num)
             for i, strip in enumerate(system.strips):
-                if not strip.noload:
+                if not strip.no_load:
                     self._drag[i] = -self.res.rho*self.wash[i]*self.circ[i]*strip.width/2
         return self._drag
 
@@ -2095,7 +2096,7 @@ class FarFieldResult():
             num = len(system.strips)
             self._side = zeros(num)
             for i, strip in enumerate(system.strips):
-                if not strip.noload:
+                if not strip.no_load:
                     if not strip.nohsv:
                         pnla = strip.dpanels[0]
                         pnlb = strip.dpanels[-1]
@@ -2116,7 +2117,7 @@ class FarFieldResult():
             num = len(system.strips)
             self._lift = zeros(num)
             for i, strip in enumerate(system.strips):
-                if not strip.noload:
+                if not strip.no_load:
                     if not strip.nohsv:
                         pnla = strip.dpanels[0]
                         pnlb = strip.dpanels[-1]

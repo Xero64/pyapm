@@ -145,6 +145,7 @@ class PanelSystem():
     _dfacet_diry: Vector2D = None
     _dfacet_dirz: Vector2D = None
     _dfacet_area: 'NDArray' = None
+    _dfacet_no_load: 'NDArray' = None
 
     def __init__(self, name: str, bref: float, cref: float,
                  sref: float, rref: Vector) -> None:
@@ -813,6 +814,7 @@ class PanelSystem():
         self._dfacet_vele = Vector2D.zeros(self.num_dfacets)
         self._dfacet_indp = zeros(self.num_dfacets, dtype=int)
         self._dfacet_velp = Vector2D.zeros(self.num_dfacets)
+        self._dfacet_no_load = zeros(self.num_dfacets, dtype=bool)
 
         for i, facet in enumerate(self.dfacets):
             facet.ind = i
@@ -827,6 +829,7 @@ class PanelSystem():
             self._dfacet_vele[i] = facet.vele
             self._dfacet_indp[i] = facet.indp
             self._dfacet_velp[i] = facet.velp
+            self._dfacet_no_load[i] = facet.no_load
 
         # print(f'{self._dfacet_pnts.x = }')
         # print(f'{self._dfacet_pnts.y = }')
@@ -916,6 +919,12 @@ class PanelSystem():
         if self._dfacet_area is None:
             self.assemble_dfacets()
         return self._dfacet_area
+
+    @property
+    def dfacet_no_load(self) -> 'NDArray':
+        if self._dfacet_no_load is None:
+            self.assemble_dfacets()
+        return self._dfacet_no_load
 
     # def assemble_panels_vel(self, *, mach: float = 0.0) -> None:
     #     if self._apd is None:
@@ -1282,7 +1291,7 @@ class PanelSystem():
             grpname = group_dict.get('name', f'Group {groupid}')
             groups[groupid] = PanelGroup(grpname)
             groups[groupid].exclude = group_dict.get('exclude', False)
-            groups[groupid].noload = group_dict.get('noload', False)
+            groups[groupid].no_load = group_dict.get('no_load', False)
             groups[groupid].nohsv = group_dict.get('nohsv', False)
         system.groups = groups
 

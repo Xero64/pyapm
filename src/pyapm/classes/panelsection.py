@@ -30,8 +30,8 @@ class PanelSection(PanelProfile):
     grids: list[Grid] = None
     dpanels: list[Panel] = None
     ruled: bool = None
-    noload: bool = None
-    nomesh: bool = None
+    no_load: bool = None
+    no_mesh: bool = None
     controls: dict[str, PanelControl] = None
     _thkcor: float = None
     _scttyp: str = None
@@ -44,10 +44,10 @@ class PanelSection(PanelProfile):
         self.update()
 
     def update(self) -> None:
-        self.noload = False
+        self.no_load = False
         self.mirror = False
         self.airfoil = NACA4('0012')
-        self.nomesh = False
+        self.no_mesh = False
         self.nohsv = False
         self.controls = {}
         self.cdo = 0.0
@@ -62,8 +62,8 @@ class PanelSection(PanelProfile):
         sect.mirror = True
         sect.bnum = self.bnum
         sect.bspc = self.bspc
-        sect.nomesh = self.nomesh
-        sect.noload = self.noload
+        sect.no_mesh = self.no_mesh
+        sect.no_load = self.no_load
         sect.nohsv = self.nohsv
         sect.xoc = self.xoc
         sect.zoc = self.zoc
@@ -108,8 +108,8 @@ class PanelSection(PanelProfile):
             if len(code) == 4:
                 self.airfoil = NACA4(code)
 
-    def set_noload(self, noload: bool) -> None:
-        self.noload = noload
+    def set_noload(self, no_load: bool) -> None:
+        self.no_load = no_load
 
     def set_cdo(self, cdo: float) -> None:
         self.cdo = cdo
@@ -143,21 +143,21 @@ class PanelSection(PanelProfile):
     def scttyp(self) -> str:
         if self._scttyp is None:
             if self.sheet_a is None:
-                if self.sheet_b.nomesh:
+                if self.sheet_b.no_mesh:
                     self._scttyp = 'notip'
                 else:
                     self._scttyp = 'begtip'
             elif self.sheet_b is None:
-                if self.sheet_a.nomesh:
+                if self.sheet_a.no_mesh:
                     self._scttyp = 'notip'
                 else:
                     self._scttyp = 'endtip'
             else:
-                if self.sheet_a.nomesh and self.sheet_b.nomesh:
+                if self.sheet_a.no_mesh and self.sheet_b.no_mesh:
                     self._scttyp = 'notip'
-                elif self.sheet_a.nomesh:
+                elif self.sheet_a.no_mesh:
                     self._scttyp = 'begtip'
-                elif self.sheet_b.nomesh:
+                elif self.sheet_b.no_mesh:
                     self._scttyp = 'endtip'
                 else:
                     self._scttyp = 'notip'
@@ -259,13 +259,13 @@ class PanelSection(PanelProfile):
         twist = sectdata.get('twist', defaults.get('twist', None))
         airfoil = sectdata.get('airfoil', defaults.get('airfoil', None))
         cdo = sectdata.get('cdo', defaults.get('cdo', 0.0))
-        noload = sectdata.get('noload', defaults.get('noload', False))
+        no_load = sectdata.get('no_load', defaults.get('no_load', False))
         section = PanelSection(point, chord, twist)
         section.bpos = sectdata.get('bpos', None)
         section.xoc = sectdata.get('xoc', defaults.get('xoc', None))
         section.zoc = sectdata.get('zoc', defaults.get('zoc', None))
         section.set_cdo(cdo)
-        section.set_noload(noload)
+        section.set_noload(no_load)
         section.set_airfoil(airfoil)
         if 'bnum' in sectdata and 'bspc' in sectdata:
             bnum = sectdata['bnum']
@@ -280,10 +280,10 @@ class PanelSection(PanelProfile):
             section.set_tilt(sectdata['tilt'])
         if 'nohsv' in sectdata:
             section.nohsv = sectdata['nohsv']
-        if 'nomesh' in sectdata:
-            section.nomesh = sectdata['nomesh']
-            if section.nomesh:
-                section.noload = True
+        if 'no_mesh' in sectdata:
+            section.no_mesh = sectdata['no_mesh']
+            if section.no_mesh:
+                section.no_load = True
                 # section.nohsv = True
         if 'controls' in sectdata:
             for name in sectdata['controls']:
