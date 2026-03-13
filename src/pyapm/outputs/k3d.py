@@ -30,7 +30,8 @@ class PanelPlot:
     _fpnts: 'NDArray'
     _finds: 'NDArray'
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = ('_system', '_result', '_pinds', '_verts', '_faces', '_pntos',
+                 '_grids', '_vinds', '_fpnts', '_finds')
 
     def __init__(self, system: 'PanelSystem | None' = None,
                  result: 'PanelResult | None' = None) -> None:

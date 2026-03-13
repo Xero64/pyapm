@@ -21,7 +21,8 @@ class MassObject():
     Iyz: float
     _Imat: 'NDArray'
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = ('name', 'mass', 'xcm', 'ycm', 'zcm',
+                 'Ixx', 'Iyy', 'Izz', 'Ixy', 'Ixz', 'Iyz', '_Imat')
 
     def __init__(self, name: str | None = None, mass: float = 1.0,
                  xcm: float = 0.0, ycm: float = 0.0, zcm: float = 0.0,

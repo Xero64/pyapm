@@ -823,11 +823,11 @@ class PanelSystem():
             self._dfacet_diry[i] = facet.cord.diry
             self._dfacet_dirz[i] = facet.cord.dirz
             self._dfacet_area[i] = facet.area
-            self._dfacet_indv[i] = facet.indv
+            self._dfacet_indv[i] = facet.indv.item()
             self._dfacet_velv[i] = facet.velv
-            self._dfacet_inde[i] = facet.inde
+            self._dfacet_inde[i] = facet.inde.item()
             self._dfacet_vele[i] = facet.vele
-            self._dfacet_indp[i] = facet.indp
+            self._dfacet_indp[i] = facet.indp.item()
             self._dfacet_velp[i] = facet.velp
             self._dfacet_no_load[i] = facet.no_load
 
