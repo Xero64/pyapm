@@ -2,6 +2,8 @@ from .constantgrid import ConstantGrid
 from .constantedge import ConstantEdge
 
 
+__SLOTS__ = ('grda', 'grdb', 'grdc', '_edgab', '_edgbc', '_edgca', '_jac', '_area')
+
 class Triangle():
     grda: ConstantGrid
     grdb: ConstantGrid
@@ -12,7 +14,7 @@ class Triangle():
     _jac: float
     _area: float
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = __SLOTS__
 
     def __init__(self, grda: ConstantGrid, grdb: ConstantGrid, grdc: ConstantGrid) -> None:
         self.grda = grda

@@ -11,6 +11,8 @@ if TYPE_CHECKING:
     from .constantgrid import Grid
 
 
+__SLOTS__ = ('name', '_posgain', '_neggain', '_position', '_vector', '_point', '_panels', '_panel_index', '_grids', '_grid_index')
+
 class ControlObject:
     name: str
     _posgain: float
@@ -23,7 +25,7 @@ class ControlObject:
     _grids: list['Grid']
     _grid_index: 'NDArray'
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = __SLOTS__
 
     def __init__(self, name: str) -> None:
         self.name = name
@@ -145,7 +147,9 @@ class ConstantControl:
     _index: tuple[int, int]
     _normal_change_approx: Vector
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = ('name', 'system', 'control_objects', '_hinge_vectors',
+                 '_hinge_points', '_hinge_normals', '_index',
+                 '_normal_change_approx')
 
     def __init__(self, name: str, system: 'ConstantSystem') -> None:
         self.name = name

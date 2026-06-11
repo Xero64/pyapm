@@ -5,6 +5,7 @@ from pygeom.geom3d import Vector
 if TYPE_CHECKING:
     from .constanttriangle import Triangle
 
+__SLOTS__ = ('grda', 'grdb', 'tria', '_vecab')
 
 class ConstantEdge():
     grda: Vector
@@ -12,7 +13,7 @@ class ConstantEdge():
     tria: 'Triangle'
     _vecab: Vector
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = __SLOTS__
 
     def __init__(self, grda: Vector, grdb: Vector, tria: 'Triangle') -> None:
         self.grda = grda

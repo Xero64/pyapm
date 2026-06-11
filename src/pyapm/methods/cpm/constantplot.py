@@ -14,6 +14,8 @@ if TYPE_CHECKING:
 SET_SET = {'_system', '_result'}
 
 
+__SLOTS__ = ('_system', '_result', '_dpanel_pinds', '_dpanel_verts', '_dpanel_faces', '_dpanel_pntos', '_npanel_pinds', '_npanel_verts', '_npanel_faces', '_npanel_pntos', '_grids')
+
 class ConstantPlot:
     _system: 'ConstantSystem'
     _result: 'ConstantResult | None'
@@ -27,7 +29,7 @@ class ConstantPlot:
     _npanel_pntos: 'NDArray'
     _grids: 'NDArray'
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = __SLOTS__
 
     def __init__(self, system: 'ConstantSystem | None' = None,
                  result: 'ConstantResult | None' = None) -> None:

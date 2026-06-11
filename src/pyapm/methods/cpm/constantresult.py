@@ -47,6 +47,16 @@ class TransformDerivative:
         return vec.__class__(x, y, z)
 
 
+__SLOTS__ = ('name', 'system', 'rho', 'mach', 'speed', 'alpha', 'beta',
+             'pbo2v', 'qco2v', 'rbo2v', 'ctrls', 'rcg', 'CDo', 'mass',
+             'trim_result', '_acs', '_scs', '_dacsa', '_dscsa', '_qfs',
+             '_vfs', '_dvfsa', '_dvfsb', '_pqr', '_ofs', '_nrel',
+             '_nnormal_approx', '_nnrml', '_nvel', '_drel',
+             '_dnormal_approx', '_dnrml', '_dvel', '_grel',
+             '_sig', '_mud', '_mun', '_muw', '_result', '_mup',
+             '_ctrl_results', '_ctrl_der_res', '_stab_der_res',
+             '_modes', '_strip_results')
+
 class ConstantResult:
     name: str
     system: 'ConstantSystem'
@@ -94,7 +104,7 @@ class ConstantResult:
     _modes: 'StabilityModes'
     _strip_results: dict[str, 'StripResult']
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = __SLOTS__
 
     def __init__(self, name: str, system: 'ConstantSystem') -> None:
         self.name = name
@@ -772,7 +782,11 @@ class DirectResult:
     _Cy: float
     _Cz: float
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = ('result', 'sig', 'mud', 'mun', 'muw', 'vfs', 'ofs',
+                 '_qS', '_ngvel', '_nlvec', '_ngfrc', '_ngmom', '_nfrc',
+                 '_nmom', '_drago', '_dragi', '_drag', '_side', '_lift',
+                 '_roll', '_pitch', '_yaw', '_CDi', '_CD', '_CY', '_CL',
+                 '_Cl', '_Cm', '_Cn', '_e', '_lod', '_Cx', '_Cy', '_Cz')
 
     def __init__(self, result: ConstantResult, sig: 'NDArray',
                  mud: 'NDArray', mun: 'NDArray', muw: 'NDArray',
@@ -1192,7 +1206,9 @@ class StabilityResult:
     _xnp: float
     _sprat: float
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = ('result', '_u', '_v', '_w', '_p', '_q', '_r',
+                 '_alpha', '_beta', '_pbo2V', '_qco2V', '_rbo2V',
+                 '_pdbo2V', '_qdco2V', '_rdbo2V', '_xnp', '_sprat')
 
     def __init__(self, result: ConstantResult) -> None:
         self.result = result
@@ -1502,7 +1518,7 @@ class StabilityModes:
     _eigvals: 'NDArray'
     _eigvecs: 'NDArray'
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = ('result', '_Asys', '_eigvals', '_eigvecs')
 
     def __init__(self, result: ConstantResult) -> None:
         self.result = result
@@ -1727,7 +1743,7 @@ class TrimResult:
     initstate: dict[str, float]
     initctrls: dict[str, float]
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = ('result', 'targets', 'initstate', 'initctrls')
 
     def __init__(self, result: ConstantResult) -> None:
         self.result = result
@@ -1936,7 +1952,7 @@ class StripResult:
     _strip_forces: Vector
     _strip_distribution: Vector
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = ('result', 'surface', '_strip_forces', '_strip_distribution')
 
     def __init__(self, result: ConstantResult,
                  surface: 'ConstantSurface') -> None:

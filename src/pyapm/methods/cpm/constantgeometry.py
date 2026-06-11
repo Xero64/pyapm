@@ -14,7 +14,7 @@ if TYPE_CHECKING:
 class ConstantGeometry:
     surfaces: dict[str, 'ConstantSurface']
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = ('surfaces')
 
     def __init__(self):
         self.surfaces = {}
@@ -27,6 +27,10 @@ class ConstantGeometry:
     def get_surface(self, name: str) -> 'ConstantSurface':
         return self.surfaces[name]
 
+
+__SLOTS__ = ('name', 'points', 'ppoints', 'pnormals', 'grids', 'panels',
+             'npanels', 'wpanels', '_npoints', '_ngridindex', '_ngridarea',
+             '_area', '_tegrids', '_y', '_z', '_Db', '_b', '_w')
 
 class ConstantSurface:
     name: str
@@ -48,7 +52,7 @@ class ConstantSurface:
     _b: 'NDArray'
     _w: 'NDArray'
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = __SLOTS__
 
     def __init__(self, name: str) -> None:
         self.name = name

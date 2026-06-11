@@ -22,6 +22,21 @@ if TYPE_CHECKING:
 DISPLAY = False
 
 
+__SLOTS__ = ('name', 'geometry', 'dpanels', 'npanels', 'wpanels', 'ctrls', 'rref', 'bref', 'cref', 'sref', 'CDo', 'mass',
+             '_ar', '_grids', '_num_grids', '_dpoints', '_npoints', '_dnormal', '_nnormal', '_drel', '_nrel', '_avnd', '_avns', '_avnn', '_avnw',
+             '_avdd', '_avds', '_avdn', '_avdw', '_amdd', '_amds', '_amdn', '_amdw', '_amnd', '_amns', '_amnn', '_amnw',
+             '_amwd', '_amwn', '_amww', '_amat', '_bmat', '_cmat', '_dmat',
+             '_unsig', '_evecd', '_evecn', '_evec', '_fvec',
+             '_ainv', '_kmat', '_hvec',
+             '_unmud', '_unmun', '_unmuw',
+             '_gridvec', '_gridarea',
+             '_avgd', '_avgs', '_avgn', '_avgw',
+             '_blgd', '_blgn', '_blgw',
+             '_results',
+             '_dtriarr', '_dgrida', '_dgridb', '_dgridc',
+             '_ntriarr', '_ngrida', '_ngridb', '_ngridc',
+             '_wgrida', '_wgridb', '_wdirl')
+
 class ConstantSystem():
     name: str
     geometry: ConstantGeometry
@@ -100,7 +115,7 @@ class ConstantSystem():
     _wgridb: Vector
     _wdirl: Vector
 
-    __slots__ = tuple(__annotations__)
+    __slots__ = __SLOTS__
 
     def __init__(self, name: str, dpanels: list[ConstantPanel],
                  npanels: list[ConstantPanel], wpanels: list[ConstantWakePanel]) -> None:
