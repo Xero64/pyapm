@@ -1463,7 +1463,6 @@ class StabilityResult:
         table.add_column('C<sub>mq</sub>', sfrm, data=[self.qco2V.Cm])
         table.add_column('C<sub>nq</sub>', sfrm, data=[self.qco2V.Cn])
         table = report.add_table()
-        table.add_column('C<sub>Dr</sub>', sfrm, data=[self.rbo2V.CD])
         table.add_column('C<sub>Lr</sub>', sfrm, data=[self.rbo2V.CL])
         table.add_column('C<sub>Yr</sub>', sfrm, data=[self.rbo2V.CY])
         table.add_column('C<sub>lr</sub>', sfrm, data=[self.rbo2V.Cl])
