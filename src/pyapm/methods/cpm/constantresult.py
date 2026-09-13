@@ -138,6 +138,17 @@ class ConstantResult:
         self.rbo2v = kwargs.get('rbo2v', self.rbo2v)
         self.reset()
 
+    def to_result(self, name: str='') -> 'ConstantResult':
+        if name == '':
+            name = self.name
+        res = ConstantResult(name, self.system)
+        res.rho = self.rho
+        res.set_state(speed=self.speed, alpha=self.alpha, beta=self.beta,
+                      pbo2v=self.pbo2v, qco2v=self.qco2v, rbo2v=self.rbo2v)
+        res.set_controls(**self.ctrls)
+        res.rcg = self.rcg
+        return res
+
     def get_state(self) -> dict[str, float]:
         return {'speed': self.speed, 'alpha': self.alpha, 'beta': self.beta,
                 'pbo2v': self.pbo2v, 'qco2v': self.qco2v, 'rbo2v': self.rbo2v}
@@ -1452,6 +1463,7 @@ class StabilityResult:
         table.add_column('C<sub>mq</sub>', sfrm, data=[self.qco2V.Cm])
         table.add_column('C<sub>nq</sub>', sfrm, data=[self.qco2V.Cn])
         table = report.add_table()
+        table.add_column('C<sub>Dr</sub>', sfrm, data=[self.rbo2V.CD])
         table.add_column('C<sub>Lr</sub>', sfrm, data=[self.rbo2V.CL])
         table.add_column('C<sub>Yr</sub>', sfrm, data=[self.rbo2V.CY])
         table.add_column('C<sub>lr</sub>', sfrm, data=[self.rbo2V.Cl])
